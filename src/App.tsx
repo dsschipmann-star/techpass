@@ -149,15 +149,14 @@ function LandingPage({ state, navigate }: { state: AppState; navigate: (path: st
           </div>
 
           <div className="relative">
-            <div className="absolute -right-5 -top-5 hidden h-28 w-28 border border-tech-neon/20 lg:block" />
             <div className="rounded-lg border border-white/10 bg-[#050505] p-4 shadow-2xl shadow-tech-neon/10">
-              <div className="rounded-md border border-tech-neon/45 bg-[linear-gradient(135deg,#080908_0%,#171915_58%,#8DFF2A_205%)] p-6">
-                <div className="flex items-start justify-between gap-6">
-                  <div>
+              <div className="rounded-md border border-tech-neon/45 bg-[linear-gradient(135deg,#080908_0%,#171915_58%,#8DFF2A_205%)] p-5 sm:p-6">
+                <div className="grid gap-6 sm:grid-cols-[1fr_112px] sm:items-start">
+                  <div className="min-w-0">
                     <p className="text-xs font-black uppercase text-tech-neon">TechPass físico</p>
-                    <h2 className="mt-3 text-3xl font-black text-white">Um cartão. Um segredo. Uma ativação segura.</h2>
+                    <h2 className="mt-3 max-w-md text-3xl font-black leading-tight text-white">Um cartão. Um segredo. Uma ativação segura.</h2>
                   </div>
-                  {samplePass && <QrCode serial={samplePass.serial} size={112} />}
+                  {samplePass && <div className="w-max rounded-lg bg-white p-2 shadow-xl shadow-black/30"><QrCode serial={samplePass.serial} size={96} /></div>}
                 </div>
                 <div className="mt-10 grid gap-3 sm:grid-cols-2">
                   <LandingFeature icon={ScanLine} title="QR permanente" text="A URL não muda; o status do benefício muda." />
