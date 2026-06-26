@@ -35,8 +35,8 @@ Sem variáveis de ambiente, o MVP roda em modo demonstração com localStorage, 
 
 - Cadastro e inativação de empresas parceiras.
 - Geração de TechPass em lote com serial único e QR Code permanente.
-- Exportação de QR Codes em PNG, cópia de serial e abertura da página pública.
-- Página pública por serial com mensagens por status.
+- Exportação de QR Codes em PNG, cópia de serial, número secreto e abertura da página pública.
+- Página pública por serial com explicação do TechPass e pré-cadastro protegido pelo número secreto do TechPass físico.
 - Ativação presencial apenas pelo painel administrativo.
 - Regra de um TechPass ativo por CPF.
 - Gestão de cliente vinculado, cashback, indicações e trocas de película.

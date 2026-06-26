@@ -2,6 +2,7 @@ export type EmpresaStatus = 'ativa' | 'inativa';
 
 export type TechPassStatus =
   | 'AGUARDANDO_ATIVACAO'
+  | 'PRE_CADASTRADO'
   | 'ATIVO'
   | 'SUSPENSO'
   | 'CANCELADO'
@@ -40,6 +41,8 @@ export interface TechPass {
   cliente_id: string | null;
   status: TechPassStatus;
   qr_code_url: string;
+  secret_code: string;
+  pre_registered_at: string | null;
   activated_at: string | null;
   expires_at: string | null;
   peliculas_restantes: number;

@@ -30,6 +30,7 @@ import {
   getCashbackBalance,
   getClientName,
   getEmpresaName,
+  getTechPassSecret,
   useTechPassStore,
 } from './lib/store';
 import type { AppState, CashbackTipo, IndicacaoStatus, RecompensaTipo, TechPass, TechPassStatus } from './types';
@@ -51,7 +52,7 @@ const NAV_ITEMS: Array<{ id: View; label: string; icon: typeof Activity }> = [
 ];
 
 function getSerialFromPath(pathname: string) {
-  const match = pathname.match(/^/techpass/([^/]+)/);
+  const match = pathname.match(/^\/techpass\/([^/]+)/);
   return match ? decodeURIComponent(match[1]) : null;
 }
 
@@ -94,7 +95,7 @@ function App() {
 
   const publicSerial = getSerialFromPath(path);
   if (publicSerial) {
-    return <PublicTechPassPage serial={publicSerial} state={state} onBack={() => navigate('/')} />;
+    return <PublicTechPassPage serial={publicSerial} state={state} actions={actions} />;
   }
 
   return (
@@ -288,7 +289,7 @@ function GerarTechPassScreen({ state, actions }: { state: AppState; actions: Ret
   const submit = (event: FormEvent) => {
     event.preventDefault();
     actions.generateTechPass(empresaId, prefix, quantity);
-    setMessage('Lote gerado com sucesso. Os QR Codes já apontam para /techpass/{serial}.');
+    setMessage('Lote gerado com sucesso. O QR abre a página pública e o número secreto fica para impressão no TechPass físico.');
   };
 
   return (
@@ -318,6 +319,7 @@ function GerarTechPassScreen({ state, actions }: { state: AppState; actions: Ret
                 <div>
                   <p className="font-mono text-sm font-black text-white">{item.serial}</p>
                   <p className="mt-1 text-xs text-zinc-400">{getEmpresaName(state, item.empresa_id)}</p>
+                  <p className="mt-2 font-mono text-xs font-bold text-tech-neon">Segredo: {getTechPassSecret(item)}</p>
                 </div>
                 <QrCode serial={item.serial} size={76} />
               </div>
@@ -339,6 +341,10 @@ function ExportarQrCodesScreen({ state, navigatePublic }: { state: AppState; nav
 
   const copySerial = async (serial: string) => {
     await navigator.clipboard.writeText(serial);
+  };
+
+  const copySecret = async (techpass: TechPass) => {
+    await navigator.clipboard.writeText(getTechPassSecret(techpass));
   };
 
   const downloadQr = async (serial: string) => {
@@ -365,11 +371,13 @@ function ExportarQrCodesScreen({ state, navigatePublic }: { state: AppState; nav
             <div>
               <p className="font-mono text-base font-black text-white">{item.serial}</p>
               <p className="mt-1 text-sm text-zinc-400">{getEmpresaName(state, item.empresa_id)}</p>
+              <p className="mt-2 font-mono text-sm font-bold text-tech-neon">Número secreto: {getTechPassSecret(item)}</p>
               <div className="mt-3"><StatusPill status={getEffectiveStatus(item)} /></div>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" onClick={() => downloadQr(item.serial)}><Download className="h-4 w-4" />PNG</Button>
               <Button variant="secondary" onClick={() => copySerial(item.serial)}><Copy className="h-4 w-4" />Copiar serial</Button>
+              <Button variant="secondary" onClick={() => copySecret(item)}><Copy className="h-4 w-4" />Copiar segredo</Button>
               <Button onClick={() => navigatePublic('/techpass/' + item.serial)}><ExternalLink className="h-4 w-4" />Abrir página</Button>
             </div>
           </Card>
@@ -385,12 +393,23 @@ function AtivarTechPassScreen({ state, actions }: { state: AppState; actions: Re
   const [selectedSerial, setSelectedSerial] = useState('');
   const [form, setForm] = useState({ nome: '', cpf: '', telefone: '', email: '' });
   const [message, setMessage] = useState('');
-  const waiting = state.techpasses.filter((item) => item.status === 'AGUARDANDO_ATIVACAO');
+  const waiting = state.techpasses.filter((item) => item.status === 'AGUARDANDO_ATIVACAO' || item.status === 'PRE_CADASTRADO');
   const results = waiting.filter((item) => {
     const haystack = [item.serial, item.qr_code_url, getEmpresaName(state, item.empresa_id)].join(' ').toLowerCase();
     return haystack.includes(query.toLowerCase());
   });
   const selected = state.techpasses.find((item) => item.serial === selectedSerial) ?? null;
+
+  useEffect(() => {
+    if (!selected?.cliente_id) {
+      setForm({ nome: '', cpf: '', telefone: '', email: '' });
+      return;
+    }
+    const client = state.clientes.find((item) => item.id === selected.cliente_id);
+    if (client) {
+      setForm({ nome: client.nome, cpf: client.cpf, telefone: client.telefone, email: client.email });
+    }
+  }, [selected?.cliente_id, selected?.serial, state.clientes]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -428,6 +447,7 @@ function AtivarTechPassScreen({ state, actions }: { state: AppState; actions: Re
         <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
             <h3 className="text-lg font-black text-white">Dados do cliente</h3>
+            {selected?.status === 'PRE_CADASTRADO' && <p className="mt-2 text-sm text-tech-neon">Cliente já fez o cadastro pelo QR. Confira documento, TechPass físico e dados antes de ativar.</p>}
             {selected ? <p className="mt-1 text-sm text-zinc-400">Ativando {selected.serial} · {getEmpresaName(state, selected.empresa_id)}</p> : <p className="mt-1 text-sm text-zinc-400">Selecione um TechPass aguardando ativação.</p>}
           </div>
           <Field label="Nome completo"><Input required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></Field>
@@ -690,7 +710,7 @@ function ClientesScreen({ state }: { state: AppState }) {
   );
 }
 
-function PublicTechPassPage({ serial, state }: { serial: string; state: AppState; onBack: () => void }) {
+function PublicTechPassPage({ serial, state, actions }: { serial: string; state: AppState; actions: ReturnType<typeof useTechPassStore>['actions'] }) {
   const techpass = state.techpasses.find((item) => item.serial.toLowerCase() === serial.toLowerCase());
   if (!techpass) {
     return <PublicShell><StatusPublic title="TECHPASS NÃO ENCONTRADO" tone="danger" /></PublicShell>;
@@ -703,15 +723,19 @@ function PublicTechPassPage({ serial, state }: { serial: string; state: AppState
   return (
     <PublicShell>
       {status === 'AGUARDANDO_ATIVACAO' && (
+        <PreCadastroPublicCard techpass={techpass} empresaName={empresa?.nome ?? 'TechSoft'} actions={actions} />
+      )}
+      {status === 'PRE_CADASTRADO' && (
         <Card className="mx-auto max-w-3xl p-6 sm:p-8">
-          <div className="grid gap-6 md:grid-cols-[1fr_150px] md:items-start">
-            <div>
-              <StatusPill status={status} />
-              <h1 className="mt-5 text-3xl font-black text-white sm:text-5xl">Parabéns! Você recebeu um TechPass Premium.</h1>
-              <p className="mt-4 text-xl font-semibold text-tech-neon">Seu benefício já é seu. Falta apenas ativá-lo presencialmente na TechSoft.</p>
-              <p className="mt-4 text-zinc-300">Para liberar suas vantagens, compareça à loja TechSoft com seu TechPass e um documento oficial com foto.</p>
-            </div>
-            <QrCode serial={techpass.serial} size={150} />
+          <StatusPill status={status} />
+          <h1 className="mt-5 text-3xl font-black text-white sm:text-5xl">Cadastro recebido.</h1>
+          <p className="mt-4 text-xl font-semibold text-tech-neon">Agora falta a ativação presencial na loja.</p>
+          <p className="mt-4 text-zinc-300">Leve o TechPass físico e um documento oficial com foto. A equipe da TechSoft confere seus dados e libera os benefícios no balcão.</p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <Info label="TechPass" value={techpass.serial} />
+            <Info label="Empresa parceira" value={empresa?.nome ?? 'Empresa'} />
+            <Info label="Cliente" value={cliente?.nome ?? 'Cadastro pendente'} />
+            <Info label="Pré-cadastro" value={formatDate(techpass.pre_registered_at)} />
           </div>
           <BenefitsList />
         </Card>
@@ -741,6 +765,55 @@ function PublicTechPassPage({ serial, state }: { serial: string; state: AppState
       {status === 'CANCELADO' && <StatusPublic title="TECHPASS CANCELADO" description="Os benefícios deste TechPass não estão mais disponíveis." tone="danger" />}
       {status === 'EXPIRADO' && <StatusPublic title="TECHPASS EXPIRADO" description="Este benefício encerrou sua validade." tone="neutral" />}
     </PublicShell>
+  );
+}
+
+function PreCadastroPublicCard({ techpass, empresaName, actions }: { techpass: TechPass; empresaName: string; actions: ReturnType<typeof useTechPassStore>['actions'] }) {
+  const [form, setForm] = useState({ nome: '', cpf: '', telefone: '', email: '', secretCode: '' });
+  const [message, setMessage] = useState('');
+  const [done, setDone] = useState(false);
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const result = actions.preRegisterTechPass(techpass.serial, form.secretCode, {
+      nome: form.nome,
+      cpf: form.cpf,
+      telefone: form.telefone,
+      email: form.email,
+    });
+    setMessage(result.message);
+    setDone(result.ok);
+  };
+
+  return (
+    <Card className="mx-auto max-w-4xl p-6 sm:p-8">
+      <div className="grid gap-8 lg:grid-cols-[1fr_340px] lg:items-start">
+        <div>
+          <StatusPill status={techpass.status} />
+          <h1 className="mt-5 text-3xl font-black text-white sm:text-5xl">Ative seu TechPass Premium em 2 etapas.</h1>
+          <p className="mt-4 text-xl font-semibold text-tech-neon">Primeiro, confirme o número secreto do TechPass físico e cadastre seus dados.</p>
+          <p className="mt-4 text-zinc-300">Depois, vá até a loja TechSoft com o TechPass físico e um documento oficial com foto. A ativação dos benefícios acontece somente no atendimento presencial.</p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <Info label="TechPass" value={techpass.serial} />
+            <Info label="Empresa parceira" value={empresaName} />
+          </div>
+          <BenefitsList />
+        </div>
+        <form onSubmit={submit} className="rounded-lg border border-white/10 bg-black/25 p-4">
+          <h2 className="text-lg font-black text-white">Cadastro inicial</h2>
+          <p className="mt-1 text-sm text-zinc-400">O número secreto fica impresso no TechPass físico.</p>
+          <div className="mt-4 grid gap-3">
+            <Field label="Número secreto"><Input required value={form.secretCode} onChange={(e) => setForm({ ...form, secretCode: e.target.value.toUpperCase() })} placeholder="Ex: SG-7K2P" disabled={done} /></Field>
+            <Field label="Nome completo"><Input required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} disabled={done} /></Field>
+            <Field label="CPF"><Input required value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} placeholder="000.000.000-00" disabled={done} /></Field>
+            <Field label="Telefone"><Input required value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} disabled={done} /></Field>
+            <Field label="E-mail"><Input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} disabled={done} /></Field>
+            <Button type="submit" disabled={done}><UserCheck className="h-4 w-4" />Enviar cadastro</Button>
+            {message && <p className={cx('text-sm', done ? 'text-tech-neon' : 'text-red-200')}>{message}</p>}
+          </div>
+        </form>
+      </div>
+    </Card>
   );
 }
 

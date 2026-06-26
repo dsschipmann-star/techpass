@@ -22,7 +22,23 @@ export function makeId(prefix: string) {
 }
 
 export function cleanCpf(cpf: string) {
-  return cpf.replace(/D/g, '');
+  return cpf.replace(/\D/g, '');
+}
+
+export function normalizeSecretCode(value: string) {
+  return value.trim().toUpperCase().replace(/\s+/g, '');
+}
+
+export function getTechPassSecret(techpass: Pick<TechPass, 'serial'> & Partial<Pick<TechPass, 'secret_code'>>) {
+  if (techpass.secret_code) return techpass.secret_code;
+  const cleanSerial = techpass.serial.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+  return cleanSerial.slice(-8).replace(/^(.{2})/, '$1-');
+}
+
+function createSecretCode(serial: string) {
+  const base = serial.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return (base.slice(0, 2) || 'TP') + '-' + random;
 }
 
 export function formatMoney(value: number) {
@@ -127,7 +143,7 @@ export function useTechPassStore() {
           ...current,
           empresas: current.empresas.map((item) => item.id === id ? { ...item, status: nextStatus } : item),
           techpasses: nextStatus === 'inativa'
-            ? current.techpasses.map((item) => item.empresa_id === id && (item.status === 'ATIVO' || item.status === 'AGUARDANDO_ATIVACAO') ? { ...item, status: 'SUSPENSO' } : item)
+            ? current.techpasses.map((item) => item.empresa_id === id && (item.status === 'ATIVO' || item.status === 'AGUARDANDO_ATIVACAO' || item.status === 'PRE_CADASTRADO') ? { ...item, status: 'SUSPENSO' } : item)
             : current.techpasses,
         };
       });
@@ -155,6 +171,8 @@ export function useTechPassStore() {
             cliente_id: null,
             status: 'AGUARDANDO_ATIVACAO',
             qr_code_url: '/techpass/' + serial,
+            secret_code: createSecretCode(serial),
+            pre_registered_at: null,
             activated_at: null,
             expires_at: null,
             peliculas_restantes: 6,
@@ -164,6 +182,57 @@ export function useTechPassStore() {
         return { ...current, techpasses: [...created, ...current.techpasses] };
       });
       return created;
+    },
+    preRegisterTechPass(serial: string, secretCode: string, clientPayload: Omit<Cliente, 'id' | 'created_at' | 'codigo_indicacao'>) {
+      let result: { ok: boolean; message: string } = { ok: false, message: 'TechPass nao encontrado.' };
+      setState((current) => {
+        const techpass = current.techpasses.find((item) => item.serial.toLowerCase() === serial.toLowerCase());
+        if (!techpass) {
+          result = { ok: false, message: 'TechPass nao encontrado.' };
+          return current;
+        }
+        const empresa = current.empresas.find((item) => item.id === techpass.empresa_id);
+        if (empresa?.status !== 'ativa') {
+          result = { ok: false, message: 'Este TechPass esta indisponivel no momento.' };
+          return current;
+        }
+        if (techpass.status !== 'AGUARDANDO_ATIVACAO') {
+          result = { ok: false, message: 'Este TechPass nao aceita novo cadastro.' };
+          return current;
+        }
+        if (normalizeSecretCode(secretCode) !== normalizeSecretCode(getTechPassSecret(techpass))) {
+          result = { ok: false, message: 'Numero secreto invalido. Confira o TechPass fisico.' };
+          return current;
+        }
+        const cpf = cleanCpf(clientPayload.cpf);
+        const existingClient = current.clientes.find((item) => cleanCpf(item.cpf) === cpf);
+        const hasActive = existingClient
+          ? current.techpasses.some((item) => item.cliente_id === existingClient.id && item.status === 'ATIVO')
+          : false;
+        if (hasActive) {
+          result = { ok: false, message: 'Este CPF ja possui um TechPass ativo.' };
+          return current;
+        }
+        const clientId = existingClient?.id ?? makeId('cli');
+        const client: Cliente = existingClient ?? {
+          ...clientPayload,
+          id: clientId,
+          codigo_indicacao: techpass.serial + '-IND',
+          created_at: new Date().toISOString(),
+        };
+        result = { ok: true, message: 'Cadastro recebido. Agora va ate a loja com documento e TechPass fisico para ativar.' };
+        return {
+          ...current,
+          clientes: existingClient ? current.clientes.map((item) => item.id === existingClient.id ? { ...item, ...clientPayload, codigo_indicacao: item.codigo_indicacao || techpass.serial + '-IND' } : item) : [client, ...current.clientes],
+          techpasses: current.techpasses.map((item) => item.id === techpass.id ? {
+            ...item,
+            cliente_id: clientId,
+            status: 'PRE_CADASTRADO',
+            pre_registered_at: new Date().toISOString(),
+          } : item),
+        };
+      });
+      return result;
     },
     activateTechPass(serial: string, clientPayload: Omit<Cliente, 'id' | 'created_at' | 'codigo_indicacao'>) {
       let result: { ok: boolean; message: string } = { ok: false, message: 'TechPass não encontrado.' };
@@ -178,7 +247,7 @@ export function useTechPassStore() {
           result = { ok: false, message: 'A empresa parceira está inativa. Reative a empresa antes de ativar o TechPass.' };
           return current;
         }
-        if (techpass.status !== 'AGUARDANDO_ATIVACAO') {
+        if (techpass.status !== 'AGUARDANDO_ATIVACAO' && techpass.status !== 'PRE_CADASTRADO') {
           result = { ok: false, message: 'Este TechPass não está aguardando ativação.' };
           return current;
         }

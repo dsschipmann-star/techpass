@@ -5,6 +5,8 @@ Projeto: TechPass Premium, clube de benefícios da TechSoft.
 ## Regras que devem permanecer
 
 - Cliente não ativa TechPass pelo site.
+- QR Code abre uma página explicativa pública; o cliente só consegue fazer o pré-cadastro informando o número secreto impresso no TechPass físico.
+- Após o pré-cadastro, a ativação continua obrigatoriamente presencial na loja.
 - Ativação apenas presencial por funcionário TechSoft.
 - Exigir documento oficial com foto antes de ativar ou liberar benefícios.
 - Mesmo CPF não pode ter dois TechPass ativos.

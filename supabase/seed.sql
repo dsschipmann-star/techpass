@@ -21,19 +21,21 @@ on conflict (id) do update set
   email = excluded.email,
   codigo_indicacao = excluded.codigo_indicacao;
 
-insert into techpass (id, serial, empresa_id, cliente_id, status, qr_code_url, activated_at, expires_at, peliculas_restantes)
+insert into techpass (id, serial, empresa_id, cliente_id, status, qr_code_url, secret_code, pre_registered_at, activated_at, expires_at, peliculas_restantes)
 values
-  ('tp-sg-000001', 'TP-SG-000001', 'emp-super-geeks', null, 'AGUARDANDO_ATIVACAO', '/techpass/TP-SG-000001', null, null, 6),
-  ('tp-sg-000002', 'TP-SG-000002', 'emp-super-geeks', 'cli-maria', 'ATIVO', '/techpass/TP-SG-000002', now() - interval '2 months', now() + interval '10 months', 4),
-  ('tp-sg-000003', 'TP-SG-000003', 'emp-super-geeks', null, 'SUSPENSO', '/techpass/TP-SG-000003', null, null, 6),
-  ('tp-fc-000001', 'TP-FC-000001', 'emp-fight-core', null, 'AGUARDANDO_ATIVACAO', '/techpass/TP-FC-000001', null, null, 6),
-  ('tp-fc-000002', 'TP-FC-000002', 'emp-fight-core', null, 'CANCELADO', '/techpass/TP-FC-000002', null, null, 6)
+  ('tp-sg-000001', 'TP-SG-000001', 'emp-super-geeks', null, 'AGUARDANDO_ATIVACAO', '/techpass/TP-SG-000001', 'SG-7K2P', null, null, null, 6),
+  ('tp-sg-000002', 'TP-SG-000002', 'emp-super-geeks', 'cli-maria', 'ATIVO', '/techpass/TP-SG-000002', 'SG-4M9Q', now() - interval '2 months', now() - interval '2 months', now() + interval '10 months', 4),
+  ('tp-sg-000003', 'TP-SG-000003', 'emp-super-geeks', null, 'SUSPENSO', '/techpass/TP-SG-000003', 'SG-8T1Z', null, null, null, 6),
+  ('tp-fc-000001', 'TP-FC-000001', 'emp-fight-core', null, 'AGUARDANDO_ATIVACAO', '/techpass/TP-FC-000001', 'FC-5R6X', null, null, null, 6),
+  ('tp-fc-000002', 'TP-FC-000002', 'emp-fight-core', null, 'CANCELADO', '/techpass/TP-FC-000002', 'FC-2N4B', null, null, null, 6)
 on conflict (id) do update set
   serial = excluded.serial,
   empresa_id = excluded.empresa_id,
   cliente_id = excluded.cliente_id,
   status = excluded.status,
   qr_code_url = excluded.qr_code_url,
+  secret_code = excluded.secret_code,
+  pre_registered_at = excluded.pre_registered_at,
   activated_at = excluded.activated_at,
   expires_at = excluded.expires_at,
   peliculas_restantes = excluded.peliculas_restantes;
