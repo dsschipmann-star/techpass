@@ -14,7 +14,255 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cashback_movements: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          descricao: string | null
+          id: string
+          techpass_id: string
+          tipo: Database["public"]["Enums"]["cashback_tipo"]
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          techpass_id: string
+          tipo: Database["public"]["Enums"]["cashback_tipo"]
+          valor: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          techpass_id?: string
+          tipo?: Database["public"]["Enums"]["cashback_tipo"]
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashback_movements_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cashback_movements_techpass_id_fkey"
+            columns: ["techpass_id"]
+            isOneToOne: false
+            referencedRelation: "techpass"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clientes: {
+        Row: {
+          codigo_indicacao: string | null
+          cpf: string
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          telefone: string | null
+        }
+        Insert: {
+          codigo_indicacao?: string | null
+          cpf: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+        }
+        Update: {
+          codigo_indicacao?: string | null
+          cpf?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+        }
+        Relationships: []
+      }
+      empresas: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          responsavel: string | null
+          status: Database["public"]["Enums"]["empresa_status"]
+          telefone: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          responsavel?: string | null
+          status?: Database["public"]["Enums"]["empresa_status"]
+          telefone?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          responsavel?: string | null
+          status?: Database["public"]["Enums"]["empresa_status"]
+          telefone?: string | null
+        }
+        Relationships: []
+      }
+      indicacoes: {
+        Row: {
+          cliente_indicador_id: string
+          created_at: string
+          id: string
+          nome_indicado: string
+          observacao: string | null
+          recompensa: Database["public"]["Enums"]["indicacao_recompensa"] | null
+          status: Database["public"]["Enums"]["indicacao_status"]
+          telefone_indicado: string | null
+          valor_servico: number | null
+        }
+        Insert: {
+          cliente_indicador_id: string
+          created_at?: string
+          id?: string
+          nome_indicado: string
+          observacao?: string | null
+          recompensa?:
+            | Database["public"]["Enums"]["indicacao_recompensa"]
+            | null
+          status?: Database["public"]["Enums"]["indicacao_status"]
+          telefone_indicado?: string | null
+          valor_servico?: number | null
+        }
+        Update: {
+          cliente_indicador_id?: string
+          created_at?: string
+          id?: string
+          nome_indicado?: string
+          observacao?: string | null
+          recompensa?:
+            | Database["public"]["Enums"]["indicacao_recompensa"]
+            | null
+          status?: Database["public"]["Enums"]["indicacao_status"]
+          telefone_indicado?: string | null
+          valor_servico?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicacoes_cliente_indicador_id_fkey"
+            columns: ["cliente_indicador_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      techpass: {
+        Row: {
+          activated_at: string | null
+          cliente_id: string | null
+          created_at: string
+          empresa_id: string
+          expires_at: string | null
+          id: string
+          peliculas_restantes: number
+          qr_code_url: string
+          serial: string
+          status: Database["public"]["Enums"]["techpass_status"]
+        }
+        Insert: {
+          activated_at?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          empresa_id: string
+          expires_at?: string | null
+          id?: string
+          peliculas_restantes?: number
+          qr_code_url: string
+          serial: string
+          status?: Database["public"]["Enums"]["techpass_status"]
+        }
+        Update: {
+          activated_at?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          empresa_id?: string
+          expires_at?: string | null
+          id?: string
+          peliculas_restantes?: number
+          qr_code_url?: string
+          serial?: string
+          status?: Database["public"]["Enums"]["techpass_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "techpass_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "techpass_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      utilizacoes: {
+        Row: {
+          beneficio: string
+          cliente_id: string
+          created_at: string
+          id: string
+          observacao: string | null
+          techpass_id: string
+        }
+        Insert: {
+          beneficio: string
+          cliente_id: string
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          techpass_id: string
+        }
+        Update: {
+          beneficio?: string
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          techpass_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "utilizacoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "utilizacoes_techpass_id_fkey"
+            columns: ["techpass_id"]
+            isOneToOne: false
+            referencedRelation: "techpass"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +271,16 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      cashback_tipo: "credito" | "debito"
+      empresa_status: "ativa" | "inativa"
+      indicacao_recompensa: "desconto" | "cashback" | "brinde"
+      indicacao_status: "pendente" | "aprovado" | "recusado"
+      techpass_status:
+        | "AGUARDANDO_ATIVACAO"
+        | "ATIVO"
+        | "SUSPENSO"
+        | "CANCELADO"
+        | "EXPIRADO"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +407,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      cashback_tipo: ["credito", "debito"],
+      empresa_status: ["ativa", "inativa"],
+      indicacao_recompensa: ["desconto", "cashback", "brinde"],
+      indicacao_status: ["pendente", "aprovado", "recusado"],
+      techpass_status: [
+        "AGUARDANDO_ATIVACAO",
+        "ATIVO",
+        "SUSPENSO",
+        "CANCELADO",
+        "EXPIRADO",
+      ],
+    },
   },
 } as const
