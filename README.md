@@ -1,47 +1,36 @@
-# TechPass Premium
+﻿# TechPass Premium
 
-MVP web da TechSoft para empresas parceiras emitirem e validarem TechPass Premium com QR Code, ativação presencial, clientes, cashback, indicações e validação interna.
+Front-end MVP da Rede TechPass para a TechSoft, criado com React, TypeScript, Tailwind CSS e Supabase.
 
-## Stack
+## Rotas principais
 
-- React
-- TypeScript
-- Tailwind CSS
-- Supabase
-- Vite
+- `/` - landing page institucional Rede TechPass.
+- `/techpass/:serial` - página pública do QR Code do cartão físico.
+- `/admin` - painel administrativo simples com login local de MVP.
 
-## Rodar localmente
+## Fluxo do cliente
 
-1. npm install
-2. npm run dev
-3. Acesse o endereço mostrado no terminal.
+1. Cliente recebe o TechPass físico de uma empresa parceira.
+2. Escaneia o QR Code permanente.
+3. Informa dados e o código físico secreto do cartão.
+4. O TechPass fica com status `PENDENTE_ATIVACAO`.
+5. A ativação final só acontece presencialmente na TechSoft, com documento oficial com foto.
 
-Rota pública de exemplo: /techpass/TP-SG-000001
+## Scripts
 
-## GitHub + Lovable
-
-Este diretório já está pronto para virar um repositório GitHub. Depois de subir o projeto, importe o repositório na Lovable e conecte as variáveis do Supabase no ambiente da Lovable.
+```bash
+npm install
+npm run dev
+npm run build
+```
 
 ## Supabase
 
-1. Crie um projeto no Supabase.
-2. Execute supabase/schema.sql no SQL Editor.
-3. Opcionalmente execute supabase/seed.sql para carregar dados de demonstração.
-4. Copie .env.example para .env e preencha VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.
+Execute `supabase/schema.sql` e, opcionalmente, `supabase/seed.sql` no SQL Editor do Supabase.
 
-Sem variáveis de ambiente, o MVP roda em modo demonstração com localStorage, preservando os fluxos principais para validação do produto. Com as variáveis configuradas, o app carrega e sincroniza dados nas tabelas do Supabase.
+Variáveis:
 
-## Fluxos do MVP
-
-- Cadastro e inativação de empresas parceiras.
-- Geração de TechPass em lote com serial único e QR Code permanente.
-- Exportação de QR Codes em PNG, cópia de serial, número secreto e abertura da página pública.
-- Página pública por serial com explicação do TechPass e pré-cadastro protegido pelo número secreto do TechPass físico.
-- Ativação presencial apenas pelo painel administrativo.
-- Regra de um TechPass ativo por CPF.
-- Gestão de cliente vinculado, cashback, indicações e trocas de película.
-- Tela interna de validação com ações rápidas para funcionário TechSoft.
-
-## Dados iniciais
-
-O MVP já vem com as empresas Super Geeks e Fight Core e alguns TechPass de demonstração.
+```bash
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```

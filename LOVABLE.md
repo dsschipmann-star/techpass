@@ -1,43 +1,25 @@
-# Guia para continuar na Lovable
+﻿# Lovable - TechPass Premium
 
-Projeto: TechPass Premium, clube de benefícios da TechSoft.
+Use este projeto como MVP React/Vite importado pelo GitHub.
 
-## Regras que devem permanecer
+## Rotas
 
-- Cliente não ativa TechPass pelo site.
-- QR Code abre uma página explicativa pública; o cliente só consegue fazer o pré-cadastro informando o número secreto impresso no TechPass físico.
-- Após o pré-cadastro, a ativação continua obrigatoriamente presencial na loja.
-- Ativação apenas presencial por funcionário TechSoft.
-- Exigir documento oficial com foto antes de ativar ou liberar benefícios.
-- Mesmo CPF não pode ter dois TechPass ativos.
-- Mesmo TechPass não pode ser ativado duas vezes.
-- QR Code é permanente e aponta para /techpass/:serial.
-- Empresa parceira inativa suspende TechPass vinculados.
+- `/` landing pública Rede TechPass.
+- `/techpass/TP-SG-000001` exemplo de QR Code com TechPass disponível.
+- `/techpass/TP-SG-000002` exemplo de TechPass ativo.
+- `/admin` painel administrativo MVP.
 
-## Conectar Supabase
+## Regras críticas
 
-1. Rodar supabase/schema.sql.
-2. Opcional: rodar supabase/seed.sql.
-3. Configurar variáveis no ambiente da Lovable:
-   - VITE_SUPABASE_URL
-   - VITE_SUPABASE_ANON_KEY
+- Cliente não ativa sozinho.
+- Cliente apenas solicita ativação com o código físico secreto.
+- Código físico só pode ser usado uma vez.
+- CPF não pode ter TechPass ativo ou pendente duplicado.
+- Ativação final é feita somente no painel administrativo, após conferência de documento oficial com foto.
 
-## Principais telas
+## Build
 
-- Dashboard
-- Empresas parceiras
-- Gerar TechPass em lote
-- Exportar QR Codes
-- Ativar TechPass
-- Validar TechPass
-- Cashback
-- Indicações
-- Clientes
-- Página pública /techpass/:serial
-
-## Próximos passos recomendados
-
-- Adicionar autenticação de funcionários TechSoft.
-- Criar políticas RLS antes de produção.
-- Separar permissões entre painel administrativo e página pública.
-- Melhorar máscara de CPF/telefone e validação de campos.
+```bash
+npm install
+npm run build
+```
