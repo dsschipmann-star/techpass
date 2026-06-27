@@ -50,6 +50,7 @@ export const EMPTY_STATE: AppState = {
   ofertas: [],
   leads: [],
   fight_core_indicacoes: [],
+  techsoft_indicacoes: [],
 };
 
 export function createInitialState(): AppState {
@@ -596,5 +597,19 @@ export function createInitialState(): AppState {
       },
     ],
     fight_core_indicacoes: [],
+    techsoft_indicacoes: [
+      {
+        id: 'tsind-maria-1',
+        cliente_id: 'cli-maria',
+        techpass_id: 'tp-sg-000002',
+        nome_indicado: 'Carlos Henrique',
+        telefone_indicado: '(11) 98888-2222',
+        observacao: 'Interessado em película e capinha.',
+        status: 'em_contato',
+        valor_compra: 0,
+        gerou_brinde: false,
+        created_at: now,
+      },
+    ],
   };
 }

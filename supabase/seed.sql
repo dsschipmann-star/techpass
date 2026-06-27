@@ -183,3 +183,14 @@ on conflict (id) do update set
   status = excluded.status,
   descricao = excluded.descricao,
   valor_compra = excluded.valor_compra;
+
+insert into techsoft_indicacoes (id, cliente_id, techpass_id, nome_indicado, telefone_indicado, observacao, status, valor_compra, gerou_brinde)
+values
+  ('tsind-maria-1', 'cli-maria', 'tp-sg-000002', 'Carlos Henrique', '(11) 98888-2222', 'Interessado em película e capinha.', 'em_contato', 0, false)
+on conflict (id) do update set
+  nome_indicado = excluded.nome_indicado,
+  telefone_indicado = excluded.telefone_indicado,
+  observacao = excluded.observacao,
+  status = excluded.status,
+  valor_compra = excluded.valor_compra,
+  gerou_brinde = excluded.gerou_brinde;

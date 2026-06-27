@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { createInitialState } from '../data';
 import { hasSupabaseConfig, supabase } from './supabase';
-import type { AppState, BeneficioServico, CashbackBalance, CashbackMovement, CashbackSetting, CashbackTransaction, Cliente, Empresa, Indicacao, IndicacaoFightCore, LeadParceiro, OfertaParceiro, ParceiroUsuario, PendingActivation, Solicitacao, TechPass, TechPassStatus, Utilizacao } from '../types';
+import type { AppState, BeneficioServico, CashbackBalance, CashbackMovement, CashbackSetting, CashbackTransaction, Cliente, Empresa, Indicacao, IndicacaoFightCore, IndicacaoTechSoft, LeadParceiro, OfertaParceiro, ParceiroUsuario, PendingActivation, Solicitacao, TechPass, TechPassStatus, Utilizacao } from '../types';
 
 const STORAGE_KEY = 'techpass-premium-state-v2';
 
@@ -21,6 +21,7 @@ function safeParse(value: string | null): AppState | null {
       ofertas: (parsed.ofertas ?? createInitialState().ofertas).map(normalizeOferta),
       leads: parsed.leads ?? [],
       fight_core_indicacoes: parsed.fight_core_indicacoes ?? [],
+      techsoft_indicacoes: parsed.techsoft_indicacoes ?? [],
       utilizacoes: (parsed.utilizacoes ?? []).map((item: any) => ({
         empresa_id: item.empresa_id ?? parsed.techpasses?.find((tp) => tp.id === item.techpass_id)?.empresa_id ?? 'emp-techsoft',
         solicitacao_id: item.solicitacao_id ?? null,
@@ -96,7 +97,7 @@ function normalizeOferta(oferta: any): OfertaParceiro {
 
 async function loadSupabaseState(): Promise<AppState | null> {
   if (!supabase) return null;
-  const [empresas, parceiroUsuarios, clientes, techpass, pending, cashback, cashbackSettings, cashbackBalances, cashbackTransactions, indicacoes, utilizacoes, beneficiosServicos, solicitacoes, ofertas, leads, fightCoreIndicacoes] = await Promise.all([
+  const [empresas, parceiroUsuarios, clientes, techpass, pending, cashback, cashbackSettings, cashbackBalances, cashbackTransactions, indicacoes, utilizacoes, beneficiosServicos, solicitacoes, ofertas, leads, fightCoreIndicacoes, techSoftIndicacoes] = await Promise.all([
     supabase.from('empresas').select('*').order('created_at', { ascending: false }),
     supabase.from('parceiro_usuarios').select('*').order('created_at', { ascending: false }),
     supabase.from('clientes').select('*').order('created_at', { ascending: false }),
@@ -113,8 +114,9 @@ async function loadSupabaseState(): Promise<AppState | null> {
     supabase.from('ofertas').select('*').order('created_at', { ascending: false }),
     supabase.from('leads').select('*').order('created_at', { ascending: false }),
     supabase.from('fight_core_indicacoes').select('*').order('created_at', { ascending: false }),
+    supabase.from('techsoft_indicacoes').select('*').order('created_at', { ascending: false }),
   ]);
-  const error = empresas.error ?? parceiroUsuarios.error ?? clientes.error ?? techpass.error ?? pending.error ?? cashback.error ?? cashbackSettings.error ?? cashbackBalances.error ?? cashbackTransactions.error ?? indicacoes.error ?? utilizacoes.error ?? beneficiosServicos.error ?? solicitacoes.error ?? ofertas.error ?? leads.error ?? fightCoreIndicacoes.error;
+  const error = empresas.error ?? parceiroUsuarios.error ?? clientes.error ?? techpass.error ?? pending.error ?? cashback.error ?? cashbackSettings.error ?? cashbackBalances.error ?? cashbackTransactions.error ?? indicacoes.error ?? utilizacoes.error ?? beneficiosServicos.error ?? solicitacoes.error ?? ofertas.error ?? leads.error ?? fightCoreIndicacoes.error ?? techSoftIndicacoes.error;
   if (error) throw error;
   return {
     empresas: empresas.data ?? [],
@@ -133,6 +135,7 @@ async function loadSupabaseState(): Promise<AppState | null> {
     ofertas: (ofertas.data ?? []).map(normalizeOferta),
     leads: leads.data ?? [],
     fight_core_indicacoes: fightCoreIndicacoes.data ?? [],
+    techsoft_indicacoes: techSoftIndicacoes.data ?? [],
   };
 }
 
@@ -155,6 +158,7 @@ async function syncSupabaseState(state: AppState) {
     state.ofertas.length ? supabase.from('ofertas').upsert(state.ofertas as any) : null,
     state.leads.length ? supabase.from('leads').upsert(state.leads as any) : null,
     state.fight_core_indicacoes.length ? supabase.from('fight_core_indicacoes').upsert(state.fight_core_indicacoes as any) : null,
+    state.techsoft_indicacoes.length ? supabase.from('techsoft_indicacoes').upsert(state.techsoft_indicacoes as any) : null,
   ].filter(Boolean);
   const results = await Promise.all(tasks);
   const failed = results.find((result: any) => result.error);
@@ -645,6 +649,23 @@ export function useTechPassStore() {
       setState((current) => ({
         ...current,
         fight_core_indicacoes: current.fight_core_indicacoes.map((item) => item.id === id ? { ...item, status } : item),
+      }));
+    },
+    addTechSoftIndicacao(payload: Omit<IndicacaoTechSoft, 'id' | 'status' | 'valor_compra' | 'gerou_brinde' | 'created_at'>) {
+      setState((current) => ({
+        ...current,
+        techsoft_indicacoes: [{ ...payload, id: makeId('tsind'), status: 'enviada', valor_compra: 0, gerou_brinde: false, created_at: new Date().toISOString() }, ...current.techsoft_indicacoes],
+      }));
+    },
+    updateTechSoftIndicacao(id: string, payload: Partial<Pick<IndicacaoTechSoft, 'status' | 'valor_compra' | 'observacao'>>) {
+      setState((current) => ({
+        ...current,
+        techsoft_indicacoes: current.techsoft_indicacoes.map((item) => {
+          if (item.id !== id) return item;
+          const next = { ...item, ...payload };
+          const gerouBrinde = ['comprou_fechou', 'brinde_liberado', 'brinde_retirado'].includes(next.status) && next.valor_compra > 0 && next.valor_compra <= 250;
+          return { ...next, gerou_brinde: gerouBrinde || next.status === 'brinde_liberado' || next.status === 'brinde_retirado' };
+        }),
       }));
     },
     updateBeneficioServico(id: string, payload: Partial<Omit<BeneficioServico, 'id' | 'created_at'>>) {

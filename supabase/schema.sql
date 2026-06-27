@@ -297,6 +297,19 @@ create table if not exists fight_core_indicacoes (
   created_at timestamptz not null default now()
 );
 
+create table if not exists techsoft_indicacoes (
+  id text primary key default gen_random_uuid()::text,
+  cliente_id text not null references clientes(id) on delete cascade,
+  techpass_id text not null references techpass(id) on delete cascade,
+  nome_indicado text not null,
+  telefone_indicado text not null,
+  observacao text not null default '',
+  status text not null default 'enviada' check (status in ('enviada', 'em_contato', 'comprou_fechou', 'nao_converteu', 'brinde_liberado', 'brinde_retirado')),
+  valor_compra numeric(10,2) not null default 0,
+  gerou_brinde boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
 create unique index if not exists techpass_cliente_ativo_pendente_unique
   on techpass(cliente_id)
   where cliente_id is not null and status in ('ATIVO', 'PENDENTE_ATIVACAO');
@@ -324,6 +337,8 @@ create index if not exists idx_ofertas_empresa on ofertas(empresa_id);
 create index if not exists idx_leads_empresa on leads(empresa_id);
 create index if not exists idx_leads_cliente on leads(cliente_id);
 create index if not exists idx_fight_indicacoes_cliente on fight_core_indicacoes(cliente_id);
+create index if not exists idx_techsoft_indicacoes_cliente on techsoft_indicacoes(cliente_id);
+create index if not exists idx_techsoft_indicacoes_status on techsoft_indicacoes(status);
 
 -- MVP: por padrão, RLS pode ficar desabilitado durante testes.
 -- Antes de produção, habilite Supabase Auth, RLS e políticas separando página pública e painel administrativo.

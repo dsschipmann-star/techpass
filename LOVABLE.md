@@ -36,6 +36,7 @@ Use este projeto como MVP React/Vite importado pelo GitHub.
 - Cashback é configurável por empresa parceira e pode ser definido por oferta.
 - Cashback de lead fechado nasce como `pendente`; a empresa aprova para virar `disponivel`.
 - Saldos de cashback são separados por empresa e não são dinheiro.
+- Indicações TechSoft exigem 15 contatos e liberam brinde surpresa quando 1 indicado compra/fecha serviço de até R$250.
 
 ## Acessos parceiros demo
 

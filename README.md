@@ -33,6 +33,7 @@ Front-end MVP da Rede TechPass para a TechSoft, criado com React, TypeScript, Ta
 - Admin TechPass aprova, reprova, solicita ajuste ou desativa ofertas antes de aparecerem para clientes.
 - Landing "Seja Parceiro TechPass" apresenta vouchers, pré-formulários, WhatsApp com mensagem pronta, painel parceiro, exemplos e planos conceituais.
 - Cada empresa parceira pode configurar cashback próprio, com saldo separado por empresa, regras por oferta, aprovação de créditos pendentes e histórico completo.
+- Indique e Ganhe agora inclui campanha TechSoft: 15 contatos enviados + 1 compra/serviço de até R$250 libera brinde surpresa na loja.
 
 ## Acessos demo de parceiros
 

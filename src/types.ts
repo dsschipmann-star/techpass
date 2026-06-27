@@ -26,6 +26,7 @@ export type OfertaTipo = 'plano' | 'aula_gratis' | 'servico' | 'brinde' | 'desco
 export type LeadStatus = 'novo' | 'contato_realizado' | 'negociacao' | 'fechado' | 'perdido' | 'cancelado';
 
 export type IndicacaoFightCoreStatus = 'enviada' | 'em_contato' | 'fechou_plano' | 'nao_fechou' | 'bonus_liberado';
+export type IndicacaoTechSoftStatus = 'enviada' | 'em_contato' | 'comprou_fechou' | 'nao_converteu' | 'brinde_liberado' | 'brinde_retirado';
 
 export type SolicitacaoStatus =
   | 'nova'
@@ -202,6 +203,19 @@ export interface IndicacaoFightCore {
   created_at: string;
 }
 
+export interface IndicacaoTechSoft {
+  id: string;
+  cliente_id: string;
+  techpass_id: string;
+  nome_indicado: string;
+  telefone_indicado: string;
+  observacao: string;
+  status: IndicacaoTechSoftStatus;
+  valor_compra: number;
+  gerou_brinde: boolean;
+  created_at: string;
+}
+
 export interface Utilizacao {
   id: string;
   cliente_id: string;
@@ -271,4 +285,5 @@ export interface AppState {
   ofertas: OfertaParceiro[];
   leads: LeadParceiro[];
   fight_core_indicacoes: IndicacaoFightCore[];
+  techsoft_indicacoes: IndicacaoTechSoft[];
 }
