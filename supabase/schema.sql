@@ -310,6 +310,30 @@ create table if not exists techsoft_indicacoes (
   created_at timestamptz not null default now()
 );
 
+create table if not exists notifications (
+  id text primary key default gen_random_uuid()::text,
+  user_id text,
+  empresa_id text references empresas(id) on delete set null,
+  tipo_usuario text not null check (tipo_usuario in ('admin', 'parceiro', 'cliente')),
+  titulo text not null,
+  descricao text not null default '',
+  tipo text not null check (tipo in ('informacao', 'sucesso', 'alerta', 'erro')),
+  url text not null default '',
+  lida boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists system_logs (
+  id text primary key default gen_random_uuid()::text,
+  nivel text not null check (nivel in ('info', 'warning', 'error', 'critical')),
+  usuario text not null default '',
+  empresa text not null default '',
+  pagina text not null default '',
+  descricao text not null default '',
+  stacktrace text not null default '',
+  created_at timestamptz not null default now()
+);
+
 create unique index if not exists techpass_cliente_ativo_pendente_unique
   on techpass(cliente_id)
   where cliente_id is not null and status in ('ATIVO', 'PENDENTE_ATIVACAO');
@@ -339,6 +363,12 @@ create index if not exists idx_leads_cliente on leads(cliente_id);
 create index if not exists idx_fight_indicacoes_cliente on fight_core_indicacoes(cliente_id);
 create index if not exists idx_techsoft_indicacoes_cliente on techsoft_indicacoes(cliente_id);
 create index if not exists idx_techsoft_indicacoes_status on techsoft_indicacoes(status);
+create index if not exists idx_notifications_tipo_usuario on notifications(tipo_usuario);
+create index if not exists idx_notifications_user on notifications(user_id);
+create index if not exists idx_notifications_empresa on notifications(empresa_id);
+create index if not exists idx_notifications_lida on notifications(lida);
+create index if not exists idx_system_logs_nivel on system_logs(nivel);
+create index if not exists idx_system_logs_created_at on system_logs(created_at);
 
 -- MVP: por padrão, RLS pode ficar desabilitado durante testes.
 -- Antes de produção, habilite Supabase Auth, RLS e políticas separando página pública e painel administrativo.

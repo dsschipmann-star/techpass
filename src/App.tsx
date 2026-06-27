@@ -1,10 +1,11 @@
-﻿import { useEffect, useMemo, useState } from 'react';
-import type { FormEvent, ReactNode } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import {
   Activity,
+  AlertTriangle,
   ArrowRight,
   BadgeCheck,
   Ban,
+  Bell,
   Building2,
   CheckCircle2,
   Copy,
@@ -12,6 +13,7 @@ import {
   Download,
   ExternalLink,
   Film,
+  FileWarning,
   Gift,
   Handshake,
   LockKeyhole,
@@ -23,6 +25,7 @@ import {
   ShieldCheck,
   Sparkles,
   Store,
+  X,
   UserCheck,
   Users,
   Wallet,
@@ -40,14 +43,14 @@ import {
   getTechPassSecret,
   useTechPassStore,
 } from './lib/store';
-import type { AppState, BeneficioServico, BeneficioServicoTipo, CashbackCalculoTipo, CashbackTipo, IndicacaoFightCoreStatus, IndicacaoStatus, IndicacaoTechSoftStatus, LeadParceiro, LeadStatus, OfertaCashbackTipo, OfertaParceiro, OfertaTipo, RecompensaTipo, Solicitacao, SolicitacaoStatus, TechPass, TechPassStatus } from './types';
+import type { AppState, BeneficioServico, BeneficioServicoTipo, CashbackCalculoTipo, CashbackTipo, IndicacaoFightCoreStatus, IndicacaoStatus, IndicacaoTechSoftStatus, LeadParceiro, LeadStatus, LogNivel, NotificationItem, NotificationTipo, OfertaCashbackTipo, OfertaParceiro, OfertaTipo, RecompensaTipo, Solicitacao, SolicitacaoStatus, TechPass, TechPassStatus } from './types';
 import { Button, Card, Field, Input, Pill, Select, Stat, Textarea, cx } from './components/ui';
 import { QrCode, createQrDataUrl } from './components/QrCode';
 import fightCoreLogo from './assets/fight-core-logo.png';
 import superGeeksLogo from './assets/super-geeks-logo.png';
 import techpassVoucherMockup from './assets/techpass-voucher-mockup.png';
 
-type AdminView = 'dashboard' | 'empresas' | 'techpass' | 'qrcodes' | 'pendentes' | 'ativar' | 'validar' | 'cashback' | 'indicacoes' | 'solicitacoes' | 'beneficios' | 'ofertas' | 'clientes';
+type AdminView = 'dashboard' | 'empresas' | 'techpass' | 'qrcodes' | 'pendentes' | 'ativar' | 'validar' | 'cashback' | 'indicacoes' | 'solicitacoes' | 'beneficios' | 'ofertas' | 'clientes' | 'logs';
 
 const ADMIN_NAV: Array<{ id: AdminView; label: string; icon: typeof Activity }> = [
   { id: 'dashboard', label: 'Dashboard', icon: Activity },
@@ -63,6 +66,7 @@ const ADMIN_NAV: Array<{ id: AdminView; label: string; icon: typeof Activity }> 
   { id: 'beneficios', label: 'Benefícios e Serviços', icon: Sparkles },
   { id: 'ofertas', label: 'Editor de ofertas', icon: Handshake },
   { id: 'clientes', label: 'Clientes', icon: Users },
+  { id: 'logs', label: 'Logs do Sistema', icon: FileWarning },
 ];
 
 const SOLICITACAO_LABEL: Record<SolicitacaoStatus, string> = {
@@ -132,6 +136,27 @@ const OFERTA_CASHBACK_LABEL: Record<OfertaCashbackTipo, string> = {
   percentual: 'Percentual',
   proporcional: 'Proporcional',
   mensalidade: 'Equivalente a mensalidade',
+};
+
+const NOTIFICATION_TYPE_LABEL: Record<NotificationTipo, string> = {
+  informacao: 'Informação',
+  sucesso: 'Sucesso',
+  alerta: 'Alerta',
+  erro: 'Erro',
+};
+
+const NOTIFICATION_TYPE_STYLE: Record<NotificationTipo, string> = {
+  informacao: 'border-sky-300/30 bg-sky-400/10 text-sky-100',
+  sucesso: 'border-tech-neon/40 bg-tech-neon/10 text-tech-neon',
+  alerta: 'border-yellow-300/30 bg-yellow-400/10 text-yellow-100',
+  erro: 'border-red-300/30 bg-red-400/10 text-red-100',
+};
+
+const LOG_LEVEL_STYLE: Record<LogNivel, string> = {
+  info: 'border-sky-300/30 bg-sky-400/10 text-sky-100',
+  warning: 'border-yellow-300/30 bg-yellow-400/10 text-yellow-100',
+  error: 'border-red-300/30 bg-red-400/10 text-red-100',
+  critical: 'border-red-500/50 bg-red-500/20 text-red-100',
 };
 
 const LANDING_PARTNERS = [
@@ -318,6 +343,66 @@ function EmptyMessage({ title, description }: { title: string; description: stri
   );
 }
 
+function notificationIcon(type: NotificationTipo) {
+  if (type === 'sucesso') return CheckCircle2;
+  if (type === 'alerta') return AlertTriangle;
+  if (type === 'erro') return Ban;
+  return Bell;
+}
+
+function NotificationBell({ notifications, actions, navigate, scope }: { notifications: NotificationItem[]; actions: ReturnType<typeof useTechPassStore>['actions']; navigate: (path: string) => void; scope?: { tipo_usuario?: 'admin' | 'parceiro' | 'cliente'; user_id?: string | null; empresa_id?: string | null } }) {
+  const [open, setOpen] = useState(false);
+  const unread = notifications.filter((item) => !item.lida).length;
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setOpen(true)} className="relative inline-flex min-h-11 items-center gap-2 rounded-md border border-white/15 bg-white/[0.06] px-3 text-sm font-black text-white transition hover:border-tech-neon/50">
+        <Bell className="h-4 w-4 text-tech-neon" />
+        <span>{unread}</span>
+        {unread > 0 && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-tech-neon shadow-neon" />}
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" onClick={() => setOpen(false)}>
+          <aside className="ml-auto grid h-full w-full max-w-md content-start gap-4 border-l border-white/10 bg-[#080808] p-5 text-tech-ink shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-tech-neon">Notificações</p>
+                <h2 className="text-2xl font-black text-white">{unread} não lidas</h2>
+              </div>
+              <button type="button" className="rounded-md border border-white/10 p-2 text-zinc-300 hover:text-white" onClick={() => setOpen(false)}><X className="h-4 w-4" /></button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => actions.markAllNotificationsRead(scope)}>Marcar todas</Button>
+              <Button variant="secondary" onClick={() => { setOpen(false); navigate('/notifications'); }}>Ver central</Button>
+            </div>
+            <div className="grid max-h-[calc(100vh-170px)] gap-3 overflow-auto pr-1">
+              {notifications.slice(0, 8).map((item) => <NotificationRow key={item.id} item={item} actions={actions} navigate={navigate} compact />)}
+              {notifications.length === 0 && <EmptyMessage title="Sem notificações" description="Novos eventos aparecerão aqui." />}
+            </div>
+          </aside>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NotificationRow({ item, actions, navigate, compact = false }: { item: NotificationItem; actions: ReturnType<typeof useTechPassStore>['actions']; navigate: (path: string) => void; compact?: boolean }) {
+  const Icon = notificationIcon(item.tipo);
+  return (
+    <button type="button" onClick={() => { actions.markNotificationRead(item.id); if (item.url) navigate(item.url); }} className={cx('grid gap-3 rounded-lg border p-4 text-left transition hover:border-tech-neon/50', item.lida ? 'border-white/10 bg-white/[0.035]' : 'border-tech-neon/35 bg-tech-neon/10', compact ? '' : 'md:grid-cols-[auto_1fr_auto] md:items-start')}>
+      <div className={cx('grid h-10 w-10 place-items-center rounded-md', NOTIFICATION_TYPE_STYLE[item.tipo])}><Icon className="h-5 w-5" /></div>
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-black text-white">{item.titulo}</p>
+          {!item.lida && <span className="h-2 w-2 rounded-full bg-tech-neon" />}
+        </div>
+        <p className="mt-1 text-sm leading-6 text-zinc-400">{item.descricao}</p>
+        <p className="mt-2 text-xs font-bold uppercase text-zinc-500">{NOTIFICATION_TYPE_LABEL[item.tipo]} · {formatDateTime(item.created_at)}</p>
+      </div>
+      {!compact && <Pill className={NOTIFICATION_TYPE_STYLE[item.tipo]}>{item.tipo_usuario}</Pill>}
+    </button>
+  );
+}
+
 function App() {
   const { state, actions } = useTechPassStore();
   const [path, setPath] = useState(window.location.pathname);
@@ -343,6 +428,10 @@ function App() {
     return <AdminApp state={state} actions={actions} navigate={navigate} />;
   }
 
+  if (path.startsWith('/notifications')) {
+    return <NotificationsPage state={state} actions={actions} navigate={navigate} />;
+  }
+
   if (path.startsWith('/login')) {
     return <ClientLogin state={state} navigate={navigate} />;
   }
@@ -359,7 +448,7 @@ function App() {
     return <PartnerDashboard state={state} actions={actions} navigate={navigate} />;
   }
 
-  if (path.startsWith('/seja-parceiro')) {
+  if (path.startsWith('/parceiros') || path.startsWith('/seja-parceiro')) {
     return <PartnerLandingPage navigate={navigate} />;
   }
 
@@ -370,6 +459,43 @@ function App() {
   return <LandingPage state={state} navigate={navigate} />;
 }
 
+function NotificationsPage({ state, actions, navigate }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; navigate: (path: string) => void }) {
+  const [filter, setFilter] = useState<'todas' | 'nao_lidas' | NotificationTipo>('todas');
+  const filtered = state.notifications.filter((item) => {
+    if (filter === 'todas') return true;
+    if (filter === 'nao_lidas') return !item.lida;
+    return item.tipo === filter;
+  });
+  const filterOptions: Array<[typeof filter, string]> = [
+    ['todas', 'Todas'],
+    ['nao_lidas', 'Não lidas'],
+    ['alerta', 'Alertas'],
+    ['erro', 'Erros'],
+    ['sucesso', 'Sucesso'],
+    ['informacao', 'Informações'],
+  ];
+  return (
+    <PublicShell>
+      <div className="grid gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <PageTitle title="Central de notificações" subtitle="Acompanhe eventos do cliente, parceiro e administrador." />
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => actions.markAllNotificationsRead()}>Marcar todas como lidas</Button>
+            <Button variant="secondary" onClick={() => navigate('/')}>Voltar</Button>
+          </div>
+        </div>
+        <Card className="flex flex-wrap gap-2">
+          {filterOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setFilter(id)} className={cx('rounded-md px-3 py-2 text-sm font-black transition', filter === id ? 'bg-tech-neon text-black' : 'border border-white/10 text-zinc-300 hover:text-white')}>{label}</button>)}
+        </Card>
+        <div className="grid gap-3">
+          {filtered.map((item) => <NotificationRow key={item.id} item={item} actions={actions} navigate={navigate} />)}
+          {filtered.length === 0 && <EmptyMessage title="Nenhuma notificação encontrada" description="Altere o filtro ou aguarde novos eventos do sistema." />}
+        </div>
+      </div>
+    </PublicShell>
+  );
+}
+
 function LandingPage({ state, navigate }: { state: AppState; navigate: (path: string) => void }) {
   return (
     <div className="min-h-screen overflow-hidden bg-black text-tech-ink">
@@ -377,15 +503,16 @@ function LandingPage({ state, navigate }: { state: AppState; navigate: (path: st
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
           <Brand />
           <nav className="hidden items-center gap-7 text-sm font-black uppercase tracking-normal text-zinc-400 md:flex">
-            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('rede')?.scrollIntoView({ behavior: 'smooth' })}>Rede</button>
-            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('empresas')?.scrollIntoView({ behavior: 'smooth' })}>Empresas</button>
-            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('ofertas')?.scrollIntoView({ behavior: 'smooth' })}>Ofertas</button>
-            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('techcash')?.scrollIntoView({ behavior: 'smooth' })}>TechCash</button>
-            <button className="transition hover:text-tech-neon" onClick={() => navigate('/seja-parceiro')}>Seja parceiro</button>
+            <button className="transition hover:text-tech-neon" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Home</button>
+            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('empresas')?.scrollIntoView({ behavior: 'smooth' })}>Empresas Parceiras</button>
+            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('beneficios')?.scrollIntoView({ behavior: 'smooth' })}>Benefícios</button>
+            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('ofertas')?.scrollIntoView({ behavior: 'smooth' })}>Ofertas Exclusivas</button>
+            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth' })}>Como Funciona</button>
+            <button className="transition hover:text-tech-neon" onClick={() => navigate('/login')}>Entrar</button>
           </nav>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" onClick={() => navigate('/cliente')}><Users className="h-4 w-4" />Área do cliente</Button>
-            <Button onClick={() => navigate('/seja-parceiro')}>Seja parceiro</Button>
+            <Button variant="secondary" onClick={() => navigate('/login')}><Users className="h-4 w-4" />Entrar</Button>
+            <Button onClick={() => navigate('/techpass/TP-SG-000001')}>Ativar TechPass</Button>
             <Button variant="secondary" onClick={() => navigate('/admin')}><LockKeyhole className="h-4 w-4" />Painel</Button>
           </div>
         </div>
@@ -396,22 +523,23 @@ function LandingPage({ state, navigate }: { state: AppState; navigate: (path: st
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(141,255,42,0.18),transparent_28rem),radial-gradient(circle_at_88%_18%,rgba(255,255,255,0.08),transparent_18rem)]" />
           <div className="relative z-10">
             <div className="inline-flex items-center gap-2 rounded-sm border border-tech-neon/35 bg-tech-neon/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-tech-neon">
-              <Sparkles className="h-3.5 w-3.5" /> Marketplace local de vantagens
+              <Sparkles className="h-3.5 w-3.5" /> Clube local de benefícios
             </div>
             <h1 className="mt-7 max-w-5xl text-5xl font-black leading-[0.92] tracking-normal text-white sm:text-7xl lg:text-8xl">Rede TechPass</h1>
-            <p className="mt-6 max-w-3xl text-2xl font-black leading-tight text-tech-neon sm:text-3xl">Benefícios, ofertas e indicações entre empresas parceiras.</p>
-            <p className="mt-6 max-w-3xl text-lg leading-8 text-zinc-300">A Rede TechPass conecta empresas locais em um ecossistema de vantagens, onde clientes ativos recebem descontos, brindes, cashback, ofertas exclusivas e condições especiais em negócios parceiros.</p>
+            <p className="mt-6 max-w-3xl text-2xl font-black leading-tight text-tech-neon sm:text-3xl">Seu voucher abre descontos, TechCash, brindes, aulas e serviços exclusivos em empresas parceiras.</p>
+            <p className="mt-6 max-w-3xl text-lg leading-8 text-zinc-300">Ative seu TechPass, acompanhe tudo pelo dashboard do cliente e escolha as ofertas que fazem sentido para você: tecnologia, educação, luta, assistência técnica e benefícios locais em uma só rede.</p>
             <div className="mt-6 rounded-lg border border-tech-neon/30 bg-tech-neon/10 p-4 text-base font-black text-white">
-              Transforme seus clientes em oportunidades para empresas parceiras, e receba clientes qualificados de volta.
+              Comprou ou ganhou um voucher TechPass? Escaneie o QR Code, informe o código secreto e finalize a ativação presencial para liberar os benefícios.
             </div>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Button onClick={() => navigate('/seja-parceiro')}>Quero ser parceiro <ArrowRight className="h-4 w-4" /></Button>
+              <Button onClick={() => navigate('/techpass/TP-SG-000001')}>Ativar TechPass <ArrowRight className="h-4 w-4" /></Button>
+              <Button variant="secondary" onClick={() => navigate('/login')}>Entrar no dashboard</Button>
               <Button variant="secondary" onClick={() => document.getElementById('empresas')?.scrollIntoView({ behavior: 'smooth' })}>Ver empresas participantes</Button>
             </div>
             <div className="mt-10 grid max-w-3xl grid-cols-3 gap-3">
-              <LandingMetric value="8+" label="empresas modelo" />
+              <LandingMetric value="6" label="trocas de película" />
               <LandingMetric value="R$100" label="meta TechCash" />
-              <LandingMetric value="Leads" label="qualificados" />
+              <LandingMetric value="15" label="indicações por campanha" />
             </div>
           </div>
 
@@ -422,26 +550,26 @@ function LandingPage({ state, navigate }: { state: AppState; navigate: (path: st
           </div>
         </section>
 
-        <section id="rede" className="border-y border-white/10 bg-[#050505] text-white">
+        <section id="beneficios" className="border-y border-white/10 bg-[#050505] text-white">
           <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.22em] text-tech-neon">O que é a Rede TechPass</p>
-              <h2 className="mt-3 text-4xl font-black text-white">Não é apenas um cartão de descontos.</h2>
+              <p className="text-sm font-black uppercase tracking-[0.22em] text-tech-neon">O que é o TechPass</p>
+              <h2 className="mt-3 text-4xl font-black text-white">Um voucher de benefícios com painel digital.</h2>
             </div>
             <div className="grid gap-5">
-              <p className="text-lg leading-8 text-zinc-300">A Rede TechPass é uma plataforma de benefícios compartilhados entre empresas parceiras. Cada empresa oferece vantagens exclusivas para membros TechPass, como descontos, brindes, planos anuais especiais, cashback e condições personalizadas.</p>
-              <p className="rounded-lg border border-tech-neon/30 bg-tech-neon/10 p-5 text-xl font-black leading-tight text-white">É uma rede local de geração de valor, fidelização e indicação cruzada.</p>
+              <p className="text-lg leading-8 text-zinc-300">O TechPass é um voucher físico com QR Code e código secreto. Depois da ativação, o cliente acessa um dashboard para acompanhar validade, TechCash, benefícios, ofertas, solicitações, agendamentos e indicações.</p>
+              <p className="rounded-lg border border-tech-neon/30 bg-tech-neon/10 p-5 text-xl font-black leading-tight text-white">Você entende a vantagem antes de chamar no WhatsApp ou solicitar um serviço.</p>
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-          <LandingHeader eyebrow="Como funciona" title="Da ativação ao lead qualificado." subtitle="O TechPass conecta o benefício entregue por uma empresa com novas oportunidades dentro da rede." />
+        <section id="como-funciona" className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+          <LandingHeader eyebrow="Como funciona" title="Do voucher ao dashboard do cliente." subtitle="O fluxo foi pensado para liberar benefícios com segurança e manter tudo organizado." />
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <StepCard number="1" title="O cliente recebe o TechPass" text="O benefício é entregue por uma empresa parceira participante." />
-            <StepCard number="2" title="Ativa presencialmente" text="Ele escaneia o QR Code, faz o pré-cadastro e ativa o benefício na loja." />
-            <StepCard number="3" title="Acessa ofertas exclusivas" text="Planos anuais, brindes, serviços com desconto e condições especiais aparecem no painel do cliente." />
-            <StepCard number="4" title="Empresas recebem leads" text="Quando o cliente demonstra interesse, a solicitação é direcionada para a empresa responsável." />
+            <StepCard number="1" title="Compre ou receba o voucher" text="O TechPass pode ser adquirido nas lojas das empresas participantes." />
+            <StepCard number="2" title="Escaneie o QR Code" text="Informe o código secreto do voucher e envie o pré-cadastro." />
+            <StepCard number="3" title="Ative presencialmente" text="A ativação final acontece na loja, com documento oficial com foto." />
+            <StepCard number="4" title="Use seus benefícios" text="Acompanhe ofertas, TechCash, agendamentos, indicações e histórico pelo dashboard." />
           </div>
         </section>
 
@@ -519,35 +647,28 @@ function LandingPage({ state, navigate }: { state: AppState; navigate: (path: st
 
         <section className="border-y border-white/10 bg-[#050505]">
           <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-            <LandingHeader eyebrow="Para empresas parceiras" title="Por que sua empresa deveria entrar na Rede TechPass?" subtitle="Mais valor percebido, indicação cruzada e oportunidades comerciais dentro de uma rede local." />
-            <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {['Aumenta o valor percebido dos seus planos e serviços', 'Gera leads qualificados', 'Cria indicação cruzada entre empresas locais', 'Ajuda na fidelização de clientes', 'Permite oferecer vantagens sem reduzir diretamente sua mensalidade principal', 'Fortalece parcerias estratégicas', 'Cria um diferencial comercial frente aos concorrentes'].map((item) => (
-                <div key={item} className="rounded-lg border border-white/10 bg-black/35 p-4 text-sm font-semibold leading-6 text-zinc-200">{item}</div>
-              ))}
+            <div className="rounded-lg border border-tech-neon/40 bg-tech-neon p-8 text-black shadow-neon lg:grid lg:grid-cols-[1fr_auto] lg:items-center lg:gap-8">
+              <div>
+                <p className="text-sm font-black uppercase">Ativação TechPass</p>
+                <h2 className="mt-3 max-w-3xl text-4xl font-black">Ative seu voucher e acompanhe tudo pelo dashboard.</h2>
+                <p className="mt-4 max-w-3xl text-base font-semibold text-black/75">Use o código secreto do voucher, finalize a ativação presencial e tenha acesso a ofertas, TechCash, indicações, benefícios e solicitações em um único painel.</p>
+              </div>
+              <div className="mt-6 flex flex-wrap gap-3 lg:mt-0">
+                <Button className="border-black bg-black text-white hover:bg-zinc-900" onClick={() => navigate('/techpass/TP-SG-000001')}>Ativar TechPass <ArrowRight className="h-4 w-4" /></Button>
+                <Button variant="secondary" className="border-black/30 bg-black/10 text-black hover:bg-black hover:text-white" onClick={() => navigate('/login')}>Entrar</Button>
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-          <Card className="grid gap-8 p-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.22em] text-tech-neon">Exemplo prático</p>
-              <h2 className="mt-3 text-4xl font-black text-white">Um aluno vira cliente da rede inteira.</h2>
-            </div>
-            <p className="text-lg leading-8 text-zinc-300">Um aluno da Super Geeks recebe um TechPass. Ao acessar o painel, ele encontra benefícios na TechSoft, planos especiais na Fight Core e recompensas por indicação. Ao demonstrar interesse em uma oferta, a empresa parceira recebe um lead qualificado com os dados do cliente e a oferta desejada.</p>
-          </Card>
-        </section>
-
-        <section id="parceiro" className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
           <div className="rounded-lg border border-tech-neon/40 bg-tech-neon p-8 text-black shadow-neon lg:grid lg:grid-cols-[1fr_auto] lg:items-center lg:gap-8">
             <div>
-              <p className="text-sm font-black uppercase">CTA final</p>
-              <h2 className="mt-3 max-w-3xl text-4xl font-black">Faça sua empresa parte da Rede TechPass.</h2>
-              <p className="mt-4 max-w-3xl text-base font-semibold text-black/75">Crie ofertas, receba leads qualificados e entregue mais valor aos seus clientes através de uma rede local de parceiros.</p>
+              <p className="text-sm font-black uppercase">Rede TechPass</p>
+              <h2 className="mt-3 max-w-3xl text-3xl font-black">Sua empresa quer fazer parte da Rede TechPass?</h2>
             </div>
             <div className="mt-6 flex flex-wrap gap-3 lg:mt-0">
-              <Button className="border-black bg-black text-white hover:bg-zinc-900" onClick={() => navigate('/seja-parceiro')}>Quero ser parceiro <ArrowRight className="h-4 w-4" /></Button>
-              <Button variant="secondary" className="border-black/30 bg-black/10 text-black hover:bg-black hover:text-white">Falar com a TechSoft</Button>
+              <Button className="border-black bg-black text-white hover:bg-zinc-900" onClick={() => navigate('/parceiros')}>Seja nosso parceiro <ArrowRight className="h-4 w-4" /></Button>
             </div>
           </div>
         </section>
@@ -893,6 +1014,7 @@ function AdminApp({ state, actions, navigate }: { state: AppState; actions: Retu
           <Brand />
           <div className="flex flex-wrap items-center gap-2">
             <Pill className={hasSupabaseConfig ? 'border-tech-neon/40 bg-tech-neon/10 text-tech-neon' : 'border-white/15 bg-white/[0.06] text-zinc-200'}>{hasSupabaseConfig ? 'Supabase conectado' : 'Modo demo local'}</Pill>
+            <NotificationBell notifications={state.notifications.filter((item) => item.tipo_usuario === 'admin')} actions={actions} navigate={navigate} scope={{ tipo_usuario: 'admin' }} />
             <Button variant="secondary" onClick={actions.resetDemo}><RefreshCw className="h-4 w-4" />Reset demo</Button>
             <Button variant="ghost" onClick={() => navigate('/')}>Site público</Button>
           </div>
@@ -921,6 +1043,7 @@ function AdminApp({ state, actions, navigate }: { state: AppState; actions: Retu
           {view === 'beneficios' && <BeneficiosServicosScreen state={state} actions={actions} />}
           {view === 'ofertas' && <OfertasAdminScreen state={state} actions={actions} />}
           {view === 'clientes' && <ClientesScreen state={state} />}
+          {view === 'logs' && <SystemLogsScreen state={state} />}
         </main>
       </div>
     </div>
@@ -942,6 +1065,13 @@ function Dashboard({ state }: { state: AppState }) {
       clientes: state.clientes.filter((client) => state.techpasses.some((tp) => tp.cliente_id === client.id && tp.status === 'ATIVO')).length,
       cashback,
       indicacoes: state.indicacoes.filter((item) => item.status === 'pendente').length,
+      notificacoes: state.notifications.filter((item) => item.tipo_usuario === 'admin' && !item.lida).length,
+      erros: state.system_logs.filter((item) => item.nivel === 'error' || item.nivel === 'critical').length,
+      parceirosNovos: state.empresas.length,
+      leadsPendentes: state.leads.filter((item) => ['novo', 'negociacao'].includes(item.status)).length,
+      solicitacoesPendentes: state.solicitacoes.filter((item) => ['nova', 'analise'].includes(item.status)).length,
+      cashbackPendente: state.cashback_transactions.filter((item) => item.status === 'pendente').length,
+      ofertasAguardando: state.ofertas.filter((item) => item.status === 'PENDENTE_APROVACAO').length,
     };
   }, [state]);
   return (
@@ -957,7 +1087,20 @@ function Dashboard({ state }: { state: AppState }) {
         <Stat label="Clientes ativos" value={stats.clientes} />
         <Stat label="Cashback concedido" value={formatMoney(stats.cashback)} tone="neon" />
         <Stat label="Indicações pendentes" value={stats.indicacoes} tone="warn" />
+        <Stat label="Notificações" value={stats.notificacoes} tone="warn" />
+        <Stat label="Erros do sistema" value={stats.erros} tone="danger" />
+        <Stat label="Novos parceiros" value={stats.parceirosNovos} />
+        <Stat label="Leads pendentes" value={stats.leadsPendentes} tone="warn" />
+        <Stat label="Solicitações pendentes" value={stats.solicitacoesPendentes} tone="warn" />
+        <Stat label="Cashback pendente" value={stats.cashbackPendente} tone="warn" />
+        <Stat label="Ofertas aguardando aprovação" value={stats.ofertasAguardando} tone="warn" />
       </div>
+      <Card className="p-6">
+        <PageTitle title="Últimos logs" subtitle="Resumo rápido dos eventos recentes do sistema." />
+        <div className="mt-4 grid gap-3">
+          {state.system_logs.slice(0, 3).map((log) => <div key={log.id} className="rounded-lg border border-white/10 bg-black/25 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><p className="font-black text-white">{log.descricao}</p><Pill className={LOG_LEVEL_STYLE[log.nivel]}>{log.nivel}</Pill></div><p className="mt-1 text-sm text-zinc-400">{log.pagina} · {log.usuario} · {formatDateTime(log.created_at)}</p></div>)}
+        </div>
+      </Card>
       <Card className="p-6">
         <h3 className="text-lg font-black uppercase text-zinc-400">Fluxo operacional</h3>
         <ol className="mt-5 grid gap-4 text-sm leading-7 text-zinc-100">
@@ -967,6 +1110,52 @@ function Dashboard({ state }: { state: AppState }) {
           <li><strong className="mr-3 text-tech-neon">4.</strong>Cliente usa benefícios, cashback, indicações e trocas de película.</li>
         </ol>
       </Card>
+    </div>
+  );
+}
+
+function SystemLogsScreen({ state }: { state: AppState }) {
+  const [filters, setFilters] = useState({ data: '', empresa: '', usuario: '', tipo: '', search: '' });
+  const logs = state.system_logs.filter((log) => {
+    const matchesDate = !filters.data || log.created_at.slice(0, 10) === filters.data;
+    const matchesEmpresa = !filters.empresa || log.empresa === filters.empresa;
+    const matchesUsuario = !filters.usuario || log.usuario.toLowerCase().includes(filters.usuario.toLowerCase());
+    const matchesTipo = !filters.tipo || log.nivel === filters.tipo;
+    const haystack = [log.pagina, log.descricao, log.stacktrace, log.usuario, log.empresa].join(' ').toLowerCase();
+    const matchesSearch = !filters.search || haystack.includes(filters.search.toLowerCase());
+    return matchesDate && matchesEmpresa && matchesUsuario && matchesTipo && matchesSearch;
+  });
+  const exportCsv = () => {
+    const header = ['Data', 'Nivel', 'Usuario', 'Empresa', 'Pagina', 'Descricao', 'Stack trace'];
+    const rows = logs.map((log) => [log.created_at, log.nivel, log.usuario, log.empresa, log.pagina, log.descricao, log.stacktrace]);
+    const csv = [header, ...rows].map((row) => row.map((cell) => '"' + String(cell).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'techpass-system-logs.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+  const empresas = Array.from(new Set(state.system_logs.map((log) => log.empresa))).filter(Boolean);
+  return (
+    <div className="grid gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <PageTitle title="Logs do Sistema" subtitle="Erros de autenticação, banco, API, upload, QR Code, integrações e páginas não encontradas." />
+        <Button variant="secondary" onClick={exportCsv}><Download className="h-4 w-4" />Exportar CSV</Button>
+      </div>
+      <Card>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <Field label="Data"><Input type="date" value={filters.data} onChange={(event) => setFilters({ ...filters, data: event.target.value })} /></Field>
+          <Field label="Empresa"><Select value={filters.empresa} onChange={(event) => setFilters({ ...filters, empresa: event.target.value })}><option value="">Todas</option>{empresas.map((empresa) => <option key={empresa} value={empresa}>{empresa}</option>)}</Select></Field>
+          <Field label="Usuário"><Input value={filters.usuario} onChange={(event) => setFilters({ ...filters, usuario: event.target.value })} /></Field>
+          <Field label="Tipo"><Select value={filters.tipo} onChange={(event) => setFilters({ ...filters, tipo: event.target.value })}><option value="">Todos</option><option value="info">Info</option><option value="warning">Warning</option><option value="error">Error</option><option value="critical">Critical</option></Select></Field>
+          <Field label="Pesquisar"><Input value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} placeholder="Descrição, página ou stack" /></Field>
+        </div>
+      </Card>
+      <div className="grid gap-3">
+        {logs.map((log) => <Card key={log.id} className="p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-black text-white">{log.descricao}</p><p className="mt-1 text-sm text-zinc-400">{formatDateTime(log.created_at)} · {log.usuario} · {log.empresa} · {log.pagina}</p></div><Pill className={LOG_LEVEL_STYLE[log.nivel]}>{log.nivel}</Pill></div>{log.stacktrace && <pre className="mt-4 overflow-auto rounded-md border border-white/10 bg-black/35 p-3 text-xs text-zinc-300">{log.stacktrace}</pre>}</Card>)}
+        {logs.length === 0 && <EmptyMessage title="Sem logs encontrados" description="Ajuste os filtros para ampliar a busca." />}
+      </div>
     </div>
   );
 }
@@ -1281,7 +1470,11 @@ function ClientArea({ state, actions, navigate }: { state: AppState; actions: Re
       <div className="grid gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <PageTitle title="Dashboard do cliente" subtitle="Meu TechPass, ofertas, indicações, TechCash e solicitações em andamento." />
-          <div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => navigate('/login')}>Trocar acesso</Button><Button variant="secondary" onClick={() => navigate('/')}>Site público</Button></div>
+          <div className="flex flex-wrap gap-2">
+            {cliente && <NotificationBell notifications={state.notifications.filter((item) => item.tipo_usuario === 'cliente' && item.user_id === cliente.id)} actions={actions} navigate={navigate} scope={{ tipo_usuario: 'cliente', user_id: cliente.id }} />}
+            <Button variant="secondary" onClick={() => navigate('/login')}>Trocar acesso</Button>
+            <Button variant="secondary" onClick={() => navigate('/')}>Site público</Button>
+          </div>
         </div>
         {!matchedPass || !cliente ? <EmptyMessage title="Cliente não autenticado" description="Acesse pela página de login usando CPF, telefone ou código TechPass." /> : (
           <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
@@ -1324,6 +1517,8 @@ function ClientDashboard({ state, actions, cliente, techpass, view }: { state: A
   };
   const openSolicitacoes = solicitacoes.filter((item) => !['concluida', 'cancelada'].includes(item.status));
   const ofertasAtivas = state.ofertas.filter((oferta) => oferta.status === 'ativo' && state.empresas.find((empresa) => empresa.id === oferta.empresa_id)?.status === 'ativa');
+  const clientNotifications = state.notifications.filter((item) => item.tipo_usuario === 'cliente' && item.user_id === cliente.id);
+  const techCashDisponivel = state.cashback_balances.filter((item) => item.cliente_id === cliente.id).reduce((sum, item) => sum + item.saldo_disponivel, 0);
   if (view === 'beneficios') {
     return <div className="grid gap-6"><Card><BenefitsList /></Card><Card><PageTitle title="Benefícios utilizados" subtitle="Histórico de películas, limpezas, consultorias, descontos, cashback e indicações." /><UsageHistory state={state} utilizacoes={utilizacoes} /></Card></div>;
   }
@@ -1350,10 +1545,16 @@ function ClientDashboard({ state, actions, cliente, techpass, view }: { state: A
           <StatusPill status={getEffectiveStatus(techpass)} />
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Info label="Notificações" value={String(clientNotifications.filter((item) => !item.lida).length)} />
+          <Info label="Novas ofertas" value={String(ofertasAtivas.length)} />
           <Info label="Validade" value={formatDate(techpass.expires_at)} />
-          <Info label="Saldo TechCash" value={formatMoney(getCashbackBalance(state, techpass.id))} />
+          <Info label="Cashback disponível" value={formatMoney(techCashDisponivel || getCashbackBalance(state, techpass.id))} />
           <Info label="Películas restantes" value={techpass.peliculas_restantes + ' de 6'} />
           <Info label="Código de indicação" value={techpass.codigo_indicacao ?? cliente.codigo_indicacao ?? 'Não gerado'} />
+          <Info label="Benefícios disponíveis" value={String(itensAtivos.length)} />
+          <Info label="Agendamentos" value={String(openSolicitacoes.length)} />
+          <Info label="Histórico" value={String(utilizacoes.length)} />
+          <Info label="Indicações" value={String(state.fight_core_indicacoes.filter((item) => item.cliente_id === cliente.id).length + state.techsoft_indicacoes.filter((item) => item.cliente_id === cliente.id).length)} />
         </div>
       </Card>
       <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
@@ -1659,7 +1860,11 @@ function PartnerDashboard({ state, actions, navigate }: { state: AppState; actio
       <div className="grid gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <PageTitle title={'Painel parceiro · ' + empresa.nome} subtitle="Gerencie ofertas, benefícios, leads e solicitações da sua empresa." />
-          <div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => navigate('/parceiro/login')}>Trocar parceiro</Button><Button variant="secondary" onClick={() => navigate('/')}>Site público</Button></div>
+          <div className="flex flex-wrap gap-2">
+            <NotificationBell notifications={state.notifications.filter((item) => item.tipo_usuario === 'parceiro' && item.empresa_id === empresa.id)} actions={actions} navigate={navigate} scope={{ tipo_usuario: 'parceiro', empresa_id: empresa.id }} />
+            <Button variant="secondary" onClick={() => navigate('/parceiro/login')}>Trocar parceiro</Button>
+            <Button variant="secondary" onClick={() => navigate('/')}>Site público</Button>
+          </div>
         </div>
         <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
           <Card className="h-max p-3">
@@ -1692,7 +1897,42 @@ function PartnerScopedView({ state, actions, empresa, view, leads, solicitacoes,
   const closed = leads.filter((item) => item.status === 'fechado').length;
   const conversion = leads.length ? Math.round((closed / leads.length) * 100) : 0;
   const requested = solicitacoes.reduce<Record<string, number>>((acc, item) => ({ ...acc, [getServicoName(state, item.beneficio_servico_id)]: (acc[getServicoName(state, item.beneficio_servico_id)] ?? 0) + 1 }), {});
-  return <div className="grid gap-6"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="Benefícios solicitados" value={solicitacoes.length} /><Stat label="Leads recebidos" value={leads.length} tone="neon" /><Stat label="Leads novos" value={leads.filter((item) => item.status === 'novo').length} /><Stat label="Em negociação" value={leads.filter((item) => item.status === 'negociacao').length} /><Stat label="Leads fechados" value={closed} tone="neon" /><Stat label="Leads perdidos" value={leads.filter((item) => item.status === 'perdido').length} tone="danger" /><Stat label="Ofertas ativas" value={ofertas.filter((item) => item.status === 'ativo').length} /><Stat label="Ofertas inativas" value={ofertas.filter((item) => item.status === 'inativo').length} /></div><Card><PageTitle title="Performance" subtitle="Conversão e benefícios mais solicitados." /><div className="mt-5 grid gap-3 md:grid-cols-2"><Info label="Conversão de leads" value={conversion + '%'} /><Info label="Solicitações por mês" value={String(solicitacoes.length)} /></div><div className="mt-5 grid gap-2">{Object.entries(requested).map(([name, total]) => <div key={name} className="rounded-lg border border-white/10 bg-black/25 p-3 text-sm text-zinc-200">{name}: <strong className="text-tech-neon">{total}</strong></div>)}{Object.keys(requested).length === 0 && <EmptyMessage title="Sem solicitações" description="Quando clientes solicitarem benefícios, os mais pedidos aparecerão aqui." />}</div></Card></div>;
+  const unread = state.notifications.filter((item) => item.tipo_usuario === 'parceiro' && item.empresa_id === empresa.id && !item.lida).length;
+  const pendingCashback = state.cashback_transactions.filter((item) => item.empresa_id === empresa.id && item.status === 'pendente').length;
+  const waitingClients = new Set([...leads.filter((item) => item.status === 'novo').map((item) => item.cliente_id), ...solicitacoes.filter((item) => ['nova', 'analise'].includes(item.status)).map((item) => item.cliente_id)]).size;
+  const topOffers = ofertas.map((oferta) => ({ oferta, total: leads.filter((lead) => lead.oferta_id === oferta.id).length })).sort((a, b) => b.total - a.total).slice(0, 3);
+  return (
+    <div className="grid gap-6">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat label="Notificações" value={unread} tone="warn" />
+        <Stat label="Benefícios solicitados" value={solicitacoes.length} />
+        <Stat label="Leads recebidos" value={leads.length} tone="neon" />
+        <Stat label="Leads novos" value={leads.filter((item) => item.status === 'novo').length} />
+        <Stat label="Em negociação" value={leads.filter((item) => item.status === 'negociacao').length} />
+        <Stat label="Leads fechados" value={closed} tone="neon" />
+        <Stat label="Leads perdidos" value={leads.filter((item) => item.status === 'perdido').length} tone="danger" />
+        <Stat label="Cashbacks pendentes" value={pendingCashback} tone="warn" />
+        <Stat label="Ofertas ativas" value={ofertas.filter((item) => item.status === 'ativo').length} />
+        <Stat label="Ofertas inativas" value={ofertas.filter((item) => item.status === 'inativo').length} />
+        <Stat label="Clientes aguardando" value={waitingClients} tone="warn" />
+      </div>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card>
+          <PageTitle title="Últimos leads" subtitle="Clientes que demonstraram interesse nas suas ofertas." />
+          <div className="mt-4 grid gap-3">{leads.slice(0, 4).map((lead) => <div key={lead.id} className="rounded-lg border border-white/10 bg-black/25 p-3"><p className="font-black text-white">{getClientName(state, lead.cliente_id)}</p><p className="text-sm text-zinc-400">{lead.oferta_nome} · {LEAD_STATUS_LABEL[lead.status]}</p></div>)}{leads.length === 0 && <EmptyMessage title="Sem leads" description="Os leads recebidos aparecerão aqui." />}</div>
+        </Card>
+        <Card>
+          <PageTitle title="Performance" subtitle="Conversão, solicitações e ofertas mais acessadas." />
+          <div className="mt-5 grid gap-3 md:grid-cols-2"><Info label="Conversão de leads" value={conversion + '%'} /><Info label="Solicitações por mês" value={String(solicitacoes.length)} /></div>
+          <div className="mt-5 grid gap-2">{topOffers.map(({ oferta, total }) => <div key={oferta.id} className="rounded-lg border border-white/10 bg-black/25 p-3 text-sm text-zinc-200">{oferta.nome}: <strong className="text-tech-neon">{total}</strong></div>)}{topOffers.length === 0 && <EmptyMessage title="Sem ofertas acessadas" description="Quando clientes clicarem nas ofertas, o ranking aparecerá aqui." />}</div>
+        </Card>
+      </div>
+      <Card>
+        <PageTitle title="Solicitações e agendamentos" subtitle="Pedidos que precisam de análise ou confirmação." />
+        <div className="mt-4 grid gap-2">{solicitacoes.slice(0, 4).map((item) => <div key={item.id} className="rounded-lg border border-white/10 bg-black/25 p-3 text-sm text-zinc-200">{getClientName(state, item.cliente_id)} · {getServicoName(state, item.beneficio_servico_id)} · <strong className="text-tech-neon">{SOLICITACAO_LABEL[item.status]}</strong></div>)}{solicitacoes.length === 0 && <EmptyMessage title="Sem solicitações" description="Quando clientes solicitarem benefícios, eles aparecerão aqui." />}</div>
+      </Card>
+    </div>
+  );
 }
 
 function PartnerCashback({ state, actions, empresa }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; empresa: AppState['empresas'][number] }) {

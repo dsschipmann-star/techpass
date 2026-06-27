@@ -27,6 +27,9 @@ export type LeadStatus = 'novo' | 'contato_realizado' | 'negociacao' | 'fechado'
 
 export type IndicacaoFightCoreStatus = 'enviada' | 'em_contato' | 'fechou_plano' | 'nao_fechou' | 'bonus_liberado';
 export type IndicacaoTechSoftStatus = 'enviada' | 'em_contato' | 'comprou_fechou' | 'nao_converteu' | 'brinde_liberado' | 'brinde_retirado';
+export type NotificationTipo = 'informacao' | 'sucesso' | 'alerta' | 'erro';
+export type TipoUsuario = 'admin' | 'parceiro' | 'cliente';
+export type LogNivel = 'info' | 'warning' | 'error' | 'critical';
 
 export type SolicitacaoStatus =
   | 'nova'
@@ -268,6 +271,30 @@ export interface CashbackTransaction {
   created_at: string;
 }
 
+export interface NotificationItem {
+  id: string;
+  user_id: string | null;
+  empresa_id: string | null;
+  tipo_usuario: TipoUsuario;
+  titulo: string;
+  descricao: string;
+  tipo: NotificationTipo;
+  url: string;
+  lida: boolean;
+  created_at: string;
+}
+
+export interface SystemLog {
+  id: string;
+  nivel: LogNivel;
+  usuario: string;
+  empresa: string;
+  pagina: string;
+  descricao: string;
+  stacktrace: string;
+  created_at: string;
+}
+
 export interface AppState {
   empresas: Empresa[];
   parceiro_usuarios: ParceiroUsuario[];
@@ -286,4 +313,6 @@ export interface AppState {
   leads: LeadParceiro[];
   fight_core_indicacoes: IndicacaoFightCore[];
   techsoft_indicacoes: IndicacaoTechSoft[];
+  notifications: NotificationItem[];
+  system_logs: SystemLog[];
 }

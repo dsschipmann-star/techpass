@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { createInitialState } from '../data';
 import { hasSupabaseConfig, supabase } from './supabase';
-import type { AppState, BeneficioServico, CashbackBalance, CashbackMovement, CashbackSetting, CashbackTransaction, Cliente, Empresa, Indicacao, IndicacaoFightCore, IndicacaoTechSoft, LeadParceiro, OfertaParceiro, ParceiroUsuario, PendingActivation, Solicitacao, TechPass, TechPassStatus, Utilizacao } from '../types';
+import type { AppState, BeneficioServico, CashbackBalance, CashbackMovement, CashbackSetting, CashbackTransaction, Cliente, Empresa, Indicacao, IndicacaoFightCore, IndicacaoTechSoft, LeadParceiro, NotificationItem, OfertaParceiro, ParceiroUsuario, PendingActivation, Solicitacao, SystemLog, TechPass, TechPassStatus, TipoUsuario, Utilizacao } from '../types';
 
 const STORAGE_KEY = 'techpass-premium-state-v2';
 
@@ -22,6 +22,8 @@ function safeParse(value: string | null): AppState | null {
       leads: parsed.leads ?? [],
       fight_core_indicacoes: parsed.fight_core_indicacoes ?? [],
       techsoft_indicacoes: parsed.techsoft_indicacoes ?? [],
+      notifications: parsed.notifications ?? createInitialState().notifications,
+      system_logs: parsed.system_logs ?? createInitialState().system_logs,
       utilizacoes: (parsed.utilizacoes ?? []).map((item: any) => ({
         empresa_id: item.empresa_id ?? parsed.techpasses?.find((tp) => tp.id === item.techpass_id)?.empresa_id ?? 'emp-techsoft',
         solicitacao_id: item.solicitacao_id ?? null,
@@ -97,7 +99,7 @@ function normalizeOferta(oferta: any): OfertaParceiro {
 
 async function loadSupabaseState(): Promise<AppState | null> {
   if (!supabase) return null;
-  const [empresas, parceiroUsuarios, clientes, techpass, pending, cashback, cashbackSettings, cashbackBalances, cashbackTransactions, indicacoes, utilizacoes, beneficiosServicos, solicitacoes, ofertas, leads, fightCoreIndicacoes, techSoftIndicacoes] = await Promise.all([
+  const [empresas, parceiroUsuarios, clientes, techpass, pending, cashback, cashbackSettings, cashbackBalances, cashbackTransactions, indicacoes, utilizacoes, beneficiosServicos, solicitacoes, ofertas, leads, fightCoreIndicacoes, techSoftIndicacoes, notifications, systemLogs] = await Promise.all([
     supabase.from('empresas').select('*').order('created_at', { ascending: false }),
     supabase.from('parceiro_usuarios').select('*').order('created_at', { ascending: false }),
     supabase.from('clientes').select('*').order('created_at', { ascending: false }),
@@ -115,8 +117,10 @@ async function loadSupabaseState(): Promise<AppState | null> {
     supabase.from('leads').select('*').order('created_at', { ascending: false }),
     supabase.from('fight_core_indicacoes').select('*').order('created_at', { ascending: false }),
     supabase.from('techsoft_indicacoes').select('*').order('created_at', { ascending: false }),
+    supabase.from('notifications').select('*').order('created_at', { ascending: false }),
+    supabase.from('system_logs').select('*').order('created_at', { ascending: false }),
   ]);
-  const error = empresas.error ?? parceiroUsuarios.error ?? clientes.error ?? techpass.error ?? pending.error ?? cashback.error ?? cashbackSettings.error ?? cashbackBalances.error ?? cashbackTransactions.error ?? indicacoes.error ?? utilizacoes.error ?? beneficiosServicos.error ?? solicitacoes.error ?? ofertas.error ?? leads.error ?? fightCoreIndicacoes.error ?? techSoftIndicacoes.error;
+  const error = empresas.error ?? parceiroUsuarios.error ?? clientes.error ?? techpass.error ?? pending.error ?? cashback.error ?? cashbackSettings.error ?? cashbackBalances.error ?? cashbackTransactions.error ?? indicacoes.error ?? utilizacoes.error ?? beneficiosServicos.error ?? solicitacoes.error ?? ofertas.error ?? leads.error ?? fightCoreIndicacoes.error ?? techSoftIndicacoes.error ?? notifications.error ?? systemLogs.error;
   if (error) throw error;
   return {
     empresas: empresas.data ?? [],
@@ -136,6 +140,8 @@ async function loadSupabaseState(): Promise<AppState | null> {
     leads: leads.data ?? [],
     fight_core_indicacoes: fightCoreIndicacoes.data ?? [],
     techsoft_indicacoes: techSoftIndicacoes.data ?? [],
+    notifications: notifications.data ?? [],
+    system_logs: systemLogs.data ?? [],
   };
 }
 
@@ -159,6 +165,8 @@ async function syncSupabaseState(state: AppState) {
     state.leads.length ? supabase.from('leads').upsert(state.leads as any) : null,
     state.fight_core_indicacoes.length ? supabase.from('fight_core_indicacoes').upsert(state.fight_core_indicacoes as any) : null,
     state.techsoft_indicacoes.length ? supabase.from('techsoft_indicacoes').upsert(state.techsoft_indicacoes as any) : null,
+    state.notifications.length ? supabase.from('notifications').upsert(state.notifications as any) : null,
+    state.system_logs.length ? supabase.from('system_logs').upsert(state.system_logs as any) : null,
   ].filter(Boolean);
   const results = await Promise.all(tasks);
   const failed = results.find((result: any) => result.error);
@@ -592,6 +600,18 @@ export function useTechPassStore() {
       setState((current) => ({
         ...current,
         leads: [{ ...payload, id: makeId('lead'), status: 'novo', created_at: new Date().toISOString() }, ...current.leads],
+        notifications: [{
+          id: makeId('not'),
+          user_id: current.parceiro_usuarios.find((item) => item.empresa_id === payload.empresa_id)?.id ?? null,
+          empresa_id: payload.empresa_id,
+          tipo_usuario: 'parceiro',
+          titulo: 'Novo lead recebido',
+          descricao: getClientName(current, payload.cliente_id) + ' demonstrou interesse em ' + payload.oferta_nome + '.',
+          tipo: 'informacao',
+          url: '/parceiro/dashboard',
+          lida: false,
+          created_at: new Date().toISOString(),
+        }, ...current.notifications],
       }));
     },
     updateLead(id: string, payload: Partial<Pick<LeadParceiro, 'status' | 'observacao'>>) {
@@ -732,6 +752,35 @@ export function useTechPassStore() {
         };
       });
       return ok;
+    },
+    addNotification(payload: Omit<NotificationItem, 'id' | 'created_at' | 'lida'> & { lida?: boolean }) {
+      setState((current) => ({
+        ...current,
+        notifications: [{ ...payload, id: makeId('not'), lida: payload.lida ?? false, created_at: new Date().toISOString() }, ...current.notifications],
+      }));
+    },
+    markNotificationRead(id: string) {
+      setState((current) => ({
+        ...current,
+        notifications: current.notifications.map((item) => item.id === id ? { ...item, lida: true } : item),
+      }));
+    },
+    markAllNotificationsRead(scope?: { tipo_usuario?: TipoUsuario; user_id?: string | null; empresa_id?: string | null }) {
+      setState((current) => ({
+        ...current,
+        notifications: current.notifications.map((item) => {
+          const matchesUserType = !scope?.tipo_usuario || item.tipo_usuario === scope.tipo_usuario;
+          const matchesUser = scope?.user_id === undefined || item.user_id === scope.user_id;
+          const matchesEmpresa = scope?.empresa_id === undefined || item.empresa_id === scope.empresa_id;
+          return matchesUserType && matchesUser && matchesEmpresa ? { ...item, lida: true } : item;
+        }),
+      }));
+    },
+    addSystemLog(payload: Omit<SystemLog, 'id' | 'created_at'>) {
+      setState((current) => ({
+        ...current,
+        system_logs: [{ ...payload, id: makeId('log'), created_at: new Date().toISOString() }, ...current.system_logs],
+      }));
     },
   }), []);
 

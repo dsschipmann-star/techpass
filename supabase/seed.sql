@@ -194,3 +194,35 @@ on conflict (id) do update set
   status = excluded.status,
   valor_compra = excluded.valor_compra,
   gerou_brinde = excluded.gerou_brinde;
+
+insert into notifications (id, user_id, empresa_id, tipo_usuario, titulo, descricao, tipo, url, lida)
+values
+  ('not-cli-ativado', 'cli-maria', null, 'cliente', 'TechPass ativado', 'Seu TechPass esta ativo e pronto para usar na Rede TechPass.', 'sucesso', '/cliente/dashboard', false),
+  ('not-cli-oferta', 'cli-maria', 'emp-fight-core', 'cliente', 'Oferta Fight Core disponivel', 'Plano anual com economia estimada de R$480 e possibilidade de bonus por indicacao.', 'informacao', '/cliente/dashboard', false),
+  ('not-cli-cashback', 'cli-maria', 'emp-techsoft', 'cliente', 'Cashback liberado', 'Voce tem TechCash disponivel para usar em beneficios TechSoft.', 'sucesso', '/cliente/dashboard', true),
+  ('not-par-fc-lead', 'par-fight-core', 'emp-fight-core', 'parceiro', 'Novo lead recebido', 'Maria Eduarda demonstrou interesse no Plano Anual Fight Core.', 'informacao', '/parceiro/dashboard', false),
+  ('not-par-techsoft-cashback', 'par-techsoft', 'emp-techsoft', 'parceiro', 'Cashback aguardando aprovacao', 'Revise as movimentacoes de TechCash pendentes da TechSoft.', 'alerta', '/parceiro/dashboard', false),
+  ('not-admin-oferta', null, 'emp-fight-core', 'admin', 'Oferta aguardando aprovacao', 'Parceiros podem publicar ofertas que precisam de revisao do administrador.', 'alerta', '/admin', false),
+  ('not-admin-log', null, null, 'admin', 'Backup concluido', 'Rotina de backup demo concluida sem erros.', 'sucesso', '/admin', true)
+on conflict (id) do update set
+  user_id = excluded.user_id,
+  empresa_id = excluded.empresa_id,
+  tipo_usuario = excluded.tipo_usuario,
+  titulo = excluded.titulo,
+  descricao = excluded.descricao,
+  tipo = excluded.tipo,
+  url = excluded.url,
+  lida = excluded.lida;
+
+insert into system_logs (id, nivel, usuario, empresa, pagina, descricao, stacktrace)
+values
+  ('log-backup', 'info', 'Sistema', 'TechPass', '/admin', 'Backup concluido com sucesso.', ''),
+  ('log-auth-warning', 'warning', 'visitante', 'TechPass', '/login', 'Tentativa de login sem TechPass ativo correspondente.', ''),
+  ('log-qrcode-error', 'error', 'Sistema', 'TechSoft', '/techpass/TP-INVALIDO', 'QR Code solicitado para serial inexistente.', 'NotFoundError: TechPass serial not found')
+on conflict (id) do update set
+  nivel = excluded.nivel,
+  usuario = excluded.usuario,
+  empresa = excluded.empresa,
+  pagina = excluded.pagina,
+  descricao = excluded.descricao,
+  stacktrace = excluded.stacktrace;
