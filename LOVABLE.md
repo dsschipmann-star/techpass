@@ -7,6 +7,8 @@ Use este projeto como MVP React/Vite importado pelo GitHub.
 - `/` landing pública Rede TechPass.
 - `/techpass/TP-SG-000001` exemplo de QR Code com TechPass disponível.
 - `/techpass/TP-SG-000002` exemplo de TechPass ativo.
+- `/cliente` área do cliente com login demo por CPF/código.
+- `/empresa` painel de empresa parceira filtrado por empresa.
 - `/admin` painel administrativo MVP.
 
 ## Regras críticas
@@ -16,6 +18,8 @@ Use este projeto como MVP React/Vite importado pelo GitHub.
 - Código do voucher só pode ser usado uma vez.
 - CPF não pode ter TechPass ativo ou pendente duplicado.
 - Ativação final é feita somente no painel administrativo, após conferência de documento oficial com foto.
+- Solicitações de serviços e benefícios ficam vinculadas à empresa responsável.
+- Concluir troca de película reduz automaticamente o saldo de 6 para 0, sem permitir negativo.
 
 ## Build
 

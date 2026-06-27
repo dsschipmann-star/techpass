@@ -31,6 +31,7 @@ import { BENEFICIOS_PADRAO, SERVICOS_TECHSOFT, STATUS_LABEL, STATUS_STYLE } from
 import { hasSupabaseConfig } from './lib/supabase';
 import {
   formatDate,
+  formatDateTime,
   formatMoney,
   getCashbackBalance,
   getClientName,
@@ -38,11 +39,11 @@ import {
   getTechPassSecret,
   useTechPassStore,
 } from './lib/store';
-import type { AppState, CashbackTipo, IndicacaoStatus, RecompensaTipo, TechPass, TechPassStatus } from './types';
-import { Button, Card, Field, Input, Pill, Select, Stat, cx } from './components/ui';
+import type { AppState, BeneficioServico, BeneficioServicoTipo, CashbackTipo, IndicacaoStatus, RecompensaTipo, Solicitacao, SolicitacaoStatus, TechPass, TechPassStatus } from './types';
+import { Button, Card, Field, Input, Pill, Select, Stat, Textarea, cx } from './components/ui';
 import { QrCode, createQrDataUrl } from './components/QrCode';
 
-type AdminView = 'dashboard' | 'empresas' | 'techpass' | 'qrcodes' | 'pendentes' | 'ativar' | 'validar' | 'cashback' | 'indicacoes' | 'clientes';
+type AdminView = 'dashboard' | 'empresas' | 'techpass' | 'qrcodes' | 'pendentes' | 'ativar' | 'validar' | 'cashback' | 'indicacoes' | 'solicitacoes' | 'beneficios' | 'clientes';
 
 const ADMIN_NAV: Array<{ id: AdminView; label: string; icon: typeof Activity }> = [
   { id: 'dashboard', label: 'Dashboard', icon: Activity },
@@ -54,8 +55,27 @@ const ADMIN_NAV: Array<{ id: AdminView; label: string; icon: typeof Activity }> 
   { id: 'validar', label: 'Validar TechPass', icon: BadgeCheck },
   { id: 'cashback', label: 'Cashback', icon: Wallet },
   { id: 'indicacoes', label: 'Indique e Ganhe', icon: Gift },
+  { id: 'solicitacoes', label: 'Solicitações', icon: Store },
+  { id: 'beneficios', label: 'Benefícios e Serviços', icon: Sparkles },
   { id: 'clientes', label: 'Clientes', icon: Users },
 ];
+
+const SOLICITACAO_LABEL: Record<SolicitacaoStatus, string> = {
+  nova: 'Nova solicitação',
+  analise: 'Em análise',
+  confirmada: 'Confirmada',
+  atendimento: 'Em atendimento',
+  concluida: 'Concluída',
+  cancelada: 'Cancelada',
+};
+
+const TIPO_LABEL: Record<BeneficioServicoTipo, string> = {
+  beneficio: 'Benefício',
+  servico_desconto: 'Serviço com desconto',
+  brinde: 'Brinde',
+  cashback: 'Cashback',
+  indicacao: 'Indicação',
+};
 
 function getSerialFromPath(pathname: string) {
   const match = pathname.match(/^\/techpass\/([^/]+)/);
@@ -107,6 +127,14 @@ function App() {
     return <AdminApp state={state} actions={actions} navigate={navigate} />;
   }
 
+  if (path.startsWith('/cliente')) {
+    return <ClientArea state={state} actions={actions} navigate={navigate} />;
+  }
+
+  if (path.startsWith('/empresa')) {
+    return <PartnerArea state={state} actions={actions} navigate={navigate} />;
+  }
+
   return <LandingPage state={state} navigate={navigate} />;
 }
 
@@ -123,7 +151,10 @@ function LandingPage({ state, navigate }: { state: AppState; navigate: (path: st
             <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('parceiras')?.scrollIntoView({ behavior: 'smooth' })}>Rede</button>
             <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('ativacao')?.scrollIntoView({ behavior: 'smooth' })}>Ativação</button>
           </nav>
-          <Button variant="secondary" onClick={() => navigate('/admin')}><LockKeyhole className="h-4 w-4" />Painel</Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={() => navigate('/cliente')}><Users className="h-4 w-4" />Área do cliente</Button>
+            <Button variant="secondary" onClick={() => navigate('/admin')}><LockKeyhole className="h-4 w-4" />Painel</Button>
+          </div>
         </div>
       </header>
 
@@ -412,6 +443,8 @@ function AdminApp({ state, actions, navigate }: { state: AppState; actions: Retu
           {view === 'validar' && <ValidarScreen state={state} actions={actions} />}
           {view === 'cashback' && <CashbackScreen state={state} actions={actions} />}
           {view === 'indicacoes' && <IndicacoesScreen state={state} actions={actions} />}
+          {view === 'solicitacoes' && <SolicitacoesScreen state={state} actions={actions} />}
+          {view === 'beneficios' && <BeneficiosServicosScreen state={state} actions={actions} />}
           {view === 'clientes' && <ClientesScreen state={state} />}
         </main>
       </div>
@@ -702,6 +735,163 @@ function IndicacoesScreen({ state, actions }: { state: AppState; actions: Return
       <Card><h3 className="text-lg font-black text-white">Histórico de indicações</h3><div className="mt-4 grid gap-3">{state.indicacoes.map((item) => <div key={item.id} className="rounded-lg border border-white/10 bg-black/25 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-bold text-white">{item.nome_indicado}</p><p className="text-sm text-zinc-400">Indicador: {state.clientes.find((client) => client.id === item.cliente_indicador_id)?.nome ?? 'Cliente'}</p></div><Pill className="border-white/15 bg-white/[0.06] text-zinc-200">{item.status}</Pill></div><p className="mt-2 text-sm text-zinc-400">{formatMoney(item.valor_servico)} · recompensa: {item.recompensa} · {item.observacao}</p></div>)}{state.indicacoes.length === 0 && <EmptyMessage title="Sem indicações" description="As indicações registradas aparecerão aqui." />}</div></Card>
     </div>
   );
+}
+
+function getServicoName(state: AppState, id: string) {
+  return state.beneficios_servicos.find((item) => item.id === id)?.nome ?? 'Item não encontrado';
+}
+
+function SolicitacaoPill({ status }: { status: SolicitacaoStatus }) {
+  const tone = status === 'concluida' ? 'border-tech-neon/40 bg-tech-neon/10 text-tech-neon' : status === 'cancelada' ? 'border-red-300/30 bg-red-400/10 text-red-100' : 'border-sky-300/30 bg-sky-400/10 text-sky-100';
+  return <Pill className={tone}>{SOLICITACAO_LABEL[status]}</Pill>;
+}
+
+function ClientArea({ state, actions, navigate }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; navigate: (path: string) => void }) {
+  const [login, setLogin] = useState({ cpf: '123.456.789-10', telefone: '', codigo: 'TP-SG-000002' });
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const activePasses = state.techpasses.filter((item) => item.status === 'ATIVO' && item.cliente_id);
+  const matchedPass = selectedClientId
+    ? activePasses.find((item) => item.cliente_id === selectedClientId)
+    : activePasses.find((item) => {
+      const cliente = state.clientes.find((client) => client.id === item.cliente_id);
+      const cpfOk = login.cpf && cliente?.cpf.replace(/\D/g, '') === login.cpf.replace(/\D/g, '');
+      const telOk = login.telefone && cliente?.telefone.replace(/\D/g, '').includes(login.telefone.replace(/\D/g, ''));
+      const codeOk = login.codigo && [item.serial, item.codigo_fisico, item.codigo_indicacao ?? ''].some((value) => value.toLowerCase() === login.codigo.toLowerCase());
+      return cpfOk || telOk || codeOk;
+    });
+  const cliente = matchedPass?.cliente_id ? state.clientes.find((item) => item.id === matchedPass.cliente_id) : null;
+
+  return (
+    <PublicShell>
+      <div className="grid gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <PageTitle title="Área do cliente TechPass" subtitle="Acompanhe benefícios, TechCash, películas e solicitações em aberto." />
+          <Button variant="secondary" onClick={() => navigate('/')}><ArrowRight className="h-4 w-4 rotate-180" />Site público</Button>
+        </div>
+        {!matchedPass || !cliente ? (
+          <Card>
+            <form className="grid gap-4 md:grid-cols-3" onSubmit={(event) => { event.preventDefault(); setSelectedClientId(matchedPass?.cliente_id ?? ''); }}>
+              <Field label="CPF"><Input value={login.cpf} onChange={(event) => setLogin({ ...login, cpf: event.target.value })} placeholder="000.000.000-00" /></Field>
+              <Field label="Telefone / WhatsApp"><Input value={login.telefone} onChange={(event) => setLogin({ ...login, telefone: event.target.value })} placeholder="(00) 00000-0000" /></Field>
+              <Field label="Código do TechPass"><Input value={login.codigo} onChange={(event) => setLogin({ ...login, codigo: event.target.value })} placeholder="Serial, voucher ou indicação" /></Field>
+              <div className="md:col-span-3"><Button type="submit"><UserCheck className="h-4 w-4" />Acessar dashboard</Button></div>
+            </form>
+            <p className="mt-4 text-sm text-zinc-400">Demonstração: use CPF 123.456.789-10 ou código TP-SG-000002.</p>
+          </Card>
+        ) : (
+          <ClientDashboard state={state} actions={actions} cliente={cliente} techpass={matchedPass} />
+        )}
+      </div>
+    </PublicShell>
+  );
+}
+
+function ClientDashboard({ state, actions, cliente, techpass }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; cliente: AppState['clientes'][number]; techpass: TechPass }) {
+  const solicitacoes = state.solicitacoes.filter((item) => item.cliente_id === cliente.id);
+  const utilizacoes = state.utilizacoes.filter((item) => item.cliente_id === cliente.id);
+  const itensAtivos = state.beneficios_servicos.filter((item) => item.status === 'ativo');
+  const [empresaId, setEmpresaId] = useState(itensAtivos[0]?.empresa_id ?? '');
+  const itensEmpresa = itensAtivos.filter((item) => !empresaId || item.empresa_id === empresaId);
+  const [itemId, setItemId] = useState(itensEmpresa[0]?.id ?? '');
+  const selectedItem = state.beneficios_servicos.find((item) => item.id === itemId) ?? itensEmpresa[0];
+  const [agenda, setAgenda] = useState({ data: '', horario: '', observacao: '' });
+  const [message, setMessage] = useState('');
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const item = selectedItem;
+    if (!item) return;
+    actions.addSolicitacao({ cliente_id: cliente.id, techpass_id: techpass.id, empresa_id: item.empresa_id, beneficio_servico_id: item.id, tipo: item.tipo, data_preferida: agenda.data, horario_preferido: agenda.horario, observacao: agenda.observacao });
+    setAgenda({ data: '', horario: '', observacao: '' });
+    setMessage('Solicitação enviada. A empresa responsável vai analisar e confirmar.');
+  };
+  return (
+    <div className="grid gap-6">
+      <Card>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div><h1 className="text-3xl font-black text-white">{cliente.nome}</h1><p className="mt-1 text-zinc-400">{getEmpresaName(state, techpass.empresa_id)} · {techpass.serial}</p></div>
+          <StatusPill status={getEffectiveStatus(techpass)} />
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Info label="Validade" value={formatDate(techpass.expires_at)} />
+          <Info label="Saldo TechCash" value={formatMoney(getCashbackBalance(state, techpass.id))} />
+          <Info label="Películas restantes" value={techpass.peliculas_restantes + ' de 6'} />
+          <Info label="Código de indicação" value={techpass.codigo_indicacao ?? cliente.codigo_indicacao ?? 'Não gerado'} />
+        </div>
+      </Card>
+      <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
+        <Card><BenefitsList /></Card>
+        <Card><PageTitle title="Solicitações em aberto" subtitle="Pedidos aguardando análise, confirmação ou atendimento." /><div className="mt-4 grid gap-3">{solicitacoes.filter((item) => !['concluida', 'cancelada'].includes(item.status)).map((item) => <SolicitacaoRow key={item.id} state={state} solicitacao={item} />)}{solicitacoes.filter((item) => !['concluida', 'cancelada'].includes(item.status)).length === 0 && <EmptyMessage title="Nada em aberto" description="Solicite um serviço ou benefício quando precisar." />}</div></Card>
+      </div>
+      <Card>
+        <PageTitle title="Benefícios utilizados" subtitle="Histórico de películas, limpezas, consultorias, descontos, cashback e indicações." />
+        <div className="mt-4 grid gap-3">{utilizacoes.map((item) => <div key={item.id} className="grid gap-2 rounded-lg border border-white/10 bg-black/25 p-4 md:grid-cols-[1fr_auto]"><div><p className="font-bold text-white">{item.beneficio}</p><p className="text-sm text-zinc-400">{getEmpresaName(state, item.empresa_id)} · {formatDateTime(item.completed_at ?? item.created_at)}</p><p className="mt-1 text-sm text-zinc-500">{item.observacao}</p></div><Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">{item.status}</Pill></div>)}{utilizacoes.length === 0 && <EmptyMessage title="Sem usos registrados" description="Os benefícios utilizados aparecerão aqui." />}</div>
+      </Card>
+      <Card>
+        <PageTitle title="Serviços com desconto para membros TechPass" subtitle="Escolha uma empresa, selecione o serviço ou benefício e envie uma solicitação." />
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{itensAtivos.map((item) => <ServiceCard key={item.id} state={state} item={item} onSelect={() => { setEmpresaId(item.empresa_id); setItemId(item.id); }} />)}</div>
+        <form onSubmit={submit} className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Field label="Empresa parceira"><Select value={empresaId} onChange={(event) => { setEmpresaId(event.target.value); setItemId(state.beneficios_servicos.find((item) => item.empresa_id === event.target.value && item.status === 'ativo')?.id ?? ''); }}>{state.empresas.filter((item) => item.status === 'ativa').map((empresa) => <option key={empresa.id} value={empresa.id}>{empresa.nome}</option>)}</Select></Field>
+          <Field label="Serviço ou benefício"><Select value={itemId} onChange={(event) => setItemId(event.target.value)}>{itensEmpresa.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</Select></Field>
+          <Field label="Data desejada"><Input type="date" value={agenda.data} onChange={(event) => setAgenda({ ...agenda, data: event.target.value })} /></Field>
+          <Field label="Horário / preferência"><Input value={agenda.horario} onChange={(event) => setAgenda({ ...agenda, horario: event.target.value })} placeholder="Ex: 14h ou tarde" /></Field>
+          <div className="md:col-span-2 xl:col-span-4"><Field label="Observação"><Textarea value={agenda.observacao} onChange={(event) => setAgenda({ ...agenda, observacao: event.target.value })} /></Field></div>
+          <div className="md:col-span-2 xl:col-span-4"><Button type="submit" disabled={!selectedItem}><Store className="h-4 w-4" />Solicitar serviço</Button>{message && <p className="mt-3 text-sm text-tech-neon">{message}</p>}</div>
+        </form>
+      </Card>
+    </div>
+  );
+}
+
+function ServiceCard({ state, item, onSelect }: { state: AppState; item: BeneficioServico; onSelect?: () => void }) {
+  return <button type="button" onClick={onSelect} className="rounded-lg border border-white/10 bg-black/25 p-4 text-left transition hover:border-tech-neon/60"><div className="flex items-start justify-between gap-2"><div><p className="font-black text-white">{item.nome}</p><p className="mt-1 text-xs font-bold uppercase text-tech-neon">{getEmpresaName(state, item.empresa_id)} · {item.categoria}</p></div><Pill className="border-white/15 bg-white/[0.06] text-zinc-200">{TIPO_LABEL[item.tipo]}</Pill></div><p className="mt-3 text-sm leading-6 text-zinc-400">{item.descricao}</p><p className="mt-3 text-sm text-zinc-300">{item.valor_normal ? <>Normal: {formatMoney(item.valor_normal)} · </> : null}<span className="font-bold text-tech-neon">{item.valor_desconto === 0 ? 'Incluso' : item.valor_desconto ? formatMoney(item.valor_desconto) : item.percentual_desconto ? item.percentual_desconto + '% OFF' : 'Condição especial'}</span></p></button>;
+}
+
+function SolicitacaoRow({ state, solicitacao }: { state: AppState; solicitacao: Solicitacao }) {
+  return <div className="rounded-lg border border-white/10 bg-black/25 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-bold text-white">{getServicoName(state, solicitacao.beneficio_servico_id)}</p><p className="mt-1 text-sm text-zinc-400">{getEmpresaName(state, solicitacao.empresa_id)} · {formatDate(solicitacao.data_preferida)} {solicitacao.horario_preferido}</p></div><SolicitacaoPill status={solicitacao.status} /></div><p className="mt-2 text-sm text-zinc-500">{solicitacao.observacao || solicitacao.observacao_empresa}</p></div>;
+}
+
+function SolicitacoesScreen({ state, actions }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions'] }) {
+  const [empresaId, setEmpresaId] = useState('todas');
+  const filtered = state.solicitacoes.filter((item) => empresaId === 'todas' || item.empresa_id === empresaId);
+  return (
+    <div className="grid gap-6">
+      <PageTitle title="Solicitações e agendamentos" subtitle="Acompanhe pedidos de clientes por empresa, status e atendimento." />
+      <Card><Field label="Filtro por empresa"><Select value={empresaId} onChange={(event) => setEmpresaId(event.target.value)}><option value="todas">Todas</option>{state.empresas.map((empresa) => <option key={empresa.id} value={empresa.id}>{empresa.nome}</option>)}</Select></Field></Card>
+      <SolicitacoesList state={state} actions={actions} solicitacoes={filtered} />
+    </div>
+  );
+}
+
+function SolicitacoesList({ state, actions, solicitacoes }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; solicitacoes: Solicitacao[] }) {
+  const [drafts, setDrafts] = useState<Record<string, { status: SolicitacaoStatus; observacao: string; funcionario: string }>>({});
+  const getDraft = (item: Solicitacao) => drafts[item.id] ?? { status: item.status, observacao: item.observacao_empresa, funcionario: item.funcionario_responsavel };
+  return <div className="grid gap-3">{solicitacoes.map((item) => {
+    const draft = getDraft(item);
+    const cliente = state.clientes.find((client) => client.id === item.cliente_id);
+    return <Card key={item.id} className="grid gap-4 xl:grid-cols-[1fr_360px]"><div><div className="flex flex-wrap items-center gap-3"><h3 className="text-xl font-black text-white">{getServicoName(state, item.beneficio_servico_id)}</h3><SolicitacaoPill status={item.status} /></div><p className="mt-2 text-sm text-zinc-400">{cliente?.nome ?? 'Cliente'} · {cliente?.telefone ?? ''} · {getEmpresaName(state, item.empresa_id)}</p><p className="mt-1 text-sm text-zinc-400">Preferência: {formatDate(item.data_preferida)} {item.horario_preferido || 'sem horário'}</p><p className="mt-3 text-sm text-zinc-300">{item.observacao}</p>{item.observacao_empresa && <p className="mt-2 text-sm text-tech-neon">{item.observacao_empresa}</p>}</div><div className="grid gap-3"><Field label="Status"><Select value={draft.status} onChange={(event) => setDrafts({ ...drafts, [item.id]: { ...draft, status: event.target.value as SolicitacaoStatus } })}>{Object.entries(SOLICITACAO_LABEL).map(([status, label]) => <option key={status} value={status}>{label}</option>)}</Select></Field><Field label="Funcionário responsável"><Input value={draft.funcionario} onChange={(event) => setDrafts({ ...drafts, [item.id]: { ...draft, funcionario: event.target.value } })} /></Field><Field label="Observação da empresa"><Textarea value={draft.observacao} onChange={(event) => setDrafts({ ...drafts, [item.id]: { ...draft, observacao: event.target.value } })} /></Field><div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => actions.updateSolicitacao(item.id, { status: draft.status, observacao_empresa: draft.observacao, funcionario_responsavel: draft.funcionario })}>Salvar status</Button><Button onClick={() => actions.concludeSolicitacao(item.id, draft.observacao || 'Atendimento concluído.', draft.funcionario || 'Empresa parceira')}>Concluir e registrar uso</Button></div></div></Card>;
+  })}{solicitacoes.length === 0 && <EmptyMessage title="Sem solicitações" description="As solicitações aparecerão aqui quando clientes enviarem pedidos." />}</div>;
+}
+
+function BeneficiosServicosScreen({ state, actions }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions'] }) {
+  const [form, setForm] = useState<Omit<BeneficioServico, 'id' | 'created_at'>>({ nome: '', tipo: 'servico_desconto', empresa_id: state.empresas[0]?.id ?? '', categoria: '', descricao: '', valor_normal: null, valor_desconto: null, percentual_desconto: null, limite_uso: null, validade: null, status: 'ativo', regras_uso: '' });
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    actions.addBeneficioServico(form);
+    setForm({ ...form, nome: '', descricao: '', valor_normal: null, valor_desconto: null, percentual_desconto: null, limite_uso: null, regras_uso: '' });
+  };
+  return (
+    <div className="grid gap-6">
+      <PageTitle title="Benefícios e Serviços" subtitle="Crie benefícios inclusos, serviços com desconto, brindes, cashback, indicações e regras de uso." />
+      <Card><form onSubmit={submit} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><Field label="Nome"><Input value={form.nome} onChange={(event) => setForm({ ...form, nome: event.target.value })} required /></Field><Field label="Tipo"><Select value={form.tipo} onChange={(event) => setForm({ ...form, tipo: event.target.value as BeneficioServicoTipo })}>{Object.entries(TIPO_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></Field><Field label="Empresa responsável"><Select value={form.empresa_id} onChange={(event) => setForm({ ...form, empresa_id: event.target.value })}>{state.empresas.map((empresa) => <option key={empresa.id} value={empresa.id}>{empresa.nome}</option>)}</Select></Field><Field label="Categoria"><Input value={form.categoria} onChange={(event) => setForm({ ...form, categoria: event.target.value })} /></Field><Field label="Valor normal"><Input type="number" value={form.valor_normal ?? ''} onChange={(event) => setForm({ ...form, valor_normal: event.target.value ? Number(event.target.value) : null })} /></Field><Field label="Valor com desconto"><Input type="number" value={form.valor_desconto ?? ''} onChange={(event) => setForm({ ...form, valor_desconto: event.target.value ? Number(event.target.value) : null })} /></Field><Field label="% desconto"><Input type="number" value={form.percentual_desconto ?? ''} onChange={(event) => setForm({ ...form, percentual_desconto: event.target.value ? Number(event.target.value) : null })} /></Field><Field label="Limite de uso"><Input type="number" value={form.limite_uso ?? ''} onChange={(event) => setForm({ ...form, limite_uso: event.target.value ? Number(event.target.value) : null })} /></Field><Field label="Validade"><Input type="date" value={form.validade ?? ''} onChange={(event) => setForm({ ...form, validade: event.target.value || null })} /></Field><Field label="Status"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as 'ativo' | 'inativo' })}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></Select></Field><div className="md:col-span-2 xl:col-span-4"><Field label="Descrição"><Textarea value={form.descricao} onChange={(event) => setForm({ ...form, descricao: event.target.value })} /></Field></div><div className="md:col-span-2 xl:col-span-4"><Field label="Regras de uso"><Textarea value={form.regras_uso} onChange={(event) => setForm({ ...form, regras_uso: event.target.value })} /></Field></div><div className="md:col-span-2 xl:col-span-4"><Button type="submit"><Plus className="h-4 w-4" />Criar item</Button></div></form></Card>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{state.beneficios_servicos.map((item) => <Card key={item.id}><div className="flex items-start justify-between gap-3"><div><h3 className="font-black text-white">{item.nome}</h3><p className="mt-1 text-xs font-bold uppercase text-tech-neon">{getEmpresaName(state, item.empresa_id)} · {TIPO_LABEL[item.tipo]}</p></div><Pill className={item.status === 'ativo' ? 'border-tech-neon/40 bg-tech-neon/10 text-tech-neon' : 'border-red-300/30 bg-red-400/10 text-red-100'}>{item.status}</Pill></div><p className="mt-3 text-sm leading-6 text-zinc-400">{item.descricao}</p><div className="mt-4 flex flex-wrap gap-2"><Button variant="secondary" onClick={() => actions.updateBeneficioServico(item.id, { status: item.status === 'ativo' ? 'inativo' : 'ativo' })}>{item.status === 'ativo' ? 'Inativar' : 'Ativar'}</Button></div></Card>)}</div>
+    </div>
+  );
+}
+
+function PartnerArea({ state, actions, navigate }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; navigate: (path: string) => void }) {
+  const [empresaId, setEmpresaId] = useState(state.empresas[0]?.id ?? '');
+  const solicitacoes = state.solicitacoes.filter((item) => item.empresa_id === empresaId);
+  return <PublicShell><div className="grid gap-6"><div className="flex flex-wrap items-center justify-between gap-3"><PageTitle title="Painel da empresa parceira" subtitle="Visualize apenas solicitações da empresa selecionada e finalize atendimentos." /><Button variant="secondary" onClick={() => navigate('/admin')}>Painel admin</Button></div><Card><Field label="Empresa parceira"><Select value={empresaId} onChange={(event) => setEmpresaId(event.target.value)}>{state.empresas.map((empresa) => <option key={empresa.id} value={empresa.id}>{empresa.nome}</option>)}</Select></Field></Card><SolicitacoesList state={state} actions={actions} solicitacoes={solicitacoes} /></div></PublicShell>;
 }
 
 function ClientesScreen({ state }: { state: AppState }) {

@@ -13,6 +13,16 @@ export type IndicacaoStatus = 'pendente' | 'aprovado' | 'recusado';
 
 export type RecompensaTipo = 'desconto' | 'cashback' | 'brinde';
 
+export type BeneficioServicoTipo = 'beneficio' | 'servico_desconto' | 'brinde' | 'cashback' | 'indicacao';
+
+export type SolicitacaoStatus =
+  | 'nova'
+  | 'analise'
+  | 'confirmada'
+  | 'atendimento'
+  | 'concluida'
+  | 'cancelada';
+
 export interface Empresa {
   id: string;
   nome: string;
@@ -80,13 +90,52 @@ export interface Indicacao {
   created_at: string;
 }
 
+export interface BeneficioServico {
+  id: string;
+  nome: string;
+  tipo: BeneficioServicoTipo;
+  empresa_id: string;
+  categoria: string;
+  descricao: string;
+  valor_normal: number | null;
+  valor_desconto: number | null;
+  percentual_desconto: number | null;
+  limite_uso: number | null;
+  validade: string | null;
+  status: 'ativo' | 'inativo';
+  regras_uso: string;
+  created_at: string;
+}
+
+export interface Solicitacao {
+  id: string;
+  cliente_id: string;
+  techpass_id: string;
+  empresa_id: string;
+  beneficio_servico_id: string;
+  tipo: BeneficioServicoTipo;
+  data_preferida: string;
+  horario_preferido: string;
+  observacao: string;
+  status: SolicitacaoStatus;
+  funcionario_responsavel: string;
+  data_solicitacao: string;
+  data_conclusao: string | null;
+  observacao_empresa: string;
+}
+
 export interface Utilizacao {
   id: string;
   cliente_id: string;
   techpass_id: string;
+  empresa_id: string;
+  solicitacao_id: string | null;
   beneficio: string;
+  status: string;
   observacao: string;
+  funcionario_responsavel: string;
   created_at: string;
+  completed_at: string | null;
 }
 
 export interface AppState {
@@ -97,4 +146,6 @@ export interface AppState {
   cashback_movements: CashbackMovement[];
   indicacoes: Indicacao[];
   utilizacoes: Utilizacao[];
+  beneficios_servicos: BeneficioServico[];
+  solicitacoes: Solicitacao[];
 }

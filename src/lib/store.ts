@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { createInitialState } from '../data';
 import { hasSupabaseConfig, supabase } from './supabase';
-import type { AppState, CashbackMovement, Cliente, Empresa, Indicacao, PendingActivation, TechPass, TechPassStatus, Utilizacao } from '../types';
+import type { AppState, BeneficioServico, CashbackMovement, Cliente, Empresa, Indicacao, PendingActivation, Solicitacao, TechPass, TechPassStatus, Utilizacao } from '../types';
 
 const STORAGE_KEY = 'techpass-premium-state-v2';
 
@@ -9,7 +9,20 @@ function safeParse(value: string | null): AppState | null {
   if (!value) return null;
   try {
     const parsed = JSON.parse(value) as AppState;
-    return parsed.pending_activations ? parsed : null;
+    if (!parsed.pending_activations) return null;
+    return {
+      ...parsed,
+      beneficios_servicos: parsed.beneficios_servicos ?? createInitialState().beneficios_servicos,
+      solicitacoes: parsed.solicitacoes ?? createInitialState().solicitacoes,
+      utilizacoes: (parsed.utilizacoes ?? []).map((item: any) => ({
+        empresa_id: item.empresa_id ?? parsed.techpasses?.find((tp) => tp.id === item.techpass_id)?.empresa_id ?? 'emp-techsoft',
+        solicitacao_id: item.solicitacao_id ?? null,
+        status: item.status ?? 'concluida',
+        funcionario_responsavel: item.funcionario_responsavel ?? 'Atendimento TechSoft',
+        completed_at: item.completed_at ?? item.created_at ?? null,
+        ...item,
+      })),
+    };
   } catch {
     return null;
   }
@@ -51,6 +64,11 @@ export function formatDate(value: string | null | undefined) {
   return new Intl.DateTimeFormat('pt-BR').format(new Date(value));
 }
 
+export function formatDateTime(value: string | null | undefined) {
+  if (!value) return 'Não definido';
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
+}
+
 export function addMonths(date: Date, months: number) {
   const copy = new Date(date);
   copy.setMonth(copy.getMonth() + months);
@@ -59,7 +77,7 @@ export function addMonths(date: Date, months: number) {
 
 async function loadSupabaseState(): Promise<AppState | null> {
   if (!supabase) return null;
-  const [empresas, clientes, techpass, pending, cashback, indicacoes, utilizacoes] = await Promise.all([
+  const [empresas, clientes, techpass, pending, cashback, indicacoes, utilizacoes, beneficiosServicos, solicitacoes] = await Promise.all([
     supabase.from('empresas').select('*').order('created_at', { ascending: false }),
     supabase.from('clientes').select('*').order('created_at', { ascending: false }),
     supabase.from('techpass').select('*').order('created_at', { ascending: false }),
@@ -67,8 +85,10 @@ async function loadSupabaseState(): Promise<AppState | null> {
     supabase.from('cashback_movements').select('*').order('created_at', { ascending: false }),
     supabase.from('indicacoes').select('*').order('created_at', { ascending: false }),
     supabase.from('utilizacoes').select('*').order('created_at', { ascending: false }),
+    supabase.from('beneficios_servicos').select('*').order('created_at', { ascending: false }),
+    supabase.from('solicitacoes').select('*').order('data_solicitacao', { ascending: false }),
   ]);
-  const error = empresas.error ?? clientes.error ?? techpass.error ?? pending.error ?? cashback.error ?? indicacoes.error ?? utilizacoes.error;
+  const error = empresas.error ?? clientes.error ?? techpass.error ?? pending.error ?? cashback.error ?? indicacoes.error ?? utilizacoes.error ?? beneficiosServicos.error ?? solicitacoes.error;
   if (error) throw error;
   return {
     empresas: empresas.data ?? [],
@@ -78,6 +98,8 @@ async function loadSupabaseState(): Promise<AppState | null> {
     cashback_movements: cashback.data ?? [],
     indicacoes: indicacoes.data ?? [],
     utilizacoes: utilizacoes.data ?? [],
+    beneficios_servicos: beneficiosServicos.data ?? [],
+    solicitacoes: solicitacoes.data ?? [],
   };
 }
 
@@ -91,6 +113,8 @@ async function syncSupabaseState(state: AppState) {
     state.cashback_movements.length ? supabase.from('cashback_movements').upsert(state.cashback_movements as any) : null,
     state.indicacoes.length ? supabase.from('indicacoes').upsert(state.indicacoes as any) : null,
     state.utilizacoes.length ? supabase.from('utilizacoes').upsert(state.utilizacoes as any) : null,
+    state.beneficios_servicos.length ? supabase.from('beneficios_servicos').upsert(state.beneficios_servicos as any) : null,
+    state.solicitacoes.length ? supabase.from('solicitacoes').upsert(state.solicitacoes as any) : null,
   ].filter(Boolean);
   const results = await Promise.all(tasks);
   const failed = results.find((result: any) => result.error);
@@ -287,7 +311,19 @@ export function useTechPassStore() {
         if (!techpass?.cliente_id) return current;
         return {
           ...current,
-          utilizacoes: [{ id: makeId('uti'), cliente_id: techpass.cliente_id, techpass_id: techpass.id, beneficio, observacao, created_at: new Date().toISOString() }, ...current.utilizacoes],
+          utilizacoes: [{
+            id: makeId('uti'),
+            cliente_id: techpass.cliente_id,
+            techpass_id: techpass.id,
+            empresa_id: techpass.empresa_id,
+            solicitacao_id: null,
+            beneficio,
+            status: 'concluida',
+            observacao,
+            funcionario_responsavel: 'Atendimento TechSoft',
+            created_at: new Date().toISOString(),
+            completed_at: new Date().toISOString(),
+          }, ...current.utilizacoes],
         };
       });
     },
@@ -300,7 +336,19 @@ export function useTechPassStore() {
         return {
           ...current,
           techpasses: current.techpasses.map((item) => item.id === techpassId ? { ...item, peliculas_restantes: Math.max(item.peliculas_restantes - 1, 0) } : item),
-          utilizacoes: [{ id: makeId('uti'), cliente_id: techpass.cliente_id, techpass_id: techpass.id, beneficio: 'Troca de película', observacao, created_at: new Date().toISOString() }, ...current.utilizacoes],
+          utilizacoes: [{
+            id: makeId('uti'),
+            cliente_id: techpass.cliente_id,
+            techpass_id: techpass.id,
+            empresa_id: 'emp-techsoft',
+            solicitacao_id: null,
+            beneficio: 'Troca de película',
+            status: 'concluida',
+            observacao,
+            funcionario_responsavel: 'Atendimento TechSoft',
+            created_at: new Date().toISOString(),
+            completed_at: new Date().toISOString(),
+          }, ...current.utilizacoes],
         };
       });
       return ok;
@@ -316,6 +364,77 @@ export function useTechPassStore() {
         ...current,
         indicacoes: [{ ...payload, id: makeId('ind'), created_at: new Date().toISOString() }, ...current.indicacoes],
       }));
+    },
+    addBeneficioServico(payload: Omit<BeneficioServico, 'id' | 'created_at'>) {
+      setState((current) => ({
+        ...current,
+        beneficios_servicos: [{ ...payload, id: makeId('bs'), created_at: new Date().toISOString() }, ...current.beneficios_servicos],
+      }));
+    },
+    updateBeneficioServico(id: string, payload: Partial<Omit<BeneficioServico, 'id' | 'created_at'>>) {
+      setState((current) => ({
+        ...current,
+        beneficios_servicos: current.beneficios_servicos.map((item) => item.id === id ? { ...item, ...payload } : item),
+      }));
+    },
+    addSolicitacao(payload: Omit<Solicitacao, 'id' | 'status' | 'funcionario_responsavel' | 'data_solicitacao' | 'data_conclusao' | 'observacao_empresa'>) {
+      setState((current) => ({
+        ...current,
+        solicitacoes: [{
+          ...payload,
+          id: makeId('sol'),
+          status: 'nova',
+          funcionario_responsavel: '',
+          data_solicitacao: new Date().toISOString(),
+          data_conclusao: null,
+          observacao_empresa: '',
+        }, ...current.solicitacoes],
+      }));
+    },
+    updateSolicitacao(id: string, payload: Partial<Pick<Solicitacao, 'status' | 'observacao_empresa' | 'funcionario_responsavel'>>) {
+      setState((current) => ({
+        ...current,
+        solicitacoes: current.solicitacoes.map((item) => item.id === id ? { ...item, ...payload } : item),
+      }));
+    },
+    concludeSolicitacao(id: string, observacaoEmpresa: string, funcionario: string) {
+      let ok = false;
+      setState((current) => {
+        const solicitacao = current.solicitacoes.find((item) => item.id === id);
+        if (!solicitacao) return current;
+        const techpass = current.techpasses.find((item) => item.id === solicitacao.techpass_id);
+        const servico = current.beneficios_servicos.find((item) => item.id === solicitacao.beneficio_servico_id);
+        if (!techpass?.cliente_id || techpass.status !== 'ATIVO') return current;
+        const isPelicula = (servico?.nome ?? '').toLowerCase().includes('película');
+        if (isPelicula && techpass.peliculas_restantes <= 0) return current;
+        ok = true;
+        const now = new Date().toISOString();
+        return {
+          ...current,
+          techpasses: current.techpasses.map((item) => item.id === techpass.id && isPelicula ? { ...item, peliculas_restantes: Math.max(item.peliculas_restantes - 1, 0) } : item),
+          solicitacoes: current.solicitacoes.map((item) => item.id === id ? {
+            ...item,
+            status: 'concluida',
+            observacao_empresa: observacaoEmpresa,
+            funcionario_responsavel: funcionario,
+            data_conclusao: now,
+          } : item),
+          utilizacoes: [{
+            id: makeId('uti'),
+            cliente_id: techpass.cliente_id,
+            techpass_id: techpass.id,
+            empresa_id: solicitacao.empresa_id,
+            solicitacao_id: solicitacao.id,
+            beneficio: servico?.nome ?? 'Benefício ou serviço',
+            status: 'concluida',
+            observacao: observacaoEmpresa || solicitacao.observacao,
+            funcionario_responsavel: funcionario,
+            created_at: solicitacao.data_solicitacao,
+            completed_at: now,
+          }, ...current.utilizacoes],
+        };
+      });
+      return ok;
     },
   }), []);
 
