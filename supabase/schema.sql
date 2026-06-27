@@ -133,6 +133,45 @@ create table if not exists cashback_movements (
   created_at timestamptz not null default now()
 );
 
+create table if not exists cashback_settings (
+  id text primary key default gen_random_uuid()::text,
+  empresa_id text not null references empresas(id) on delete cascade,
+  ativo boolean not null default false,
+  valor_minimo numeric(10,2) not null default 0,
+  tipo_calculo text not null default 'oferta_especifica' check (tipo_calculo in ('valor_fixo', 'percentual', 'proporcional', 'oferta_especifica')),
+  limite_maximo numeric(10,2) not null default 0,
+  regras_uso text not null default '',
+  status text not null default 'ativo' check (status in ('ativo', 'inativo')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists cashback_balances (
+  id text primary key default gen_random_uuid()::text,
+  cliente_id text not null references clientes(id) on delete cascade,
+  empresa_id text not null references empresas(id) on delete cascade,
+  saldo_disponivel numeric(10,2) not null default 0 check (saldo_disponivel >= 0),
+  saldo_pendente numeric(10,2) not null default 0 check (saldo_pendente >= 0),
+  limite_maximo numeric(10,2) not null default 0,
+  updated_at timestamptz not null default now(),
+  unique (cliente_id, empresa_id)
+);
+
+create table if not exists cashback_transactions (
+  id text primary key default gen_random_uuid()::text,
+  cliente_id text not null references clientes(id) on delete cascade,
+  techpass_id text not null references techpass(id) on delete cascade,
+  empresa_id text not null references empresas(id) on delete cascade,
+  oferta_id text,
+  lead_id text,
+  tipo text not null check (tipo in ('credito', 'debito', 'ajuste', 'cancelamento')),
+  valor numeric(10,2) not null default 0 check (valor >= 0),
+  status text not null default 'pendente' check (status in ('pendente', 'disponivel', 'usado', 'cancelado')),
+  descricao text not null default '',
+  valor_compra numeric(10,2) not null default 0,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists indicacoes (
   id text primary key default gen_random_uuid()::text,
   cliente_indicador_id text not null references clientes(id) on delete cascade,
@@ -209,16 +248,30 @@ create table if not exists ofertas (
   status text not null default 'ativo' check (status in ('ativo', 'inativo', 'PENDENTE_APROVACAO', 'REPROVADA', 'AJUSTE_SOLICITADO')),
   cta text not null default 'Tenho interesse',
   origem text not null default 'admin' check (origem in ('admin', 'parceiro')),
+  cashback_ativo boolean not null default false,
+  cashback_tipo text not null default 'sem_cashback' check (cashback_tipo in ('sem_cashback', 'valor_fixo', 'percentual', 'proporcional', 'mensalidade')),
+  cashback_valor numeric(10,2),
+  cashback_limite numeric(10,2),
+  cashback_regras text not null default '',
+  cashback_descricao_cliente text not null default '',
   created_at timestamptz not null default now()
 );
 
 alter table ofertas add column if not exists descricao_completa text not null default '';
 alter table ofertas add column if not exists validade date;
 alter table ofertas add column if not exists origem text not null default 'admin';
+alter table ofertas add column if not exists cashback_ativo boolean not null default false;
+alter table ofertas add column if not exists cashback_tipo text not null default 'sem_cashback';
+alter table ofertas add column if not exists cashback_valor numeric(10,2);
+alter table ofertas add column if not exists cashback_limite numeric(10,2);
+alter table ofertas add column if not exists cashback_regras text not null default '';
+alter table ofertas add column if not exists cashback_descricao_cliente text not null default '';
 alter table ofertas drop constraint if exists ofertas_status_check;
 alter table ofertas add constraint ofertas_status_check check (status in ('ativo', 'inativo', 'PENDENTE_APROVACAO', 'REPROVADA', 'AJUSTE_SOLICITADO'));
 alter table ofertas drop constraint if exists ofertas_origem_check;
 alter table ofertas add constraint ofertas_origem_check check (origem in ('admin', 'parceiro'));
+alter table ofertas drop constraint if exists ofertas_cashback_tipo_check;
+alter table ofertas add constraint ofertas_cashback_tipo_check check (cashback_tipo in ('sem_cashback', 'valor_fixo', 'percentual', 'proporcional', 'mensalidade'));
 
 create table if not exists leads (
   id text primary key default gen_random_uuid()::text,
@@ -258,6 +311,10 @@ create index if not exists idx_techpass_serial on techpass(serial);
 create index if not exists idx_techpass_status on techpass(status);
 create index if not exists idx_techpass_empresa on techpass(empresa_id);
 create index if not exists idx_pending_status on pending_activations(status);
+create index if not exists idx_cashback_settings_empresa on cashback_settings(empresa_id);
+create index if not exists idx_cashback_balances_cliente_empresa on cashback_balances(cliente_id, empresa_id);
+create index if not exists idx_cashback_transactions_empresa on cashback_transactions(empresa_id);
+create index if not exists idx_cashback_transactions_cliente on cashback_transactions(cliente_id);
 create index if not exists idx_beneficios_empresa on beneficios_servicos(empresa_id);
 create index if not exists idx_solicitacoes_empresa on solicitacoes(empresa_id);
 create index if not exists idx_solicitacoes_cliente on solicitacoes(cliente_id);

@@ -32,6 +32,7 @@ Front-end MVP da Rede TechPass para a TechSoft, criado com React, TypeScript, Ta
 - Empresas parceiras entram pelo acesso parceiro, visualizam apenas dados da própria empresa e podem criar ofertas que ficam pendentes de aprovação.
 - Admin TechPass aprova, reprova, solicita ajuste ou desativa ofertas antes de aparecerem para clientes.
 - Landing "Seja Parceiro TechPass" apresenta vouchers, pré-formulários, WhatsApp com mensagem pronta, painel parceiro, exemplos e planos conceituais.
+- Cada empresa parceira pode configurar cashback próprio, com saldo separado por empresa, regras por oferta, aprovação de créditos pendentes e histórico completo.
 
 ## Acessos demo de parceiros
 

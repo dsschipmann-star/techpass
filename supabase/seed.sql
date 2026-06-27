@@ -91,6 +91,30 @@ on conflict (id) do update set
   valor = excluded.valor,
   descricao = excluded.descricao;
 
+insert into cashback_settings (id, empresa_id, ativo, valor_minimo, tipo_calculo, limite_maximo, regras_uso, status)
+values
+  ('cashset-techsoft', 'emp-techsoft', true, 250, 'percentual', 100, 'Compras acima de R$250 geram cashback cumulativo até R$100. Não pode ser convertido em dinheiro.', 'ativo'),
+  ('cashset-fight-core', 'emp-fight-core', true, 0, 'oferta_especifica', 178, 'Planos Fight Core podem gerar cashback por oferta, inclusive equivalente a 1 mensalidade.', 'ativo'),
+  ('cashset-super-geeks', 'emp-super-geeks', true, 0, 'oferta_especifica', 299, 'Cashback apenas no plano anual ou benefício equivalente definido pela Super Geeks.', 'ativo')
+on conflict (id) do update set
+  ativo = excluded.ativo,
+  valor_minimo = excluded.valor_minimo,
+  tipo_calculo = excluded.tipo_calculo,
+  limite_maximo = excluded.limite_maximo,
+  regras_uso = excluded.regras_uso,
+  status = excluded.status,
+  updated_at = now();
+
+insert into cashback_balances (id, cliente_id, empresa_id, saldo_disponivel, saldo_pendente, limite_maximo)
+values
+  ('cashbal-maria-techsoft', 'cli-maria', 'emp-techsoft', 68.50, 0, 100),
+  ('cashbal-maria-fc', 'cli-maria', 'emp-fight-core', 0, 178, 178)
+on conflict (cliente_id, empresa_id) do update set
+  saldo_disponivel = excluded.saldo_disponivel,
+  saldo_pendente = excluded.saldo_pendente,
+  limite_maximo = excluded.limite_maximo,
+  updated_at = now();
+
 insert into solicitacoes (id, cliente_id, techpass_id, empresa_id, beneficio_servico_id, tipo, data_preferida, horario_preferido, observacao, status)
 values
   ('sol-maria-1', 'cli-maria', 'tp-sg-000002', 'emp-techsoft', 'bs-formatacao', 'servico_desconto', current_date, '14:00', 'Cliente deseja avaliar o notebook.', 'nova')
@@ -109,17 +133,17 @@ on conflict (id) do update set
   funcionario_responsavel = excluded.funcionario_responsavel,
   completed_at = excluded.completed_at;
 
-insert into ofertas (id, empresa_id, nome, tipo, preco_normal, preco_techpass, economia, descricao, descricao_completa, regras, beneficio_extra, validade, status, cta, origem)
+insert into ofertas (id, empresa_id, nome, tipo, preco_normal, preco_techpass, economia, descricao, descricao_completa, regras, beneficio_extra, validade, status, cta, origem, cashback_ativo, cashback_tipo, cashback_valor, cashback_limite, cashback_regras, cashback_descricao_cliente)
 values
-  ('of-fc-mensal', 'emp-fight-core', 'Plano Mensal Fight Core', 'plano', 'R$199/mês', 'R$179/mês', 'R$20 por mês', 'Condição especial para membros TechPass treinarem na Fight Core.', 'Plano mensal Fight Core com preço reduzido para membros TechPass ativos.', 'Válido para membros TechPass ativos.', 'Condição especial para membros TechPass', null, 'ativo', 'Tenho interesse', 'admin'),
-  ('of-fc-semestral', 'emp-fight-core', 'Plano Semestral Fight Core', 'plano', 'R$1.194', 'R$999', 'R$195', 'Plano semestral com economia direta para membros TechPass.', 'Plano semestral Fight Core com economia estimada de R$195.', 'Pagamento e contratação definidos pela Fight Core.', 'Condição especial para membros TechPass', null, 'ativo', 'Tenho interesse', 'admin'),
-  ('of-fc-anual', 'emp-fight-core', 'Plano Anual Fight Core', 'plano', 'R$2.388', 'R$1.908', 'R$480', 'Plano anual com desconto exclusivo para membros TechPass.', 'Plano anual Fight Core com possibilidade de bônus de 6 meses via indicações qualificadas.', 'Pode liberar bônus de 6 meses se indicar 15 contatos e ao menos 1 fechar plano.', 'Possibilidade de ganhar bônus de 6 meses com indicações', null, 'ativo', 'Quero esta condição', 'admin'),
-  ('of-fc-aula-muay-thai', 'emp-fight-core', 'Aula Grátis Muay Thai', 'aula_gratis', 'Aula experimental', 'Grátis', 'Experiência sem custo', 'Experimente uma aula de Muay Thai na Fight Core.', 'Aula experimental de Muay Thai direcionada para a equipe Fight Core.', 'Sujeito à disponibilidade de agenda.', 'Lead direcionado para a modalidade escolhida', null, 'ativo', 'Solicitar aula', 'admin'),
-  ('of-fc-aula-mma', 'emp-fight-core', 'Aula Grátis MMA', 'aula_gratis', 'Aula experimental', 'Grátis', 'Experiência sem custo', 'Experimente uma aula de MMA na Fight Core.', 'Aula experimental de MMA direcionada para a equipe Fight Core.', 'Sujeito à disponibilidade de agenda.', 'Lead direcionado para a modalidade escolhida', null, 'ativo', 'Solicitar aula', 'admin'),
-  ('of-fc-aula-jiu-jitsu', 'emp-fight-core', 'Aula Grátis Jiu Jitsu', 'aula_gratis', 'Aula experimental', 'Grátis', 'Experiência sem custo', 'Experimente uma aula de Jiu Jitsu adulto na Fight Core.', 'Aula experimental de Jiu Jitsu adulto direcionada para a equipe Fight Core.', 'Sujeito à disponibilidade de agenda.', 'Lead direcionado para a modalidade escolhida', null, 'ativo', 'Solicitar aula', 'admin'),
-  ('of-fc-aula-jiu-jitsu-kids', 'emp-fight-core', 'Aula Grátis Jiu Jitsu Kids', 'aula_gratis', 'Aula experimental', 'Grátis', 'Experiência sem custo', 'Aula experimental para crianças.', 'Aula experimental de Jiu Jitsu Kids direcionada para a equipe Fight Core.', 'Sujeito à disponibilidade de agenda.', 'Lead direcionado para a modalidade escolhida', null, 'ativo', 'Solicitar aula', 'admin'),
-  ('of-sg-anual', 'emp-super-geeks', 'Plano Anual Super Geeks', 'plano', 'R$340/mês', 'R$299/mês', 'R$492 por ano', 'Condição especial para membros TechPass em plano anual Super Geeks.', 'Plano anual Super Geeks com economia estimada de R$492 por ano.', 'Válido para novas contratações pela Rede TechPass.', 'Condição especial para membros TechPass', null, 'ativo', 'Quero esta condição', 'admin'),
-  ('of-sg-renovacao', 'emp-super-geeks', 'Renovação Super Geeks', 'renovacao', 'Condição padrão', 'Condição especial', 'Renovação TechPass por 12 meses', 'Clientes que fecharem plano anual pela Rede TechPass ganham desconto garantido na próxima renovação.', 'Condição de renovação Super Geeks com renovação gratuita do TechPass por mais 12 meses.', 'Benefício aplicado conforme confirmação da Super Geeks.', 'Desconto na próxima renovação e TechPass renovado', null, 'ativo', 'Solicitar condição de renovação', 'admin')
+  ('of-fc-mensal', 'emp-fight-core', 'Plano Mensal Fight Core', 'plano', 'R$199/mês', 'R$179/mês', 'R$20 por mês', 'Condição especial para membros TechPass treinarem na Fight Core.', 'Plano mensal Fight Core com preço reduzido para membros TechPass ativos.', 'Válido para membros TechPass ativos.', 'Condição especial para membros TechPass', null, 'ativo', 'Tenho interesse', 'admin', true, 'valor_fixo', 14.83, 178, 'Cashback proporcional ao plano mensal após confirmação da Fight Core.', 'Você pode ganhar R$14,83 em cashback nesta oferta.'),
+  ('of-fc-semestral', 'emp-fight-core', 'Plano Semestral Fight Core', 'plano', 'R$1.194', 'R$999', 'R$195', 'Plano semestral com economia direta para membros TechPass.', 'Plano semestral Fight Core com economia estimada de R$195.', 'Pagamento e contratação definidos pela Fight Core.', 'Condição especial para membros TechPass', null, 'ativo', 'Tenho interesse', 'admin', true, 'proporcional', 89, 178, 'Cashback proporcional ao período contratado.', 'Cashback proporcional liberado após confirmação da contratação.'),
+  ('of-fc-anual', 'emp-fight-core', 'Plano Anual Fight Core', 'plano', 'R$2.388', 'R$1.908', 'R$480', 'Plano anual com desconto exclusivo para membros TechPass.', 'Plano anual Fight Core com possibilidade de bônus de 6 meses via indicações qualificadas.', 'Pode liberar bônus de 6 meses se indicar 15 contatos e ao menos 1 fechar plano.', 'Possibilidade de ganhar bônus de 6 meses com indicações', null, 'ativo', 'Quero esta condição', 'admin', true, 'mensalidade', 178, 178, 'Equivalente a 1 mensalidade em benefícios após contratar o plano anual pela Rede TechPass.', 'Cashback TechPass: R$178, equivalente a 1 mês de mensalidade em benefícios.'),
+  ('of-fc-aula-muay-thai', 'emp-fight-core', 'Aula Grátis Muay Thai', 'aula_gratis', 'Aula experimental', 'Grátis', 'Experiência sem custo', 'Experimente uma aula de Muay Thai na Fight Core.', 'Aula experimental de Muay Thai direcionada para a equipe Fight Core.', 'Sujeito à disponibilidade de agenda.', 'Lead direcionado para a modalidade escolhida', null, 'ativo', 'Solicitar aula', 'admin', false, 'sem_cashback', null, null, '', ''),
+  ('of-fc-aula-mma', 'emp-fight-core', 'Aula Grátis MMA', 'aula_gratis', 'Aula experimental', 'Grátis', 'Experiência sem custo', 'Experimente uma aula de MMA na Fight Core.', 'Aula experimental de MMA direcionada para a equipe Fight Core.', 'Sujeito à disponibilidade de agenda.', 'Lead direcionado para a modalidade escolhida', null, 'ativo', 'Solicitar aula', 'admin', false, 'sem_cashback', null, null, '', ''),
+  ('of-fc-aula-jiu-jitsu', 'emp-fight-core', 'Aula Grátis Jiu Jitsu', 'aula_gratis', 'Aula experimental', 'Grátis', 'Experiência sem custo', 'Experimente uma aula de Jiu Jitsu adulto na Fight Core.', 'Aula experimental de Jiu Jitsu adulto direcionada para a equipe Fight Core.', 'Sujeito à disponibilidade de agenda.', 'Lead direcionado para a modalidade escolhida', null, 'ativo', 'Solicitar aula', 'admin', false, 'sem_cashback', null, null, '', ''),
+  ('of-fc-aula-jiu-jitsu-kids', 'emp-fight-core', 'Aula Grátis Jiu Jitsu Kids', 'aula_gratis', 'Aula experimental', 'Grátis', 'Experiência sem custo', 'Aula experimental para crianças.', 'Aula experimental de Jiu Jitsu Kids direcionada para a equipe Fight Core.', 'Sujeito à disponibilidade de agenda.', 'Lead direcionado para a modalidade escolhida', null, 'ativo', 'Solicitar aula', 'admin', false, 'sem_cashback', null, null, '', ''),
+  ('of-sg-anual', 'emp-super-geeks', 'Plano Anual Super Geeks', 'plano', 'R$340/mês', 'R$299/mês', 'R$492 por ano', 'Condição especial para membros TechPass em plano anual Super Geeks.', 'Plano anual Super Geeks com economia estimada de R$492 por ano.', 'Válido para novas contratações pela Rede TechPass.', 'Condição especial para membros TechPass', null, 'ativo', 'Quero esta condição', 'admin', true, 'valor_fixo', 299, 299, 'Cashback configurável para plano anual Super Geeks após fechamento confirmado.', 'Cashback ou benefício equivalente a uma mensalidade, conforme regra da Super Geeks.'),
+  ('of-sg-renovacao', 'emp-super-geeks', 'Renovação Super Geeks', 'renovacao', 'Condição padrão', 'Condição especial', 'Renovação TechPass por 12 meses', 'Clientes que fecharem plano anual pela Rede TechPass ganham desconto garantido na próxima renovação.', 'Condição de renovação Super Geeks com renovação gratuita do TechPass por mais 12 meses.', 'Benefício aplicado conforme confirmação da Super Geeks.', 'Desconto na próxima renovação e TechPass renovado', null, 'ativo', 'Solicitar condição de renovação', 'admin', false, 'sem_cashback', null, null, '', '')
 on conflict (id) do update set
   empresa_id = excluded.empresa_id,
   nome = excluded.nome,
@@ -134,7 +158,13 @@ on conflict (id) do update set
   validade = excluded.validade,
   status = excluded.status,
   cta = excluded.cta,
-  origem = excluded.origem;
+  origem = excluded.origem,
+  cashback_ativo = excluded.cashback_ativo,
+  cashback_tipo = excluded.cashback_tipo,
+  cashback_valor = excluded.cashback_valor,
+  cashback_limite = excluded.cashback_limite,
+  cashback_regras = excluded.cashback_regras,
+  cashback_descricao_cliente = excluded.cashback_descricao_cliente;
 
 insert into leads (id, cliente_id, techpass_id, empresa_id, oferta_id, oferta_nome, telefone_cliente, status, observacao)
 values
@@ -142,3 +172,14 @@ values
 on conflict (id) do update set
   status = excluded.status,
   observacao = excluded.observacao;
+
+insert into cashback_transactions (id, cliente_id, techpass_id, empresa_id, oferta_id, lead_id, tipo, valor, status, descricao, valor_compra)
+values
+  ('cashtx-maria-techsoft', 'cli-maria', 'tp-sg-000002', 'emp-techsoft', null, null, 'credito', 68.50, 'disponivel', 'TechCash TechSoft gerado em compra acima de R$250.', 685),
+  ('cashtx-maria-fc', 'cli-maria', 'tp-sg-000002', 'emp-fight-core', 'of-fc-anual', 'lead-maria-fc', 'credito', 178, 'pendente', 'Cashback gerado pelo Plano Anual Fight Core.', 2268)
+on conflict (id) do update set
+  tipo = excluded.tipo,
+  valor = excluded.valor,
+  status = excluded.status,
+  descricao = excluded.descricao,
+  valor_compra = excluded.valor_compra;

@@ -33,6 +33,9 @@ Use este projeto como MVP React/Vite importado pelo GitHub.
 - Admin pode aprovar, reprovar, solicitar ajuste ou desativar ofertas.
 - A landing principal deve apontar para `/seja-parceiro` como CTA de captação B2B.
 - `/seja-parceiro` é front-end estático nesta etapa, sem backend ou login funcional.
+- Cashback é configurável por empresa parceira e pode ser definido por oferta.
+- Cashback de lead fechado nasce como `pendente`; a empresa aprova para virar `disponivel`.
+- Saldos de cashback são separados por empresa e não são dinheiro.
 
 ## Acessos parceiros demo
 

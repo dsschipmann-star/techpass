@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { createInitialState } from '../data';
 import { hasSupabaseConfig, supabase } from './supabase';
-import type { AppState, BeneficioServico, CashbackMovement, Cliente, Empresa, Indicacao, IndicacaoFightCore, LeadParceiro, OfertaParceiro, ParceiroUsuario, PendingActivation, Solicitacao, TechPass, TechPassStatus, Utilizacao } from '../types';
+import type { AppState, BeneficioServico, CashbackBalance, CashbackMovement, CashbackSetting, CashbackTransaction, Cliente, Empresa, Indicacao, IndicacaoFightCore, LeadParceiro, OfertaParceiro, ParceiroUsuario, PendingActivation, Solicitacao, TechPass, TechPassStatus, Utilizacao } from '../types';
 
 const STORAGE_KEY = 'techpass-premium-state-v2';
 
@@ -13,9 +13,12 @@ function safeParse(value: string | null): AppState | null {
     return {
       ...parsed,
       parceiro_usuarios: parsed.parceiro_usuarios ?? createInitialState().parceiro_usuarios,
+      cashback_settings: parsed.cashback_settings ?? createInitialState().cashback_settings,
+      cashback_balances: parsed.cashback_balances ?? createInitialState().cashback_balances,
+      cashback_transactions: parsed.cashback_transactions ?? createInitialState().cashback_transactions,
       beneficios_servicos: parsed.beneficios_servicos ?? createInitialState().beneficios_servicos,
       solicitacoes: parsed.solicitacoes ?? createInitialState().solicitacoes,
-      ofertas: parsed.ofertas ?? createInitialState().ofertas,
+      ofertas: (parsed.ofertas ?? createInitialState().ofertas).map(normalizeOferta),
       leads: parsed.leads ?? [],
       fight_core_indicacoes: parsed.fight_core_indicacoes ?? [],
       utilizacoes: (parsed.utilizacoes ?? []).map((item: any) => ({
@@ -79,15 +82,30 @@ export function addMonths(date: Date, months: number) {
   return copy;
 }
 
+function normalizeOferta(oferta: any): OfertaParceiro {
+  return {
+    cashback_ativo: false,
+    cashback_tipo: 'sem_cashback',
+    cashback_valor: null,
+    cashback_limite: null,
+    cashback_regras: '',
+    cashback_descricao_cliente: '',
+    ...oferta,
+  };
+}
+
 async function loadSupabaseState(): Promise<AppState | null> {
   if (!supabase) return null;
-  const [empresas, parceiroUsuarios, clientes, techpass, pending, cashback, indicacoes, utilizacoes, beneficiosServicos, solicitacoes, ofertas, leads, fightCoreIndicacoes] = await Promise.all([
+  const [empresas, parceiroUsuarios, clientes, techpass, pending, cashback, cashbackSettings, cashbackBalances, cashbackTransactions, indicacoes, utilizacoes, beneficiosServicos, solicitacoes, ofertas, leads, fightCoreIndicacoes] = await Promise.all([
     supabase.from('empresas').select('*').order('created_at', { ascending: false }),
     supabase.from('parceiro_usuarios').select('*').order('created_at', { ascending: false }),
     supabase.from('clientes').select('*').order('created_at', { ascending: false }),
     supabase.from('techpass').select('*').order('created_at', { ascending: false }),
     supabase.from('pending_activations').select('*').order('created_at', { ascending: false }),
     supabase.from('cashback_movements').select('*').order('created_at', { ascending: false }),
+    supabase.from('cashback_settings').select('*').order('created_at', { ascending: false }),
+    supabase.from('cashback_balances').select('*').order('updated_at', { ascending: false }),
+    supabase.from('cashback_transactions').select('*').order('created_at', { ascending: false }),
     supabase.from('indicacoes').select('*').order('created_at', { ascending: false }),
     supabase.from('utilizacoes').select('*').order('created_at', { ascending: false }),
     supabase.from('beneficios_servicos').select('*').order('created_at', { ascending: false }),
@@ -96,7 +114,7 @@ async function loadSupabaseState(): Promise<AppState | null> {
     supabase.from('leads').select('*').order('created_at', { ascending: false }),
     supabase.from('fight_core_indicacoes').select('*').order('created_at', { ascending: false }),
   ]);
-  const error = empresas.error ?? parceiroUsuarios.error ?? clientes.error ?? techpass.error ?? pending.error ?? cashback.error ?? indicacoes.error ?? utilizacoes.error ?? beneficiosServicos.error ?? solicitacoes.error ?? ofertas.error ?? leads.error ?? fightCoreIndicacoes.error;
+  const error = empresas.error ?? parceiroUsuarios.error ?? clientes.error ?? techpass.error ?? pending.error ?? cashback.error ?? cashbackSettings.error ?? cashbackBalances.error ?? cashbackTransactions.error ?? indicacoes.error ?? utilizacoes.error ?? beneficiosServicos.error ?? solicitacoes.error ?? ofertas.error ?? leads.error ?? fightCoreIndicacoes.error;
   if (error) throw error;
   return {
     empresas: empresas.data ?? [],
@@ -105,11 +123,14 @@ async function loadSupabaseState(): Promise<AppState | null> {
     techpasses: techpass.data ?? [],
     pending_activations: pending.data ?? [],
     cashback_movements: cashback.data ?? [],
+    cashback_settings: cashbackSettings.data ?? [],
+    cashback_balances: cashbackBalances.data ?? [],
+    cashback_transactions: cashbackTransactions.data ?? [],
     indicacoes: indicacoes.data ?? [],
     utilizacoes: utilizacoes.data ?? [],
     beneficios_servicos: beneficiosServicos.data ?? [],
     solicitacoes: solicitacoes.data ?? [],
-    ofertas: ofertas.data ?? [],
+    ofertas: (ofertas.data ?? []).map(normalizeOferta),
     leads: leads.data ?? [],
     fight_core_indicacoes: fightCoreIndicacoes.data ?? [],
   };
@@ -124,6 +145,9 @@ async function syncSupabaseState(state: AppState) {
     state.techpasses.length ? supabase.from('techpass').upsert(state.techpasses as any) : null,
     state.pending_activations.length ? supabase.from('pending_activations').upsert(state.pending_activations as any) : null,
     state.cashback_movements.length ? supabase.from('cashback_movements').upsert(state.cashback_movements as any) : null,
+    state.cashback_settings.length ? supabase.from('cashback_settings').upsert(state.cashback_settings as any) : null,
+    state.cashback_balances.length ? supabase.from('cashback_balances').upsert(state.cashback_balances as any) : null,
+    state.cashback_transactions.length ? supabase.from('cashback_transactions').upsert(state.cashback_transactions as any) : null,
     state.indicacoes.length ? supabase.from('indicacoes').upsert(state.indicacoes as any) : null,
     state.utilizacoes.length ? supabase.from('utilizacoes').upsert(state.utilizacoes as any) : null,
     state.beneficios_servicos.length ? supabase.from('beneficios_servicos').upsert(state.beneficios_servicos as any) : null,
@@ -135,6 +159,41 @@ async function syncSupabaseState(state: AppState) {
   const results = await Promise.all(tasks);
   const failed = results.find((result: any) => result.error);
   if (failed) throw failed.error;
+}
+
+function calculateOfferCashback(oferta: OfertaParceiro | undefined, settings: CashbackSetting | undefined, valorCompra: number) {
+  if (!oferta?.cashback_ativo || oferta.cashback_tipo === 'sem_cashback') return 0;
+  if (settings && (!settings.ativo || valorCompra < settings.valor_minimo)) return 0;
+  let value = 0;
+  if (oferta.cashback_tipo === 'valor_fixo' || oferta.cashback_tipo === 'mensalidade') value = oferta.cashback_valor ?? 0;
+  if (oferta.cashback_tipo === 'percentual') value = valorCompra * ((oferta.cashback_valor ?? 0) / 100);
+  if (oferta.cashback_tipo === 'proporcional') value = oferta.cashback_valor ?? Math.max(valorCompra / 12, 0);
+  const offerLimit = oferta.cashback_limite ?? Number.POSITIVE_INFINITY;
+  const companyLimit = settings?.limite_maximo ?? Number.POSITIVE_INFINITY;
+  return Math.max(0, Math.min(value, offerLimit, companyLimit));
+}
+
+function upsertBalance(balances: CashbackBalance[], payload: { cliente_id: string; empresa_id: string; limite_maximo: number; pendingDelta?: number; availableDelta?: number }) {
+  const existing = balances.find((item) => item.cliente_id === payload.cliente_id && item.empresa_id === payload.empresa_id);
+  const now = new Date().toISOString();
+  if (!existing) {
+    return [{
+      id: makeId('cashbal'),
+      cliente_id: payload.cliente_id,
+      empresa_id: payload.empresa_id,
+      saldo_disponivel: Math.max(0, payload.availableDelta ?? 0),
+      saldo_pendente: Math.max(0, payload.pendingDelta ?? 0),
+      limite_maximo: payload.limite_maximo,
+      updated_at: now,
+    }, ...balances];
+  }
+  return balances.map((item) => item.id === existing.id ? {
+    ...item,
+    saldo_disponivel: Math.max(0, Math.min(payload.limite_maximo, item.saldo_disponivel + (payload.availableDelta ?? 0))),
+    saldo_pendente: Math.max(0, Math.min(payload.limite_maximo, item.saldo_pendente + (payload.pendingDelta ?? 0))),
+    limite_maximo: payload.limite_maximo,
+    updated_at: now,
+  } : item);
 }
 
 export function useTechPassStore() {
@@ -399,6 +458,102 @@ export function useTechPassStore() {
         cashback_movements: [{ ...payload, id: makeId('cash'), created_at: new Date().toISOString() }, ...current.cashback_movements],
       }));
     },
+    updateCashbackSetting(empresaId: string, payload: Omit<CashbackSetting, 'id' | 'empresa_id' | 'created_at' | 'updated_at'>) {
+      setState((current) => {
+        const existing = current.cashback_settings.find((item) => item.empresa_id === empresaId);
+        const now = new Date().toISOString();
+        return {
+          ...current,
+          cashback_settings: existing
+            ? current.cashback_settings.map((item) => item.id === existing.id ? { ...item, ...payload, updated_at: now } : item)
+            : [{ ...payload, id: makeId('cashset'), empresa_id: empresaId, created_at: now, updated_at: now }, ...current.cashback_settings],
+        };
+      });
+    },
+    addCashbackTransaction(payload: Omit<CashbackTransaction, 'id' | 'created_at'>) {
+      setState((current) => {
+        const settings = current.cashback_settings.find((item) => item.empresa_id === payload.empresa_id);
+        const limit = settings?.limite_maximo ?? payload.valor;
+        const isAvailableCredit = payload.tipo === 'credito' && payload.status === 'disponivel';
+        const isPendingCredit = payload.tipo === 'credito' && payload.status === 'pendente';
+        return {
+          ...current,
+          cashback_transactions: [{ ...payload, id: makeId('cashtx'), created_at: new Date().toISOString() }, ...current.cashback_transactions],
+          cashback_balances: upsertBalance(current.cashback_balances, {
+            cliente_id: payload.cliente_id,
+            empresa_id: payload.empresa_id,
+            limite_maximo: limit,
+            availableDelta: isAvailableCredit ? payload.valor : 0,
+            pendingDelta: isPendingCredit ? payload.valor : 0,
+          }),
+        };
+      });
+    },
+    approveCashbackTransaction(id: string) {
+      setState((current) => {
+        const tx = current.cashback_transactions.find((item) => item.id === id && item.status === 'pendente' && item.tipo === 'credito');
+        if (!tx) return current;
+        const settings = current.cashback_settings.find((item) => item.empresa_id === tx.empresa_id);
+        return {
+          ...current,
+          cashback_transactions: current.cashback_transactions.map((item) => item.id === id ? { ...item, status: 'disponivel' } : item),
+          cashback_balances: upsertBalance(current.cashback_balances, {
+            cliente_id: tx.cliente_id,
+            empresa_id: tx.empresa_id,
+            limite_maximo: settings?.limite_maximo ?? tx.valor,
+            pendingDelta: -tx.valor,
+            availableDelta: tx.valor,
+          }),
+        };
+      });
+    },
+    useCompanyCashback(clienteId: string, empresaId: string, valor: number, descricao: string) {
+      setState((current) => {
+        const balance = current.cashback_balances.find((item) => item.cliente_id === clienteId && item.empresa_id === empresaId);
+        if (!balance || valor <= 0 || balance.saldo_disponivel < valor) return current;
+        return {
+          ...current,
+          cashback_transactions: [{
+            id: makeId('cashtx'),
+            cliente_id: clienteId,
+            techpass_id: current.techpasses.find((item) => item.cliente_id === clienteId)?.id ?? '',
+            empresa_id: empresaId,
+            oferta_id: null,
+            lead_id: null,
+            tipo: 'debito',
+            valor,
+            status: 'usado',
+            descricao,
+            valor_compra: 0,
+            created_at: new Date().toISOString(),
+          }, ...current.cashback_transactions],
+          cashback_balances: upsertBalance(current.cashback_balances, {
+            cliente_id: clienteId,
+            empresa_id: empresaId,
+            limite_maximo: balance.limite_maximo,
+            availableDelta: -valor,
+          }),
+        };
+      });
+    },
+    cancelCashbackTransaction(id: string) {
+      setState((current) => {
+        const tx = current.cashback_transactions.find((item) => item.id === id && item.status !== 'cancelado');
+        if (!tx) return current;
+        const balance = current.cashback_balances.find((item) => item.cliente_id === tx.cliente_id && item.empresa_id === tx.empresa_id);
+        return {
+          ...current,
+          cashback_transactions: current.cashback_transactions.map((item) => item.id === id ? { ...item, status: 'cancelado', tipo: item.tipo === 'credito' ? 'cancelamento' : item.tipo } : item),
+          cashback_balances: tx.tipo === 'credito' ? upsertBalance(current.cashback_balances, {
+            cliente_id: tx.cliente_id,
+            empresa_id: tx.empresa_id,
+            limite_maximo: balance?.limite_maximo ?? tx.valor,
+            pendingDelta: tx.status === 'pendente' ? -tx.valor : 0,
+            availableDelta: tx.status === 'disponivel' ? -tx.valor : 0,
+          }) : current.cashback_balances,
+        };
+      });
+    },
     addIndicacao(payload: Omit<Indicacao, 'id' | 'created_at'>) {
       setState((current) => ({
         ...current,
@@ -436,10 +591,49 @@ export function useTechPassStore() {
       }));
     },
     updateLead(id: string, payload: Partial<Pick<LeadParceiro, 'status' | 'observacao'>>) {
-      setState((current) => ({
-        ...current,
-        leads: current.leads.map((item) => item.id === id ? { ...item, ...payload } : item),
-      }));
+      setState((current) => {
+        const lead = current.leads.find((item) => item.id === id);
+        if (!lead) return current;
+        let next = {
+          ...current,
+          leads: current.leads.map((item) => item.id === id ? { ...item, ...payload } : item),
+        };
+        const alreadyGenerated = current.cashback_transactions.some((item) => item.lead_id === id && item.tipo === 'credito' && item.status !== 'cancelado');
+        if (payload.status === 'fechado' && lead.status !== 'fechado' && !alreadyGenerated) {
+          const oferta = current.ofertas.find((item) => item.id === lead.oferta_id);
+          const settings = current.cashback_settings.find((item) => item.empresa_id === lead.empresa_id);
+          const valueFromPrice = Number((oferta?.preco_techpass ?? '').replace(/[^\d,.-]/g, '').replace('.', '').replace(',', '.')) || 0;
+          const valorCompra = valueFromPrice || oferta?.cashback_limite || oferta?.cashback_valor || 0;
+          const cashbackValue = calculateOfferCashback(oferta, settings, valorCompra);
+          if (cashbackValue > 0) {
+            const tx: CashbackTransaction = {
+              id: makeId('cashtx'),
+              cliente_id: lead.cliente_id,
+              techpass_id: lead.techpass_id,
+              empresa_id: lead.empresa_id,
+              oferta_id: lead.oferta_id,
+              lead_id: lead.id,
+              tipo: 'credito',
+              valor: cashbackValue,
+              status: 'pendente',
+              descricao: 'Cashback gerado pela oferta ' + lead.oferta_nome,
+              valor_compra: valorCompra,
+              created_at: new Date().toISOString(),
+            };
+            next = {
+              ...next,
+              cashback_transactions: [tx, ...current.cashback_transactions],
+              cashback_balances: upsertBalance(current.cashback_balances, {
+                cliente_id: lead.cliente_id,
+                empresa_id: lead.empresa_id,
+                limite_maximo: settings?.limite_maximo ?? cashbackValue,
+                pendingDelta: cashbackValue,
+              }),
+            };
+          }
+        }
+        return next;
+      });
     },
     addFightCoreIndicacao(payload: Omit<IndicacaoFightCore, 'id' | 'status' | 'created_at'>) {
       setState((current) => ({
@@ -529,6 +723,18 @@ export function getCashbackBalance(state: AppState, techpassId: string) {
     .filter((item) => item.techpass_id === techpassId)
     .reduce((total, item) => total + (item.tipo === 'credito' ? item.valor : -item.valor), 0);
   return (techpass?.cashback_saldo ?? 0) + movements;
+}
+
+export function getCompanyCashbackBalance(state: AppState, clienteId: string, empresaId: string) {
+  return state.cashback_balances.find((item) => item.cliente_id === clienteId && item.empresa_id === empresaId) ?? {
+    id: '',
+    cliente_id: clienteId,
+    empresa_id: empresaId,
+    saldo_disponivel: 0,
+    saldo_pendente: 0,
+    limite_maximo: state.cashback_settings.find((item) => item.empresa_id === empresaId)?.limite_maximo ?? 0,
+    updated_at: '',
+  };
 }
 
 export function getClientName(state: AppState, clientId: string | null | undefined) {

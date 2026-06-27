@@ -10,6 +10,10 @@ export type TechPassStatus =
   | 'EXPIRADO';
 
 export type CashbackTipo = 'credito' | 'debito';
+export type CashbackCalculoTipo = 'valor_fixo' | 'percentual' | 'proporcional' | 'oferta_especifica';
+export type OfertaCashbackTipo = 'sem_cashback' | 'valor_fixo' | 'percentual' | 'proporcional' | 'mensalidade';
+export type CashbackTransactionTipo = 'credito' | 'debito' | 'ajuste' | 'cancelamento';
+export type CashbackTransactionStatus = 'pendente' | 'disponivel' | 'usado' | 'cancelado';
 
 export type IndicacaoStatus = 'pendente' | 'aprovado' | 'recusado';
 
@@ -165,6 +169,12 @@ export interface OfertaParceiro {
   descricao_completa: string;
   validade: string | null;
   origem: 'admin' | 'parceiro';
+  cashback_ativo: boolean;
+  cashback_tipo: OfertaCashbackTipo;
+  cashback_valor: number | null;
+  cashback_limite: number | null;
+  cashback_regras: string;
+  cashback_descricao_cliente: string;
   created_at: string;
 }
 
@@ -206,6 +216,44 @@ export interface Utilizacao {
   completed_at: string | null;
 }
 
+export interface CashbackSetting {
+  id: string;
+  empresa_id: string;
+  ativo: boolean;
+  valor_minimo: number;
+  tipo_calculo: CashbackCalculoTipo;
+  limite_maximo: number;
+  regras_uso: string;
+  status: 'ativo' | 'inativo';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CashbackBalance {
+  id: string;
+  cliente_id: string;
+  empresa_id: string;
+  saldo_disponivel: number;
+  saldo_pendente: number;
+  limite_maximo: number;
+  updated_at: string;
+}
+
+export interface CashbackTransaction {
+  id: string;
+  cliente_id: string;
+  techpass_id: string;
+  empresa_id: string;
+  oferta_id: string | null;
+  lead_id: string | null;
+  tipo: CashbackTransactionTipo;
+  valor: number;
+  status: CashbackTransactionStatus;
+  descricao: string;
+  valor_compra: number;
+  created_at: string;
+}
+
 export interface AppState {
   empresas: Empresa[];
   parceiro_usuarios: ParceiroUsuario[];
@@ -213,6 +261,9 @@ export interface AppState {
   techpasses: TechPass[];
   pending_activations: PendingActivation[];
   cashback_movements: CashbackMovement[];
+  cashback_settings: CashbackSetting[];
+  cashback_balances: CashbackBalance[];
+  cashback_transactions: CashbackTransaction[];
   indicacoes: Indicacao[];
   utilizacoes: Utilizacao[];
   beneficios_servicos: BeneficioServico[];

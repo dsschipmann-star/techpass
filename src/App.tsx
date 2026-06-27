@@ -35,11 +35,12 @@ import {
   formatMoney,
   getCashbackBalance,
   getClientName,
+  getCompanyCashbackBalance,
   getEmpresaName,
   getTechPassSecret,
   useTechPassStore,
 } from './lib/store';
-import type { AppState, BeneficioServico, BeneficioServicoTipo, CashbackTipo, IndicacaoFightCoreStatus, IndicacaoStatus, LeadParceiro, LeadStatus, OfertaParceiro, OfertaTipo, RecompensaTipo, Solicitacao, SolicitacaoStatus, TechPass, TechPassStatus } from './types';
+import type { AppState, BeneficioServico, BeneficioServicoTipo, CashbackCalculoTipo, CashbackTipo, IndicacaoFightCoreStatus, IndicacaoStatus, LeadParceiro, LeadStatus, OfertaCashbackTipo, OfertaParceiro, OfertaTipo, RecompensaTipo, Solicitacao, SolicitacaoStatus, TechPass, TechPassStatus } from './types';
 import { Button, Card, Field, Input, Pill, Select, Stat, Textarea, cx } from './components/ui';
 import { QrCode, createQrDataUrl } from './components/QrCode';
 import fightCoreLogo from './assets/fight-core-logo.png';
@@ -107,6 +108,21 @@ const FIGHT_CORE_INDICACAO_LABEL: Record<IndicacaoFightCoreStatus, string> = {
   fechou_plano: 'Fechou plano',
   nao_fechou: 'Não fechou',
   bonus_liberado: 'Bônus liberado',
+};
+
+const CASHBACK_CALCULO_LABEL: Record<CashbackCalculoTipo, string> = {
+  valor_fixo: 'Valor fixo',
+  percentual: 'Percentual sobre a compra',
+  proporcional: 'Proporcional ao plano',
+  oferta_especifica: 'Por oferta específica',
+};
+
+const OFERTA_CASHBACK_LABEL: Record<OfertaCashbackTipo, string> = {
+  sem_cashback: 'Sem cashback',
+  valor_fixo: 'Valor fixo',
+  percentual: 'Percentual',
+  proporcional: 'Proporcional',
+  mensalidade: 'Equivalente a mensalidade',
 };
 
 const LANDING_PARTNERS = [
@@ -1143,7 +1159,10 @@ function CashbackScreen({ state, actions }: { state: AppState; actions: ReturnTy
   const [valor, setValor] = useState(20);
   const [descricao, setDescricao] = useState('Cashback lançado manualmente.');
   const [message, setMessage] = useState('');
+  const [empresaFilter, setEmpresaFilter] = useState('todas');
+  const [statusFilter, setStatusFilter] = useState('todos');
   const selected = state.techpasses.find((item) => item.id === techpassId) ?? null;
+  const filteredTransactions = state.cashback_transactions.filter((item) => (empresaFilter === 'todas' || item.empresa_id === empresaFilter) && (statusFilter === 'todos' || item.status === statusFilter));
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!selected?.cliente_id) return;
@@ -1159,6 +1178,7 @@ function CashbackScreen({ state, actions }: { state: AppState; actions: ReturnTy
     <div className="grid gap-6">
       <PageTitle title="Cashback" subtitle="Adicione créditos, registre débitos e acompanhe o histórico." />
       <Card><form onSubmit={submit} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><Field label="Cliente TechPass"><Select value={techpassId} onChange={(e) => setTechpassId(e.target.value)}>{activePasses.map((item) => <option key={item.id} value={item.id}>{getClientName(state, item.cliente_id)} · {item.serial}</option>)}</Select></Field><Field label="Tipo"><Select value={tipo} onChange={(e) => setTipo(e.target.value as CashbackTipo)}><option value="credito">Crédito</option><option value="debito">Débito</option></Select></Field><Field label="Valor"><Input type="number" min={0} step="0.01" value={valor} onChange={(e) => setValor(Number(e.target.value))} /></Field><Field label="Descrição"><Input value={descricao} onChange={(e) => setDescricao(e.target.value)} /></Field><div className="md:col-span-2 xl:col-span-4"><Button type="submit" disabled={!selected}><Wallet className="h-4 w-4" />Registrar movimentação</Button>{selected && <p className="mt-3 text-sm text-zinc-400">Saldo atual: {formatMoney(getCashbackBalance(state, selected.id))}</p>}{message && <p className="mt-2 text-sm text-tech-neon">{message}</p>}</div></form></Card>
+      <Card><PageTitle title="Cashback por empresa parceira" subtitle="Visão geral de saldos e transações configuráveis por empresa." /><div className="mt-5 grid gap-4 md:grid-cols-2"><Field label="Empresa"><Select value={empresaFilter} onChange={(e) => setEmpresaFilter(e.target.value)}><option value="todas">Todas</option>{state.empresas.map((empresa) => <option key={empresa.id} value={empresa.id}>{empresa.nome}</option>)}</Select></Field><Field label="Status"><Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option value="todos">Todos</option><option value="pendente">Pendente</option><option value="disponivel">Disponível</option><option value="usado">Usado</option><option value="cancelado">Cancelado</option></Select></Field></div><div className="mt-5 grid gap-3">{filteredTransactions.map((item) => <div key={item.id} className="grid gap-2 rounded-lg border border-white/10 bg-black/25 p-4 md:grid-cols-[1fr_auto] md:items-center"><div><p className="font-bold text-white">{getClientName(state, item.cliente_id)} · {getEmpresaName(state, item.empresa_id)}</p><p className="text-sm text-zinc-400">{item.descricao} · {formatDateTime(item.created_at)} · {item.tipo}/{item.status}</p></div><p className={cx('font-black', item.tipo === 'credito' ? 'text-tech-neon' : 'text-red-200')}>{item.tipo === 'credito' ? '+' : '-'} {formatMoney(item.valor)}</p></div>)}{filteredTransactions.length === 0 && <EmptyMessage title="Sem transações" description="As transações de cashback por empresa aparecerão aqui." />}</div></Card>
       <Card><h3 className="text-lg font-black text-white">Histórico de cashback</h3><div className="mt-4 grid gap-3">{state.cashback_movements.map((item) => <div key={item.id} className="grid gap-2 rounded-lg border border-white/10 bg-black/25 p-4 md:grid-cols-[1fr_auto] md:items-center"><div><p className="font-bold text-white">{getClientName(state, item.cliente_id)}</p><p className="text-sm text-zinc-400">{item.descricao} · {formatDate(item.created_at)}</p></div><p className={cx('font-black', item.tipo === 'credito' ? 'text-tech-neon' : 'text-red-200')}>{item.tipo === 'credito' ? '+' : '-'} {formatMoney(item.valor)}</p></div>)}{state.cashback_movements.length === 0 && <EmptyMessage title="Sem movimentações" description="As movimentações de cashback aparecerão aqui." />}</div></Card>
     </div>
   );
@@ -1395,6 +1415,13 @@ function OfferCard({ state, oferta, onClick, children }: { state: AppState; ofer
           </div>
         </div>
         <p className="mt-4 text-sm leading-6 text-zinc-400">{oferta.descricao}</p>
+        {oferta.cashback_ativo && oferta.cashback_tipo !== 'sem_cashback' && (
+          <div className="mt-4 rounded-lg border border-tech-neon/30 bg-tech-neon/10 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-tech-neon">Você ganha cashback nessa oferta</p>
+            <p className="mt-2 text-lg font-black text-white">{oferta.cashback_valor ? formatMoney(oferta.cashback_valor) : OFERTA_CASHBACK_LABEL[oferta.cashback_tipo]}</p>
+            <p className="mt-1 text-sm leading-6 text-zinc-300">{oferta.cashback_descricao_cliente || oferta.cashback_regras}</p>
+          </div>
+        )}
         <div className="mt-5 grid gap-2">
           <Info label="Preço normal" value={oferta.preco_normal || 'Sob consulta'} />
           <Info label="Preço TechPass" value={oferta.preco_techpass || 'Condição especial'} />
@@ -1449,7 +1476,8 @@ function FightCoreIndications({ state, actions, cliente, techpass }: { state: Ap
 function TechCashPanel({ state, techpass }: { state: AppState; techpass: TechPass }) {
   const balance = getCashbackBalance(state, techpass.id);
   const remaining = Math.max(100 - balance, 0);
-  return <Card className="p-8"><PageTitle title="TechCash" subtitle="Cashback exclusivo para membros TechPass ativos." /><p className="mt-8 text-5xl font-black text-white">{formatMoney(balance)}</p><div className="mt-5 h-4 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-tech-neon" style={{ width: `${Math.min(balance, 100)}%` }} /></div><p className="mt-4 text-sm text-zinc-300">{remaining > 0 ? `Faltam ${formatMoney(remaining)} para desbloquear um resgate.` : 'Resgate liberado para brinde, serviço ou desconto.'}</p></Card>;
+  const companyBalances = state.cashback_balances.filter((item) => item.cliente_id === techpass.cliente_id);
+  return <div className="grid gap-6"><Card className="p-8"><PageTitle title="TechCash" subtitle="Cashback exclusivo para membros TechPass ativos." /><p className="mt-8 text-5xl font-black text-white">{formatMoney(balance)}</p><div className="mt-5 h-4 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-tech-neon" style={{ width: `${Math.min(balance, 100)}%` }} /></div><p className="mt-4 text-sm text-zinc-300">{remaining > 0 ? `Faltam ${formatMoney(remaining)} para desbloquear um resgate.` : 'Resgate liberado para brinde, serviço ou desconto.'}</p></Card><Card><PageTitle title="Cashback por empresa" subtitle="Cada empresa parceira pode ter saldo, limite e regras próprias." /><div className="mt-5 grid gap-3">{companyBalances.map((item) => <div key={item.id} className="rounded-lg border border-white/10 bg-black/25 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-black text-white">{getEmpresaName(state, item.empresa_id)}</h3><Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">Limite {formatMoney(item.limite_maximo)}</Pill></div><div className="mt-4 grid gap-3 sm:grid-cols-3"><Info label="Disponível" value={formatMoney(item.saldo_disponivel)} /><Info label="Aguardando confirmação" value={formatMoney(item.saldo_pendente)} /><Info label="Falta para limite" value={formatMoney(Math.max(item.limite_maximo - item.saldo_disponivel, 0))} /></div></div>)}{companyBalances.length === 0 && <EmptyMessage title="Sem cashback por empresa" description="Quando uma oferta fechada gerar cashback, ela aparecerá aqui." />}</div></Card></div>;
 }
 
 function ClientProfile({ cliente, techpass, state }: { cliente: AppState['clientes'][number]; techpass: TechPass; state: AppState }) {
@@ -1499,11 +1527,11 @@ function BeneficiosServicosScreen({ state, actions }: { state: AppState; actions
 }
 
 function OfertasAdminScreen({ state, actions }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions'] }) {
-  const [form, setForm] = useState<Omit<OfertaParceiro, 'id' | 'created_at'>>({ empresa_id: state.empresas[0]?.id ?? '', nome: '', tipo: 'plano', preco_normal: '', preco_techpass: '', economia: '', descricao: '', descricao_completa: '', regras: '', beneficio_extra: '', validade: null, status: 'ativo', cta: 'Tenho interesse', origem: 'admin' });
+  const [form, setForm] = useState<Omit<OfertaParceiro, 'id' | 'created_at'>>({ empresa_id: state.empresas[0]?.id ?? '', nome: '', tipo: 'plano', preco_normal: '', preco_techpass: '', economia: '', descricao: '', descricao_completa: '', regras: '', beneficio_extra: '', validade: null, status: 'ativo', cta: 'Tenho interesse', origem: 'admin', cashback_ativo: false, cashback_tipo: 'sem_cashback', cashback_valor: null, cashback_limite: null, cashback_regras: '', cashback_descricao_cliente: '' });
   const submit = (event: FormEvent) => {
     event.preventDefault();
     actions.addOferta(form);
-    setForm({ ...form, nome: '', preco_normal: '', preco_techpass: '', economia: '', descricao: '', descricao_completa: '', regras: '', beneficio_extra: '', validade: null });
+    setForm({ ...form, nome: '', preco_normal: '', preco_techpass: '', economia: '', descricao: '', descricao_completa: '', regras: '', beneficio_extra: '', validade: null, cashback_ativo: false, cashback_tipo: 'sem_cashback', cashback_valor: null, cashback_limite: null, cashback_regras: '', cashback_descricao_cliente: '' });
   };
   return (
     <div className="grid gap-6">
@@ -1523,6 +1551,12 @@ function OfertasAdminScreen({ state, actions }: { state: AppState; actions: Retu
           <div className="md:col-span-2"><Field label="Descrição completa"><Textarea value={form.descricao_completa} onChange={(event) => setForm({ ...form, descricao_completa: event.target.value })} /></Field></div>
           <div className="md:col-span-2"><Field label="Regras"><Textarea value={form.regras} onChange={(event) => setForm({ ...form, regras: event.target.value })} /></Field></div>
           <div className="md:col-span-2 xl:col-span-4"><Field label="Benefício extra"><Input value={form.beneficio_extra} onChange={(event) => setForm({ ...form, beneficio_extra: event.target.value })} /></Field></div>
+          <Field label="Cashback ativo"><Select value={form.cashback_ativo ? 'sim' : 'nao'} onChange={(event) => setForm({ ...form, cashback_ativo: event.target.value === 'sim' })}><option value="nao">Não</option><option value="sim">Sim</option></Select></Field>
+          <Field label="Tipo de cashback"><Select value={form.cashback_tipo} onChange={(event) => setForm({ ...form, cashback_tipo: event.target.value as OfertaCashbackTipo })}>{Object.entries(OFERTA_CASHBACK_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></Field>
+          <Field label="Valor do cashback"><Input type="number" min={0} step="0.01" value={form.cashback_valor ?? ''} onChange={(event) => setForm({ ...form, cashback_valor: event.target.value ? Number(event.target.value) : null })} /></Field>
+          <Field label="Limite de cashback"><Input type="number" min={0} step="0.01" value={form.cashback_limite ?? ''} onChange={(event) => setForm({ ...form, cashback_limite: event.target.value ? Number(event.target.value) : null })} /></Field>
+          <div className="md:col-span-2"><Field label="Regras de cashback"><Textarea value={form.cashback_regras} onChange={(event) => setForm({ ...form, cashback_regras: event.target.value })} /></Field></div>
+          <div className="md:col-span-2"><Field label="Descrição de cashback para o cliente"><Textarea value={form.cashback_descricao_cliente} onChange={(event) => setForm({ ...form, cashback_descricao_cliente: event.target.value })} /></Field></div>
           <div className="md:col-span-2 xl:col-span-4"><Button type="submit"><Plus className="h-4 w-4" />Criar oferta</Button></div>
         </form>
       </Card>
@@ -1542,7 +1576,7 @@ function OfertasAdminScreen({ state, actions }: { state: AppState; actions: Retu
   );
 }
 
-type PartnerView = 'dashboard' | 'ofertas' | 'beneficios' | 'leads' | 'solicitacoes' | 'indicacoes' | 'configuracoes';
+type PartnerView = 'dashboard' | 'ofertas' | 'beneficios' | 'leads' | 'solicitacoes' | 'indicacoes' | 'cashback' | 'configuracoes';
 
 function PartnerLogin({ state, navigate }: { state: AppState; navigate: (path: string) => void }) {
   const [form, setForm] = useState({ email: 'fightcore@parceiro.com', senha: '123456' });
@@ -1586,6 +1620,7 @@ function PartnerDashboard({ state, actions, navigate }: { state: AppState; actio
               ['leads', 'Leads recebidos'],
               ['solicitacoes', 'Solicitações'],
               ['indicacoes', 'Indicações'],
+              ['cashback', 'Cashback'],
               ['configuracoes', 'Configurações'],
             ].map(([id, label]) => <button key={id} onClick={() => setView(id as PartnerView)} className={cx('block w-full rounded-md px-3 py-3 text-left text-sm font-bold transition', view === id ? 'bg-tech-neon text-black' : 'text-zinc-300 hover:bg-white/[0.08] hover:text-white')}>{label}</button>)}
           </Card>
@@ -1602,6 +1637,7 @@ function PartnerScopedView({ state, actions, empresa, view, leads, solicitacoes,
   if (view === 'leads') return <Card><PageTitle title="Leads recebidos" subtitle="Atualize status, registre observações e abra o WhatsApp do cliente." /><LeadList state={state} actions={actions} leads={leads} /></Card>;
   if (view === 'solicitacoes') return <SolicitacoesList state={state} actions={actions} solicitacoes={solicitacoes} />;
   if (view === 'indicacoes') return <PartnerIndications state={state} actions={actions} empresa={empresa} />;
+  if (view === 'cashback') return <PartnerCashback state={state} actions={actions} empresa={empresa} />;
   if (view === 'configuracoes') return <PartnerSettings actions={actions} empresa={empresa} />;
   const closed = leads.filter((item) => item.status === 'fechado').length;
   const conversion = leads.length ? Math.round((closed / leads.length) * 100) : 0;
@@ -1609,14 +1645,75 @@ function PartnerScopedView({ state, actions, empresa, view, leads, solicitacoes,
   return <div className="grid gap-6"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="Benefícios solicitados" value={solicitacoes.length} /><Stat label="Leads recebidos" value={leads.length} tone="neon" /><Stat label="Leads novos" value={leads.filter((item) => item.status === 'novo').length} /><Stat label="Em negociação" value={leads.filter((item) => item.status === 'negociacao').length} /><Stat label="Leads fechados" value={closed} tone="neon" /><Stat label="Leads perdidos" value={leads.filter((item) => item.status === 'perdido').length} tone="danger" /><Stat label="Ofertas ativas" value={ofertas.filter((item) => item.status === 'ativo').length} /><Stat label="Ofertas inativas" value={ofertas.filter((item) => item.status === 'inativo').length} /></div><Card><PageTitle title="Performance" subtitle="Conversão e benefícios mais solicitados." /><div className="mt-5 grid gap-3 md:grid-cols-2"><Info label="Conversão de leads" value={conversion + '%'} /><Info label="Solicitações por mês" value={String(solicitacoes.length)} /></div><div className="mt-5 grid gap-2">{Object.entries(requested).map(([name, total]) => <div key={name} className="rounded-lg border border-white/10 bg-black/25 p-3 text-sm text-zinc-200">{name}: <strong className="text-tech-neon">{total}</strong></div>)}{Object.keys(requested).length === 0 && <EmptyMessage title="Sem solicitações" description="Quando clientes solicitarem benefícios, os mais pedidos aparecerão aqui." />}</div></Card></div>;
 }
 
+function PartnerCashback({ state, actions, empresa }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; empresa: AppState['empresas'][number] }) {
+  const setting = state.cashback_settings.find((item) => item.empresa_id === empresa.id);
+  const [form, setForm] = useState({
+    ativo: setting?.ativo ?? false,
+    valor_minimo: setting?.valor_minimo ?? 0,
+    tipo_calculo: setting?.tipo_calculo ?? 'oferta_especifica' as CashbackCalculoTipo,
+    limite_maximo: setting?.limite_maximo ?? 100,
+    regras_uso: setting?.regras_uso ?? '',
+    status: setting?.status ?? 'ativo' as 'ativo' | 'inativo',
+  });
+  const balances = state.cashback_balances.filter((item) => item.empresa_id === empresa.id);
+  const transactions = state.cashback_transactions.filter((item) => item.empresa_id === empresa.id);
+  const [useDraft, setUseDraft] = useState<Record<string, number>>({});
+  const save = (event: FormEvent) => {
+    event.preventDefault();
+    actions.updateCashbackSetting(empresa.id, form);
+  };
+  return (
+    <div className="grid gap-6">
+      <Card>
+        <PageTitle title="Configurações de Cashback" subtitle="Defina regras gerais para geração e uso de cashback da sua empresa." />
+        <form onSubmit={save} className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Field label="Cashback ativo"><Select value={form.ativo ? 'sim' : 'nao'} onChange={(e) => setForm({ ...form, ativo: e.target.value === 'sim' })}><option value="sim">Sim</option><option value="nao">Não</option></Select></Field>
+          <Field label="Valor mínimo para gerar"><Input type="number" min={0} step="0.01" value={form.valor_minimo} onChange={(e) => setForm({ ...form, valor_minimo: Number(e.target.value) })} /></Field>
+          <Field label="Tipo de cálculo"><Select value={form.tipo_calculo} onChange={(e) => setForm({ ...form, tipo_calculo: e.target.value as CashbackCalculoTipo })}>{Object.entries(CASHBACK_CALCULO_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></Field>
+          <Field label="Limite máximo acumulado"><Input type="number" min={0} step="0.01" value={form.limite_maximo} onChange={(e) => setForm({ ...form, limite_maximo: Number(e.target.value) })} /></Field>
+          <Field label="Status"><Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as 'ativo' | 'inativo' })}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></Select></Field>
+          <div className="md:col-span-2 xl:col-span-4"><Field label="Regras de uso"><Textarea value={form.regras_uso} onChange={(e) => setForm({ ...form, regras_uso: e.target.value })} /></Field></div>
+          <div className="md:col-span-2 xl:col-span-4"><Button type="submit">Salvar configurações</Button></div>
+        </form>
+      </Card>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Stat label="Cashback disponível" value={formatMoney(balances.reduce((sum, item) => sum + item.saldo_disponivel, 0))} tone="neon" />
+        <Stat label="Cashback pendente" value={formatMoney(balances.reduce((sum, item) => sum + item.saldo_pendente, 0))} />
+        <Stat label="Movimentações" value={transactions.length} />
+      </div>
+
+      <Card>
+        <PageTitle title="Cashback dos clientes" subtitle="Saldo separado por cliente e por empresa parceira." />
+        <div className="mt-5 grid gap-3">
+          {balances.map((balance) => {
+            const cliente = state.clientes.find((item) => item.id === balance.cliente_id);
+            const techpass = state.techpasses.find((item) => item.cliente_id === balance.cliente_id);
+            return <div key={balance.id} className="grid gap-3 rounded-lg border border-white/10 bg-black/25 p-4 xl:grid-cols-[1fr_320px]"><div><p className="font-black text-white">{cliente?.nome ?? 'Cliente'}</p><p className="mt-1 text-sm text-zinc-400">{cliente?.cpf ?? ''} · {techpass?.serial ?? 'TechPass'}</p><div className="mt-3 grid gap-2 sm:grid-cols-3"><Info label="Disponível" value={formatMoney(balance.saldo_disponivel)} /><Info label="Pendente" value={formatMoney(balance.saldo_pendente)} /><Info label="Limite" value={formatMoney(balance.limite_maximo)} /></div></div><div className="grid gap-2"><Field label="Valor para usar"><Input type="number" min={0} step="0.01" value={useDraft[balance.id] ?? 0} onChange={(e) => setUseDraft({ ...useDraft, [balance.id]: Number(e.target.value) })} /></Field><Button variant="secondary" onClick={() => actions.useCompanyCashback(balance.cliente_id, empresa.id, useDraft[balance.id] ?? 0, 'Cashback usado na empresa ' + empresa.nome)}>Usar cashback</Button></div></div>;
+          })}
+          {balances.length === 0 && <EmptyMessage title="Sem saldos" description="Os saldos aparecerão quando leads fechados gerarem cashback." />}
+        </div>
+      </Card>
+
+      <Card>
+        <PageTitle title="Histórico de movimentações" subtitle="Créditos, débitos, ajustes e cancelamentos da sua empresa." />
+        <div className="mt-5 grid gap-3">
+          {transactions.map((tx) => <div key={tx.id} className="grid gap-3 rounded-lg border border-white/10 bg-black/25 p-4 xl:grid-cols-[1fr_auto] xl:items-center"><div><p className="font-black text-white">{getClientName(state, tx.cliente_id)} · {formatMoney(tx.valor)}</p><p className="mt-1 text-sm text-zinc-400">{tx.descricao} · {formatDateTime(tx.created_at)} · compra/plano: {formatMoney(tx.valor_compra)}</p><p className="mt-1 text-xs uppercase text-zinc-500">{tx.tipo} · {tx.status}</p></div><div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => actions.approveCashbackTransaction(tx.id)} disabled={tx.status !== 'pendente'}>Aprovar</Button><Button variant="secondary" onClick={() => actions.cancelCashbackTransaction(tx.id)} disabled={tx.status === 'cancelado'}>Cancelar</Button></div></div>)}
+          {transactions.length === 0 && <EmptyMessage title="Sem movimentações" description="Cashback gerado, aprovado ou usado aparecerá aqui." />}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 function PartnerOffers({ state, actions, empresa, ofertas }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; empresa: AppState['empresas'][number]; ofertas: OfertaParceiro[] }) {
-  const [form, setForm] = useState<Omit<OfertaParceiro, 'id' | 'created_at'>>({ empresa_id: empresa.id, nome: '', tipo: 'plano', preco_normal: '', preco_techpass: '', economia: '', descricao: '', descricao_completa: '', regras: '', beneficio_extra: '', validade: null, status: 'PENDENTE_APROVACAO', cta: 'Tenho interesse', origem: 'parceiro' });
+  const [form, setForm] = useState<Omit<OfertaParceiro, 'id' | 'created_at'>>({ empresa_id: empresa.id, nome: '', tipo: 'plano', preco_normal: '', preco_techpass: '', economia: '', descricao: '', descricao_completa: '', regras: '', beneficio_extra: '', validade: null, status: 'PENDENTE_APROVACAO', cta: 'Tenho interesse', origem: 'parceiro', cashback_ativo: false, cashback_tipo: 'sem_cashback', cashback_valor: null, cashback_limite: null, cashback_regras: '', cashback_descricao_cliente: '' });
   const submit = (event: FormEvent) => {
     event.preventDefault();
     actions.addOferta({ ...form, empresa_id: empresa.id, status: 'PENDENTE_APROVACAO', origem: 'parceiro' });
     setForm({ ...form, nome: '', preco_normal: '', preco_techpass: '', economia: '', descricao: '', descricao_completa: '', regras: '', beneficio_extra: '', validade: null });
   };
-  return <div className="grid gap-6"><PageTitle title="Minhas ofertas" subtitle="Ofertas criadas pelo parceiro entram como pendente de aprovação antes de aparecer para clientes." /><Card><form onSubmit={submit} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><Field label="Nome da oferta"><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></Field><Field label="Tipo"><Select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value as OfertaTipo })}>{Object.entries(OFERTA_TIPO_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></Field><Field label="Preço normal"><Input value={form.preco_normal} onChange={(e) => setForm({ ...form, preco_normal: e.target.value })} /></Field><Field label="Preço TechPass"><Input value={form.preco_techpass} onChange={(e) => setForm({ ...form, preco_techpass: e.target.value })} /></Field><Field label="Economia estimada"><Input value={form.economia} onChange={(e) => setForm({ ...form, economia: e.target.value })} /></Field><Field label="Validade"><Input type="date" value={form.validade ?? ''} onChange={(e) => setForm({ ...form, validade: e.target.value || null })} /></Field><Field label="Botão"><Input value={form.cta} onChange={(e) => setForm({ ...form, cta: e.target.value })} /></Field><Field label="Benefício extra"><Input value={form.beneficio_extra} onChange={(e) => setForm({ ...form, beneficio_extra: e.target.value })} /></Field><div className="md:col-span-2"><Field label="Descrição curta"><Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} /></Field></div><div className="md:col-span-2"><Field label="Descrição completa"><Textarea value={form.descricao_completa} onChange={(e) => setForm({ ...form, descricao_completa: e.target.value })} /></Field></div><div className="md:col-span-2 xl:col-span-4"><Field label="Regras"><Textarea value={form.regras} onChange={(e) => setForm({ ...form, regras: e.target.value })} /></Field></div><div className="md:col-span-2 xl:col-span-4"><Button type="submit"><Plus className="h-4 w-4" />Enviar para aprovação</Button></div></form></Card><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{ofertas.map((oferta) => <OfferCard key={oferta.id} state={state} oferta={oferta} onClick={() => actions.updateOferta(oferta.id, { status: oferta.status === 'inativo' ? 'PENDENTE_APROVACAO' : 'inativo' })} />)}</div></div>;
+  return <div className="grid gap-6"><PageTitle title="Minhas ofertas" subtitle="Ofertas criadas pelo parceiro entram como pendente de aprovação antes de aparecer para clientes." /><Card><form onSubmit={submit} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><Field label="Nome da oferta"><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></Field><Field label="Tipo"><Select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value as OfertaTipo })}>{Object.entries(OFERTA_TIPO_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></Field><Field label="Preço normal"><Input value={form.preco_normal} onChange={(e) => setForm({ ...form, preco_normal: e.target.value })} /></Field><Field label="Preço TechPass"><Input value={form.preco_techpass} onChange={(e) => setForm({ ...form, preco_techpass: e.target.value })} /></Field><Field label="Economia estimada"><Input value={form.economia} onChange={(e) => setForm({ ...form, economia: e.target.value })} /></Field><Field label="Validade"><Input type="date" value={form.validade ?? ''} onChange={(e) => setForm({ ...form, validade: e.target.value || null })} /></Field><Field label="Botão"><Input value={form.cta} onChange={(e) => setForm({ ...form, cta: e.target.value })} /></Field><Field label="Benefício extra"><Input value={form.beneficio_extra} onChange={(e) => setForm({ ...form, beneficio_extra: e.target.value })} /></Field><Field label="Cashback ativo"><Select value={form.cashback_ativo ? 'sim' : 'nao'} onChange={(e) => setForm({ ...form, cashback_ativo: e.target.value === 'sim' })}><option value="nao">Não</option><option value="sim">Sim</option></Select></Field><Field label="Tipo de cashback"><Select value={form.cashback_tipo} onChange={(e) => setForm({ ...form, cashback_tipo: e.target.value as OfertaCashbackTipo })}>{Object.entries(OFERTA_CASHBACK_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></Field><Field label="Valor do cashback"><Input type="number" min={0} step="0.01" value={form.cashback_valor ?? ''} onChange={(e) => setForm({ ...form, cashback_valor: e.target.value ? Number(e.target.value) : null })} /></Field><Field label="Limite de cashback"><Input type="number" min={0} step="0.01" value={form.cashback_limite ?? ''} onChange={(e) => setForm({ ...form, cashback_limite: e.target.value ? Number(e.target.value) : null })} /></Field><div className="md:col-span-2"><Field label="Descrição curta"><Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} /></Field></div><div className="md:col-span-2"><Field label="Descrição completa"><Textarea value={form.descricao_completa} onChange={(e) => setForm({ ...form, descricao_completa: e.target.value })} /></Field></div><div className="md:col-span-2"><Field label="Regras"><Textarea value={form.regras} onChange={(e) => setForm({ ...form, regras: e.target.value })} /></Field></div><div className="md:col-span-2"><Field label="Regras de cashback"><Textarea value={form.cashback_regras} onChange={(e) => setForm({ ...form, cashback_regras: e.target.value })} /></Field></div><div className="md:col-span-2 xl:col-span-4"><Field label="Descrição de cashback para o cliente"><Textarea value={form.cashback_descricao_cliente} onChange={(e) => setForm({ ...form, cashback_descricao_cliente: e.target.value })} /></Field></div><div className="md:col-span-2 xl:col-span-4"><Button type="submit"><Plus className="h-4 w-4" />Enviar para aprovação</Button></div></form></Card><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{ofertas.map((oferta) => <OfferCard key={oferta.id} state={state} oferta={oferta} onClick={() => actions.updateOferta(oferta.id, { status: oferta.status === 'inativo' ? 'PENDENTE_APROVACAO' : 'inativo' })} />)}</div></div>;
 }
 
 function PartnerBenefits({ actions, empresa, beneficios }: { actions: ReturnType<typeof useTechPassStore>['actions']; empresa: AppState['empresas'][number]; beneficios: BeneficioServico[] }) {
