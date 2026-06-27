@@ -38,6 +38,18 @@ do $$ begin
   create type solicitacao_status as enum ('nova', 'analise', 'confirmada', 'atendimento', 'concluida', 'cancelada');
 exception when duplicate_object then null; end $$;
 
+do $$ begin
+  create type oferta_tipo as enum ('plano', 'aula_gratis', 'servico', 'brinde', 'indicacao', 'renovacao');
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  create type lead_status as enum ('novo', 'contato_realizado', 'negociacao', 'fechado', 'perdido', 'cancelado');
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  create type fight_core_indicacao_status as enum ('enviada', 'em_contato', 'fechou_plano', 'nao_fechou', 'bonus_liberado');
+exception when duplicate_object then null; end $$;
+
 create table if not exists empresas (
   id text primary key default gen_random_uuid()::text,
   nome text not null,
@@ -153,6 +165,46 @@ create table if not exists utilizacoes (
   completed_at timestamptz
 );
 
+create table if not exists ofertas (
+  id text primary key default gen_random_uuid()::text,
+  empresa_id text not null references empresas(id) on delete restrict,
+  nome text not null,
+  tipo oferta_tipo not null,
+  preco_normal text not null default '',
+  preco_techpass text not null default '',
+  economia text not null default '',
+  descricao text not null default '',
+  regras text not null default '',
+  beneficio_extra text not null default '',
+  status text not null default 'ativo' check (status in ('ativo', 'inativo')),
+  cta text not null default 'Tenho interesse',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists leads (
+  id text primary key default gen_random_uuid()::text,
+  cliente_id text not null references clientes(id) on delete cascade,
+  techpass_id text not null references techpass(id) on delete cascade,
+  empresa_id text not null references empresas(id) on delete restrict,
+  oferta_id text not null references ofertas(id) on delete restrict,
+  oferta_nome text not null,
+  telefone_cliente text not null,
+  status lead_status not null default 'novo',
+  observacao text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists fight_core_indicacoes (
+  id text primary key default gen_random_uuid()::text,
+  cliente_id text not null references clientes(id) on delete cascade,
+  techpass_id text not null references techpass(id) on delete cascade,
+  nome_indicado text not null,
+  telefone_indicado text not null,
+  observacao text not null default '',
+  status fight_core_indicacao_status not null default 'enviada',
+  created_at timestamptz not null default now()
+);
+
 create unique index if not exists techpass_cliente_ativo_pendente_unique
   on techpass(cliente_id)
   where cliente_id is not null and status in ('ATIVO', 'PENDENTE_ATIVACAO');
@@ -172,6 +224,10 @@ create index if not exists idx_solicitacoes_empresa on solicitacoes(empresa_id);
 create index if not exists idx_solicitacoes_cliente on solicitacoes(cliente_id);
 create index if not exists idx_solicitacoes_status on solicitacoes(status);
 create index if not exists idx_utilizacoes_cliente on utilizacoes(cliente_id);
+create index if not exists idx_ofertas_empresa on ofertas(empresa_id);
+create index if not exists idx_leads_empresa on leads(empresa_id);
+create index if not exists idx_leads_cliente on leads(cliente_id);
+create index if not exists idx_fight_indicacoes_cliente on fight_core_indicacoes(cliente_id);
 
 -- MVP: por padrão, RLS pode ficar desabilitado durante testes.
 -- Antes de produção, habilite Supabase Auth, RLS e políticas separando página pública e painel administrativo.

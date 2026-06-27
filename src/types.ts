@@ -15,6 +15,12 @@ export type RecompensaTipo = 'desconto' | 'cashback' | 'brinde';
 
 export type BeneficioServicoTipo = 'beneficio' | 'servico_desconto' | 'brinde' | 'cashback' | 'indicacao';
 
+export type OfertaTipo = 'plano' | 'aula_gratis' | 'servico' | 'brinde' | 'indicacao' | 'renovacao';
+
+export type LeadStatus = 'novo' | 'contato_realizado' | 'negociacao' | 'fechado' | 'perdido' | 'cancelado';
+
+export type IndicacaoFightCoreStatus = 'enviada' | 'em_contato' | 'fechou_plano' | 'nao_fechou' | 'bonus_liberado';
+
 export type SolicitacaoStatus =
   | 'nova'
   | 'analise'
@@ -124,6 +130,46 @@ export interface Solicitacao {
   observacao_empresa: string;
 }
 
+export interface OfertaParceiro {
+  id: string;
+  empresa_id: string;
+  nome: string;
+  tipo: OfertaTipo;
+  preco_normal: string;
+  preco_techpass: string;
+  economia: string;
+  descricao: string;
+  regras: string;
+  beneficio_extra: string;
+  status: 'ativo' | 'inativo';
+  cta: string;
+  created_at: string;
+}
+
+export interface LeadParceiro {
+  id: string;
+  cliente_id: string;
+  techpass_id: string;
+  empresa_id: string;
+  oferta_id: string;
+  oferta_nome: string;
+  telefone_cliente: string;
+  status: LeadStatus;
+  observacao: string;
+  created_at: string;
+}
+
+export interface IndicacaoFightCore {
+  id: string;
+  cliente_id: string;
+  techpass_id: string;
+  nome_indicado: string;
+  telefone_indicado: string;
+  observacao: string;
+  status: IndicacaoFightCoreStatus;
+  created_at: string;
+}
+
 export interface Utilizacao {
   id: string;
   cliente_id: string;
@@ -148,4 +194,7 @@ export interface AppState {
   utilizacoes: Utilizacao[];
   beneficios_servicos: BeneficioServico[];
   solicitacoes: Solicitacao[];
+  ofertas: OfertaParceiro[];
+  leads: LeadParceiro[];
+  fight_core_indicacoes: IndicacaoFightCore[];
 }

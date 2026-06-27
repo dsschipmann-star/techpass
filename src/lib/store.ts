@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { createInitialState } from '../data';
 import { hasSupabaseConfig, supabase } from './supabase';
-import type { AppState, BeneficioServico, CashbackMovement, Cliente, Empresa, Indicacao, PendingActivation, Solicitacao, TechPass, TechPassStatus, Utilizacao } from '../types';
+import type { AppState, BeneficioServico, CashbackMovement, Cliente, Empresa, Indicacao, IndicacaoFightCore, LeadParceiro, OfertaParceiro, PendingActivation, Solicitacao, TechPass, TechPassStatus, Utilizacao } from '../types';
 
 const STORAGE_KEY = 'techpass-premium-state-v2';
 
@@ -14,6 +14,9 @@ function safeParse(value: string | null): AppState | null {
       ...parsed,
       beneficios_servicos: parsed.beneficios_servicos ?? createInitialState().beneficios_servicos,
       solicitacoes: parsed.solicitacoes ?? createInitialState().solicitacoes,
+      ofertas: parsed.ofertas ?? createInitialState().ofertas,
+      leads: parsed.leads ?? [],
+      fight_core_indicacoes: parsed.fight_core_indicacoes ?? [],
       utilizacoes: (parsed.utilizacoes ?? []).map((item: any) => ({
         empresa_id: item.empresa_id ?? parsed.techpasses?.find((tp) => tp.id === item.techpass_id)?.empresa_id ?? 'emp-techsoft',
         solicitacao_id: item.solicitacao_id ?? null,
@@ -77,7 +80,7 @@ export function addMonths(date: Date, months: number) {
 
 async function loadSupabaseState(): Promise<AppState | null> {
   if (!supabase) return null;
-  const [empresas, clientes, techpass, pending, cashback, indicacoes, utilizacoes, beneficiosServicos, solicitacoes] = await Promise.all([
+  const [empresas, clientes, techpass, pending, cashback, indicacoes, utilizacoes, beneficiosServicos, solicitacoes, ofertas, leads, fightCoreIndicacoes] = await Promise.all([
     supabase.from('empresas').select('*').order('created_at', { ascending: false }),
     supabase.from('clientes').select('*').order('created_at', { ascending: false }),
     supabase.from('techpass').select('*').order('created_at', { ascending: false }),
@@ -87,8 +90,11 @@ async function loadSupabaseState(): Promise<AppState | null> {
     supabase.from('utilizacoes').select('*').order('created_at', { ascending: false }),
     supabase.from('beneficios_servicos').select('*').order('created_at', { ascending: false }),
     supabase.from('solicitacoes').select('*').order('data_solicitacao', { ascending: false }),
+    supabase.from('ofertas').select('*').order('created_at', { ascending: false }),
+    supabase.from('leads').select('*').order('created_at', { ascending: false }),
+    supabase.from('fight_core_indicacoes').select('*').order('created_at', { ascending: false }),
   ]);
-  const error = empresas.error ?? clientes.error ?? techpass.error ?? pending.error ?? cashback.error ?? indicacoes.error ?? utilizacoes.error ?? beneficiosServicos.error ?? solicitacoes.error;
+  const error = empresas.error ?? clientes.error ?? techpass.error ?? pending.error ?? cashback.error ?? indicacoes.error ?? utilizacoes.error ?? beneficiosServicos.error ?? solicitacoes.error ?? ofertas.error ?? leads.error ?? fightCoreIndicacoes.error;
   if (error) throw error;
   return {
     empresas: empresas.data ?? [],
@@ -100,6 +106,9 @@ async function loadSupabaseState(): Promise<AppState | null> {
     utilizacoes: utilizacoes.data ?? [],
     beneficios_servicos: beneficiosServicos.data ?? [],
     solicitacoes: solicitacoes.data ?? [],
+    ofertas: ofertas.data ?? [],
+    leads: leads.data ?? [],
+    fight_core_indicacoes: fightCoreIndicacoes.data ?? [],
   };
 }
 
@@ -115,6 +124,9 @@ async function syncSupabaseState(state: AppState) {
     state.utilizacoes.length ? supabase.from('utilizacoes').upsert(state.utilizacoes as any) : null,
     state.beneficios_servicos.length ? supabase.from('beneficios_servicos').upsert(state.beneficios_servicos as any) : null,
     state.solicitacoes.length ? supabase.from('solicitacoes').upsert(state.solicitacoes as any) : null,
+    state.ofertas.length ? supabase.from('ofertas').upsert(state.ofertas as any) : null,
+    state.leads.length ? supabase.from('leads').upsert(state.leads as any) : null,
+    state.fight_core_indicacoes.length ? supabase.from('fight_core_indicacoes').upsert(state.fight_core_indicacoes as any) : null,
   ].filter(Boolean);
   const results = await Promise.all(tasks);
   const failed = results.find((result: any) => result.error);
@@ -159,6 +171,21 @@ export function useTechPassStore() {
         ...current,
         empresas: [{ ...payload, id: makeId('emp'), created_at: new Date().toISOString() }, ...current.empresas],
       }));
+    },
+    findActiveClientAccess(payload: { cpf: string; telefone: string; codigo: string }) {
+      const cpf = cleanCpf(payload.cpf);
+      const telefone = payload.telefone.replace(/\D/g, '');
+      const codigo = payload.codigo.trim().toLowerCase();
+      const activePass = state.techpasses.find((techpass) => {
+        if (techpass.status !== 'ATIVO' || !techpass.cliente_id) return false;
+        const cliente = state.clientes.find((item) => item.id === techpass.cliente_id);
+        if (!cliente) return false;
+        const byCpf = cpf && cleanCpf(cliente.cpf) === cpf;
+        const byPhone = telefone && cliente.telefone.replace(/\D/g, '').includes(telefone);
+        const byCode = codigo && [techpass.serial, techpass.codigo_fisico, techpass.codigo_indicacao ?? '', cliente.codigo_indicacao].some((value) => value.toLowerCase() === codigo);
+        return byCpf || byPhone || byCode;
+      });
+      return activePass?.cliente_id ?? '';
     },
     toggleEmpresaStatus(id: string) {
       setState((current) => {
@@ -369,6 +396,42 @@ export function useTechPassStore() {
       setState((current) => ({
         ...current,
         beneficios_servicos: [{ ...payload, id: makeId('bs'), created_at: new Date().toISOString() }, ...current.beneficios_servicos],
+      }));
+    },
+    addOferta(payload: Omit<OfertaParceiro, 'id' | 'created_at'>) {
+      setState((current) => ({
+        ...current,
+        ofertas: [{ ...payload, id: makeId('of'), created_at: new Date().toISOString() }, ...current.ofertas],
+      }));
+    },
+    updateOferta(id: string, payload: Partial<Omit<OfertaParceiro, 'id' | 'created_at'>>) {
+      setState((current) => ({
+        ...current,
+        ofertas: current.ofertas.map((item) => item.id === id ? { ...item, ...payload } : item),
+      }));
+    },
+    addLead(payload: Omit<LeadParceiro, 'id' | 'status' | 'created_at'>) {
+      setState((current) => ({
+        ...current,
+        leads: [{ ...payload, id: makeId('lead'), status: 'novo', created_at: new Date().toISOString() }, ...current.leads],
+      }));
+    },
+    updateLead(id: string, payload: Partial<Pick<LeadParceiro, 'status' | 'observacao'>>) {
+      setState((current) => ({
+        ...current,
+        leads: current.leads.map((item) => item.id === id ? { ...item, ...payload } : item),
+      }));
+    },
+    addFightCoreIndicacao(payload: Omit<IndicacaoFightCore, 'id' | 'status' | 'created_at'>) {
+      setState((current) => ({
+        ...current,
+        fight_core_indicacoes: [{ ...payload, id: makeId('fcind'), status: 'enviada', created_at: new Date().toISOString() }, ...current.fight_core_indicacoes],
+      }));
+    },
+    updateFightCoreIndicacao(id: string, status: IndicacaoFightCore['status']) {
+      setState((current) => ({
+        ...current,
+        fight_core_indicacoes: current.fight_core_indicacoes.map((item) => item.id === id ? { ...item, status } : item),
       }));
     },
     updateBeneficioServico(id: string, payload: Partial<Omit<BeneficioServico, 'id' | 'created_at'>>) {

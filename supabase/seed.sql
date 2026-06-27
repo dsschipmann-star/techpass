@@ -89,3 +89,34 @@ on conflict (id) do update set
   observacao = excluded.observacao,
   funcionario_responsavel = excluded.funcionario_responsavel,
   completed_at = excluded.completed_at;
+
+insert into ofertas (id, empresa_id, nome, tipo, preco_normal, preco_techpass, economia, descricao, regras, beneficio_extra, status, cta)
+values
+  ('of-fc-mensal', 'emp-fight-core', 'Plano Mensal Fight Core', 'plano', 'R$199/mês', 'R$179/mês', 'R$20 por mês', 'Condição especial para membros TechPass treinarem na Fight Core.', 'Válido para membros TechPass ativos.', 'Condição especial para membros TechPass', 'ativo', 'Tenho interesse'),
+  ('of-fc-semestral', 'emp-fight-core', 'Plano Semestral Fight Core', 'plano', 'R$1.194', 'R$999', 'R$195', 'Plano semestral com economia direta para membros TechPass.', 'Pagamento e contratação definidos pela Fight Core.', 'Condição especial para membros TechPass', 'ativo', 'Tenho interesse'),
+  ('of-fc-anual', 'emp-fight-core', 'Plano Anual Fight Core', 'plano', 'R$2.388', 'R$1.908', 'R$480', 'Plano anual com desconto exclusivo para membros TechPass.', 'Pode liberar bônus de 6 meses se indicar 15 contatos e ao menos 1 fechar plano.', 'Possibilidade de ganhar bônus de 6 meses com indicações', 'ativo', 'Quero esta condição'),
+  ('of-fc-aula-muay-thai', 'emp-fight-core', 'Aula Grátis Muay Thai', 'aula_gratis', 'Aula experimental', 'Grátis', 'Experiência sem custo', 'Experimente uma aula de Muay Thai na Fight Core.', 'Sujeito à disponibilidade de agenda.', 'Lead direcionado para a modalidade escolhida', 'ativo', 'Solicitar aula'),
+  ('of-fc-aula-mma', 'emp-fight-core', 'Aula Grátis MMA', 'aula_gratis', 'Aula experimental', 'Grátis', 'Experiência sem custo', 'Experimente uma aula de MMA na Fight Core.', 'Sujeito à disponibilidade de agenda.', 'Lead direcionado para a modalidade escolhida', 'ativo', 'Solicitar aula'),
+  ('of-fc-aula-jiu-jitsu', 'emp-fight-core', 'Aula Grátis Jiu Jitsu', 'aula_gratis', 'Aula experimental', 'Grátis', 'Experiência sem custo', 'Experimente uma aula de Jiu Jitsu adulto na Fight Core.', 'Sujeito à disponibilidade de agenda.', 'Lead direcionado para a modalidade escolhida', 'ativo', 'Solicitar aula'),
+  ('of-fc-aula-jiu-jitsu-kids', 'emp-fight-core', 'Aula Grátis Jiu Jitsu Kids', 'aula_gratis', 'Aula experimental', 'Grátis', 'Experiência sem custo', 'Aula experimental para crianças.', 'Sujeito à disponibilidade de agenda.', 'Lead direcionado para a modalidade escolhida', 'ativo', 'Solicitar aula'),
+  ('of-sg-anual', 'emp-super-geeks', 'Plano Anual Super Geeks', 'plano', 'R$340/mês', 'R$299/mês', 'R$492 por ano', 'Condição especial para membros TechPass em plano anual Super Geeks.', 'Válido para novas contratações pela Rede TechPass.', 'Condição especial para membros TechPass', 'ativo', 'Quero esta condição'),
+  ('of-sg-renovacao', 'emp-super-geeks', 'Renovação Super Geeks', 'renovacao', 'Condição padrão', 'Condição especial', 'Renovação TechPass por 12 meses', 'Clientes que fecharem plano anual pela Rede TechPass ganham desconto garantido na próxima renovação.', 'Benefício aplicado conforme confirmação da Super Geeks.', 'Desconto na próxima renovação e TechPass renovado', 'ativo', 'Solicitar condição de renovação')
+on conflict (id) do update set
+  empresa_id = excluded.empresa_id,
+  nome = excluded.nome,
+  tipo = excluded.tipo,
+  preco_normal = excluded.preco_normal,
+  preco_techpass = excluded.preco_techpass,
+  economia = excluded.economia,
+  descricao = excluded.descricao,
+  regras = excluded.regras,
+  beneficio_extra = excluded.beneficio_extra,
+  status = excluded.status,
+  cta = excluded.cta;
+
+insert into leads (id, cliente_id, techpass_id, empresa_id, oferta_id, oferta_nome, telefone_cliente, status, observacao)
+values
+  ('lead-maria-fc', 'cli-maria', 'tp-sg-000002', 'emp-fight-core', 'of-fc-anual', 'Plano Anual Fight Core', '(11) 99999-1111', 'novo', 'Cliente demonstrou interesse pelo plano anual.')
+on conflict (id) do update set
+  status = excluded.status,
+  observacao = excluded.observacao;
