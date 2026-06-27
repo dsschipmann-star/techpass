@@ -5,6 +5,7 @@ Front-end MVP da Rede TechPass para a TechSoft, criado com React, TypeScript, Ta
 ## Rotas principais
 
 - `/` - landing page institucional Rede TechPass.
+- `/seja-parceiro` - landing page comercial para empresas interessadas em entrar na Rede TechPass.
 - `/techpass/:serial` - página pública do QR Code do voucher TechPass.
 - `/login` - login do cliente por CPF, WhatsApp ou código TechPass.
 - `/cliente/dashboard` - área do cliente TechPass com menu, ofertas, TechCash, indicações e solicitações.
@@ -30,6 +31,7 @@ Front-end MVP da Rede TechPass para a TechSoft, criado com React, TypeScript, Ta
 - Admin gerencia solicitações, benefícios, serviços, brindes, cashback, indicações e regras de uso.
 - Empresas parceiras entram pelo acesso parceiro, visualizam apenas dados da própria empresa e podem criar ofertas que ficam pendentes de aprovação.
 - Admin TechPass aprova, reprova, solicita ajuste ou desativa ofertas antes de aparecerem para clientes.
+- Landing "Seja Parceiro TechPass" apresenta vouchers, pré-formulários, WhatsApp com mensagem pronta, painel parceiro, exemplos e planos conceituais.
 
 ## Acessos demo de parceiros
 

@@ -5,6 +5,7 @@ Use este projeto como MVP React/Vite importado pelo GitHub.
 ## Rotas
 
 - `/` landing pública Rede TechPass.
+- `/seja-parceiro` landing comercial para captação de empresas parceiras.
 - `/techpass/TP-SG-000001` exemplo de QR Code com TechPass disponível.
 - `/techpass/TP-SG-000002` exemplo de TechPass ativo.
 - `/login` login do cliente por CPF, WhatsApp ou código TechPass.
@@ -30,6 +31,8 @@ Use este projeto como MVP React/Vite importado pelo GitHub.
 - Oferta criada ou editada por parceiro fica como `PENDENTE_APROVACAO`.
 - Apenas ofertas `ativo` de empresas `ativa` aparecem para clientes.
 - Admin pode aprovar, reprovar, solicitar ajuste ou desativar ofertas.
+- A landing principal deve apontar para `/seja-parceiro` como CTA de captação B2B.
+- `/seja-parceiro` é front-end estático nesta etapa, sem backend ou login funcional.
 
 ## Acessos parceiros demo
 
