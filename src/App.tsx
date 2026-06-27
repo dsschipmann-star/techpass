@@ -254,6 +254,20 @@ const PARTNER_PLANS = [
   ['Parceiro Estratégico', 'Para ações conjuntas e recorrentes.', 'Campanhas personalizadas, destaque maior, integração de agenda e ações locais.'],
 ];
 
+const PARTNER_OBJECTIONS = [
+  ['Não quero dar mais desconto', 'O TechPass posiciona a vantagem como benefício de rede, não como desconto avulso. Você protege o preço principal e aumenta o valor percebido.'],
+  ['Não tenho tempo para organizar leads', 'O cliente chega com oferta escolhida, respostas do pré-formulário e telefone. O painel concentra status, observações e histórico.'],
+  ['Como sei que isso gera resultado?', 'Cada lead, solicitação, oferta e conversão pode ser acompanhado por empresa, campanha e status dentro do painel parceiro.'],
+];
+
+const PARTNER_FAQ = [
+  ['Preciso criar backend ou login agora?', 'Não. Esta etapa é front-end para apresentar a parceria. O painel parceiro já existe no MVP para demonstrar o fluxo.'],
+  ['Minha empresa pode escolher quais benefícios oferecer?', 'Sim. O parceiro pode cadastrar ofertas, benefícios, brindes, descontos, cashback ou regras de indicação.'],
+  ['Ofertas aparecem direto para clientes?', 'Ofertas criadas por parceiros podem ficar pendentes de aprovação antes de aparecerem para membros TechPass.'],
+  ['O cliente chama direto no WhatsApp?', 'Antes, ele pode responder um pré-formulário. Depois o botão abre o WhatsApp com uma mensagem estruturada para atendimento.'],
+  ['Serve para empresas fora de tecnologia?', 'Sim. A página traz exemplos para academia, escola de tecnologia, barbearia, assistência técnica e outros segmentos locais.'],
+];
+
 function getSerialFromPath(pathname: string) {
   const match = pathname.match(/^\/techpass\/([^/]+)/);
   return match ? decodeURIComponent(match[1]) : null;
@@ -606,6 +620,19 @@ function PartnerLandingPage({ navigate }: { navigate: (path: string) => void }) 
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+          <LandingHeader eyebrow="Objeções resolvidas" title="A parceria foi pensada para empresas locais, com pouco atrito." subtitle="A página explica o valor antes do contato e o sistema qualifica o lead antes de chegar no WhatsApp." />
+          <div className="mt-8 grid gap-4 lg:grid-cols-3">
+            {PARTNER_OBJECTIONS.map(([title, text]) => (
+              <Card key={title} className="relative overflow-hidden p-6">
+                <div className="absolute right-4 top-4 font-mono text-6xl font-black text-tech-neon/[0.07]">?</div>
+                <h3 className="relative text-2xl font-black text-white">{title}</h3>
+                <p className="relative mt-4 text-sm leading-7 text-zinc-400">{text}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
           <LandingHeader eyebrow="Pré-formulário + WhatsApp" title="Leads mais preparados antes de chegar no WhatsApp" subtitle="Cada serviço ou oferta pode ter perguntas específicas do nicho. Quando o cliente chama, a mensagem já leva nome, TechPass, oferta e respostas." />
           <div className="mt-8 grid gap-4 lg:grid-cols-4">
             {PRE_FORM_EXAMPLES.map((item) => (
@@ -669,6 +696,18 @@ function PartnerLandingPage({ navigate }: { navigate: (path: string) => void }) 
                 </Card>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+          <LandingHeader eyebrow="Perguntas frequentes" title="O que uma empresa precisa saber antes de entrar." subtitle="Respostas diretas para reduzir dúvida antes do primeiro contato comercial." />
+          <div className="mt-8 grid gap-3 lg:grid-cols-2">
+            {PARTNER_FAQ.map(([question, answer]) => (
+              <div key={question} className="rounded-lg border border-white/10 bg-white/[0.045] p-5">
+                <h3 className="text-lg font-black text-white">{question}</h3>
+                <p className="mt-3 text-sm leading-7 text-zinc-400">{answer}</p>
+              </div>
+            ))}
           </div>
         </section>
 
