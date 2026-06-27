@@ -135,8 +135,8 @@ function LandingPage({ state, navigate }: { state: AppState; navigate: (path: st
               <Sparkles className="h-3.5 w-3.5" /> Tecnologia de ativação segura
             </div>
             <h1 className="mt-7 max-w-5xl text-5xl font-black leading-[0.92] tracking-normal text-white sm:text-7xl lg:text-8xl">O futuro da exclusividade na sua carteira.</h1>
-            <p className="mt-6 max-w-2xl text-2xl font-black leading-tight text-tech-neon sm:text-3xl">TechPass Premium é o cartão físico com QR permanente, código secreto e ativação presencial TechSoft.</p>
-            <p className="mt-6 max-w-3xl text-lg leading-8 text-zinc-300">O cliente escaneia o QR, confirma o código impresso no TechPass físico e só libera os benefícios após validação presencial com documento com foto. Segurança física para uma experiência digital simples.</p>
+            <p className="mt-6 max-w-2xl text-2xl font-black leading-tight text-tech-neon sm:text-3xl">TechPass Premium é um voucher comprado nas empresas parceiras, com QR permanente, código secreto e ativação presencial TechSoft.</p>
+            <p className="mt-6 max-w-3xl text-lg leading-8 text-zinc-300">O cliente compra o voucher, escaneia o QR, confirma o código secreto e só libera os benefícios após validação presencial com documento com foto. Um acesso simples para o cliente e controlado para a operação.</p>
             <div className="mt-9 flex flex-wrap gap-3">
               <Button onClick={() => document.getElementById('ativacao')?.scrollIntoView({ behavior: 'smooth' })}>Ativar meu TechPass <ArrowRight className="h-4 w-4" /></Button>
               <Button variant="secondary" onClick={() => document.getElementById('parceiro')?.scrollIntoView({ behavior: 'smooth' })}>Quero ser parceiro</Button>
@@ -153,14 +153,14 @@ function LandingPage({ state, navigate }: { state: AppState; navigate: (path: st
               <div className="rounded-md border border-tech-neon/45 bg-[linear-gradient(135deg,#080908_0%,#171915_58%,#8DFF2A_205%)] p-5 sm:p-6">
                 <div className="grid gap-6 sm:grid-cols-[1fr_112px] sm:items-start">
                   <div className="min-w-0">
-                    <p className="text-xs font-black uppercase text-tech-neon">TechPass físico</p>
-                    <h2 className="mt-3 max-w-md text-3xl font-black leading-tight text-white">Um cartão. Um segredo. Uma ativação segura.</h2>
+                    <p className="text-xs font-black uppercase text-tech-neon">Voucher TechPass</p>
+                    <h2 className="mt-3 max-w-md text-3xl font-black leading-tight text-white">Um voucher. Um segredo. Uma ativação segura.</h2>
                   </div>
                   {samplePass && <div className="w-max rounded-lg bg-white p-2 shadow-xl shadow-black/30"><QrCode serial={samplePass.serial} size={96} /></div>}
                 </div>
                 <div className="mt-10 grid gap-3 sm:grid-cols-2">
                   <LandingFeature icon={ScanLine} title="QR permanente" text="A URL não muda; o status do benefício muda." />
-                  <LandingFeature icon={ShieldCheck} title="Código físico" text="Cadastro só avança com o segredo impresso no cartão." />
+                  <LandingFeature icon={ShieldCheck} title="Código secreto" text="Cadastro só avança com o código do voucher." />
                   <LandingFeature icon={Store} title="Loja valida" text="Documento com foto antes de liberar benefícios." />
                   <LandingFeature icon={Handshake} title="Parceiros" text="Mais valor para clientes sem baixar preço do serviço principal." />
                 </div>
@@ -180,7 +180,7 @@ function LandingPage({ state, navigate }: { state: AppState; navigate: (path: st
               <p className="text-sm font-black uppercase text-tech-neon">O que é o TechPass</p>
               <h2 className="mt-3 text-4xl font-black text-white">Sua chave física no mundo digital.</h2>
             </div>
-            <p className="text-lg leading-8 text-zinc-300">Diferente de acessos puramente digitais, o TechPass Premium começa no cartão físico. O código secreto impresso é a única forma de iniciar o cadastro, e a ativação final acontece presencialmente na TechSoft.</p>
+            <p className="text-lg leading-8 text-zinc-300">Diferente de acessos liberados sem controle, o TechPass Premium começa no voucher comprado em uma empresa parceira. O código secreto do voucher é a única forma de iniciar o cadastro, e a ativação final acontece presencialmente na TechSoft.</p>
           </div>
         </section>
 
@@ -188,8 +188,8 @@ function LandingPage({ state, navigate }: { state: AppState; navigate: (path: st
           <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
             <div>
               <p className="text-sm font-black uppercase tracking-[0.22em] text-tech-neon">Benefícios premium</p>
-              <h2 className="mt-3 text-4xl font-black text-white">Mais que um cartão, uma experiência de rede.</h2>
-              <p className="mt-4 text-zinc-400">A proposta é transformar cada TechPass físico em uma porta de entrada para vantagens reais, controladas e fáceis de validar.</p>
+              <h2 className="mt-3 text-4xl font-black text-white">Mais que um voucher, uma experiência de rede.</h2>
+              <p className="mt-4 text-zinc-400">A proposta é transformar cada voucher TechPass em uma porta de entrada para vantagens reais, controladas e fáceis de validar.</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <LandingFeature icon={Wallet} title="Cashback real" text="Créditos acompanhados pelo painel e vinculados ao TechPass ativo." />
@@ -219,12 +219,12 @@ function LandingPage({ state, navigate }: { state: AppState; navigate: (path: st
             <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
               <div>
                 <p className="text-sm font-black uppercase tracking-[0.22em] text-tech-neon">Acesso em 3 atos</p>
-                <h2 className="mt-3 text-4xl font-black text-white">Do cartão físico à ativação presencial.</h2>
+                <h2 className="mt-3 text-4xl font-black text-white">Da compra do voucher à ativação presencial.</h2>
                 <p className="mt-4 text-zinc-400">O cliente solicita a ativação online, mas a liberação final continua sob controle da equipe TechSoft.</p>
               </div>
               <div className="grid gap-3 md:grid-cols-3">
-                <StepCard number="1" title="Recebe" text="O cartão é entregue por uma empresa parceira participante." />
-                <StepCard number="2" title="Escaneia" text="O QR abre a página pública e pede o código físico." />
+                <StepCard number="1" title="Compra" text="O cliente compra o voucher em uma empresa parceira participante." />
+                <StepCard number="2" title="Escaneia" text="O QR abre a página pública e pede o código secreto do voucher." />
                 <StepCard number="3" title="Ativa" text="A TechSoft confere documento com foto e libera o benefício." />
               </div>
             </div>
@@ -313,8 +313,8 @@ function AvailableTechPass({ techpass, empresaName, actions }: { techpass: TechP
         <div className="grid gap-6 lg:grid-cols-[1fr_160px] lg:items-start">
           <div>
             <StatusPill status={techpass.status} />
-            <h1 className="mt-5 text-3xl font-black text-white sm:text-5xl">Parabéns! Você recebeu um TechPass Premium.</h1>
-            <p className="mt-4 text-xl font-semibold text-tech-neon">Seu benefício já é seu. Falta apenas concluir o cadastro e ativar presencialmente na TechSoft.</p>
+            <h1 className="mt-5 text-3xl font-black text-white sm:text-5xl">Parabéns! Você tem um voucher TechPass Premium.</h1>
+            <p className="mt-4 text-xl font-semibold text-tech-neon">Seu acesso já foi comprado. Falta apenas concluir o cadastro e ativar presencialmente na TechSoft.</p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <Info label="Número de série" value={techpass.serial} />
               <Info label="Empresa parceira" value={empresaName} />
@@ -336,10 +336,10 @@ function AvailableTechPass({ techpass, empresaName, actions }: { techpass: TechP
       <Card>
         <PageTitle title="Como ativar seu TechPass" subtitle="A ativação final só acontece presencialmente na loja TechSoft." />
         <div className="mt-5 grid gap-3 md:grid-cols-5">
-          <StepCard number="1" title="Escaneie" text="Escaneie o QR Code do cartão." />
-          <StepCard number="2" title="Revele" text="Revele o código físico do seu TechPass." />
+          <StepCard number="1" title="Escaneie" text="Escaneie o QR Code do voucher." />
+          <StepCard number="2" title="Digite" text="Digite o código secreto do seu voucher TechPass." />
           <StepCard number="3" title="Cadastre" text="Preencha o cadastro nesta página." />
-          <StepCard number="4" title="Compareça" text="Vá à TechSoft com cartão e documento." />
+          <StepCard number="4" title="Compareça" text="Vá à TechSoft com voucher e documento." />
           <StepCard number="5" title="Ative" text="A equipe TechSoft libera seus benefícios." />
         </div>
       </Card>
@@ -348,16 +348,16 @@ function AvailableTechPass({ techpass, empresaName, actions }: { techpass: TechP
         <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
             <h2 className="text-2xl font-black text-white">Solicitar ativação do TechPass</h2>
-            <p className="mt-1 text-sm text-zinc-400">O campo Código do TechPass físico é obrigatório.</p>
+            <p className="mt-1 text-sm text-zinc-400">O campo Código secreto do voucher é obrigatório.</p>
           </div>
           <Field label="Nome completo"><Input required disabled={success} value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></Field>
           <Field label="CPF"><Input required disabled={success} value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} placeholder="000.000.000-00" /></Field>
           <Field label="Telefone / WhatsApp"><Input required disabled={success} value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></Field>
           <Field label="E-mail"><Input required disabled={success} type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
-          <Field label="Código do TechPass físico"><Input required disabled={success} value={form.codigo} onChange={(e) => setForm({ ...form, codigo: e.target.value.toUpperCase() })} placeholder="Ex: SG-7K2P" /></Field>
+          <Field label="Código secreto do voucher"><Input required disabled={success} value={form.codigo} onChange={(e) => setForm({ ...form, codigo: e.target.value.toUpperCase() })} placeholder="Ex: SG-7K2P" /></Field>
           <div className="md:col-span-2">
             <Button type="submit" disabled={success}><UserCheck className="h-4 w-4" />Enviar cadastro</Button>
-            {message && <div className={cx('mt-4 rounded-lg border p-4 text-sm', success ? 'border-tech-neon/30 bg-tech-neon/10 text-tech-neon' : 'border-red-300/30 bg-red-300/10 text-red-100')}>{success ? 'Cadastro enviado com sucesso! Seu TechPass está pendente de ativação. Para liberar seus benefícios, compareça à TechSoft com seu TechPass físico e documento oficial com foto.' : message}</div>}
+            {message && <div className={cx('mt-4 rounded-lg border p-4 text-sm', success ? 'border-tech-neon/30 bg-tech-neon/10 text-tech-neon' : 'border-red-300/30 bg-red-300/10 text-red-100')}>{success ? 'Cadastro enviado com sucesso! Seu TechPass está pendente de ativação. Para liberar seus benefícios, compareça à TechSoft com seu voucher e documento oficial com foto.' : message}</div>}
           </div>
         </form>
       </Card>
@@ -453,8 +453,8 @@ function Dashboard({ state }: { state: AppState }) {
       <Card className="p-6">
         <h3 className="text-lg font-black uppercase text-zinc-400">Fluxo operacional</h3>
         <ol className="mt-5 grid gap-4 text-sm leading-7 text-zinc-100">
-          <li><strong className="mr-3 text-tech-neon">1.</strong>Empresa parceira entrega o cartão TechPass físico ao cliente.</li>
-          <li><strong className="mr-3 text-tech-neon">2.</strong>Cliente acessa o QR Code, informa o código físico e solicita ativação.</li>
+          <li><strong className="mr-3 text-tech-neon">1.</strong>Cliente compra o voucher TechPass em uma empresa parceira.</li>
+          <li><strong className="mr-3 text-tech-neon">2.</strong>Cliente acessa o QR Code, informa o código secreto do voucher e solicita ativação.</li>
           <li><strong className="mr-3 text-tech-neon">3.</strong>Equipe TechSoft confere documento oficial com foto e ativa presencialmente.</li>
           <li><strong className="mr-3 text-tech-neon">4.</strong>Cliente usa benefícios, cashback, indicações e trocas de película.</li>
         </ol>
@@ -510,7 +510,7 @@ function TechPassScreen({ state, actions, navigate }: { state: AppState; actions
   };
   return (
     <div className="grid gap-6">
-      <PageTitle title="TechPass" subtitle="Crie TechPass com serial único, código físico secreto e QR permanente." />
+      <PageTitle title="TechPass" subtitle="Crie vouchers TechPass com serial único, código secreto e QR permanente." />
       <Card>
         <form onSubmit={submit} className="grid gap-4 md:grid-cols-3">
           <Field label="Empresa parceira"><Select value={empresaId} onChange={(e) => setEmpresaId(e.target.value)}>{state.empresas.filter((item) => item.status === 'ativa').map((empresa) => <option key={empresa.id} value={empresa.id}>{empresa.nome}</option>)}</Select></Field>
@@ -527,7 +527,7 @@ function TechPassScreen({ state, actions, navigate }: { state: AppState; actions
             <div>
               <p className="font-mono text-base font-black text-white">{item.serial}</p>
               <p className="mt-1 text-sm text-zinc-400">{getEmpresaName(state, item.empresa_id)}</p>
-              <p className="mt-2 font-mono text-sm font-bold text-tech-neon">Código físico: {getTechPassSecret(item)}</p>
+              <p className="mt-2 font-mono text-sm font-bold text-tech-neon">Código do voucher: {getTechPassSecret(item)}</p>
               <div className="mt-3"><StatusPill status={getEffectiveStatus(item)} /></div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -595,7 +595,7 @@ function QrCodesScreen({ state, navigate }: { state: AppState; navigate: (path: 
             <div>
               <p className="font-mono text-base font-black text-white">{item.serial}</p>
               <p className="mt-1 text-sm text-zinc-400">{getEmpresaName(state, item.empresa_id)}</p>
-              <p className="mt-2 font-mono text-sm font-bold text-tech-neon">Código físico: {item.codigo_fisico}</p>
+              <p className="mt-2 font-mono text-sm font-bold text-tech-neon">Código do voucher: {item.codigo_fisico}</p>
               <div className="mt-3"><StatusPill status={getEffectiveStatus(item)} /></div>
             </div>
             <div className="flex flex-wrap gap-2">

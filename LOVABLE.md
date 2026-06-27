@@ -12,8 +12,8 @@ Use este projeto como MVP React/Vite importado pelo GitHub.
 ## Regras críticas
 
 - Cliente não ativa sozinho.
-- Cliente apenas solicita ativação com o código físico secreto.
-- Código físico só pode ser usado uma vez.
+- Cliente apenas solicita ativação com o código secreto do voucher.
+- Código do voucher só pode ser usado uma vez.
 - CPF não pode ter TechPass ativo ou pendente duplicado.
 - Ativação final é feita somente no painel administrativo, após conferência de documento oficial com foto.
 

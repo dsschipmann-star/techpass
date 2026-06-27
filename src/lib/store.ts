@@ -199,7 +199,7 @@ export function useTechPassStore() {
           return current;
         }
         if (normalizeSecretCode(codigoInformado) !== normalizeSecretCode(techpass.codigo_fisico)) {
-          result = { ok: false, message: 'Código do TechPass físico inválido.' };
+          result = { ok: false, message: 'Código secreto do voucher inválido.' };
           return current;
         }
         const cpf = cleanCpf(clientPayload.cpf);
