@@ -35,6 +35,7 @@ export const STATUS_STYLE: Record<string, string> = {
 
 export const EMPTY_STATE: AppState = {
   empresas: [],
+  parceiro_usuarios: [],
   clientes: [],
   techpasses: [],
   pending_activations: [],
@@ -180,6 +181,9 @@ export function createInitialState(): AppState {
       beneficio_extra: 'Condição especial para membros TechPass',
       status: 'ativo' as const,
       cta: 'Tenho interesse',
+      descricao_completa: 'Plano mensal Fight Core com condição especial para membros TechPass.',
+      validade: null,
+      origem: 'admin' as const,
       created_at: now,
     },
     {
@@ -195,6 +199,9 @@ export function createInitialState(): AppState {
       beneficio_extra: 'Condição especial para membros TechPass',
       status: 'ativo' as const,
       cta: 'Tenho interesse',
+      descricao_completa: 'Plano semestral Fight Core com economia direta para membros TechPass.',
+      validade: null,
+      origem: 'admin' as const,
       created_at: now,
     },
     {
@@ -210,6 +217,9 @@ export function createInitialState(): AppState {
       beneficio_extra: 'Possibilidade de ganhar bônus de 6 meses com indicações',
       status: 'ativo' as const,
       cta: 'Quero esta condição',
+      descricao_completa: 'Plano anual Fight Core com desconto e possibilidade de bônus de 6 meses via indicações.',
+      validade: null,
+      origem: 'admin' as const,
       created_at: now,
     },
     ...['Muay Thai', 'MMA', 'Jiu Jitsu', 'Jiu Jitsu Kids'].map((modalidade) => ({
@@ -225,6 +235,9 @@ export function createInitialState(): AppState {
       beneficio_extra: 'Lead direcionado para a modalidade escolhida',
       status: 'ativo' as const,
       cta: 'Solicitar aula',
+      descricao_completa: modalidade === 'Jiu Jitsu Kids' ? 'Aula experimental para crianças na Fight Core.' : 'Aula experimental de ' + modalidade + ' na Fight Core.',
+      validade: null,
+      origem: 'admin' as const,
       created_at: now,
     })),
     {
@@ -240,6 +253,9 @@ export function createInitialState(): AppState {
       beneficio_extra: 'Condição especial para membros TechPass',
       status: 'ativo' as const,
       cta: 'Quero esta condição',
+      descricao_completa: 'Plano anual Super Geeks com condição especial para famílias TechPass.',
+      validade: null,
+      origem: 'admin' as const,
       created_at: now,
     },
     {
@@ -255,6 +271,9 @@ export function createInitialState(): AppState {
       beneficio_extra: 'Desconto na próxima renovação e TechPass renovado',
       status: 'ativo' as const,
       cta: 'Solicitar condição de renovação',
+      descricao_completa: 'Condição de renovação para clientes que contrataram pela Rede TechPass.',
+      validade: null,
+      origem: 'admin' as const,
       created_at: now,
     },
   ];
@@ -267,6 +286,13 @@ export function createInitialState(): AppState {
         categoria: 'Assistência técnica e acessórios',
         beneficio: '30% OFF em mão de obra, 15% OFF em acessórios, cashback e benefícios exclusivos.',
         status: 'ativa',
+        telefone: '(11) 4002-8922',
+        whatsapp: '(11) 99999-0000',
+        email: 'contato@techsoft.com.br',
+        endereco: 'Atendimento presencial TechSoft',
+        descricao: 'Assistência técnica, acessórios e central operacional TechPass.',
+        instagram: '@techsoft',
+        logo_url: '',
         created_at: now,
       },
       {
@@ -275,6 +301,13 @@ export function createInitialState(): AppState {
         categoria: 'Educação e tecnologia',
         beneficio: 'Benefícios exclusivos para alunos e famílias parceiras.',
         status: 'ativa',
+        telefone: '(11) 3000-1000',
+        whatsapp: '(11) 98888-1000',
+        email: 'parcerias@supergeeks.com.br',
+        endereco: 'Unidade parceira Super Geeks',
+        descricao: 'Educação em tecnologia e programação para crianças e jovens.',
+        instagram: '@supergeeks',
+        logo_url: '',
         created_at: now,
       },
       {
@@ -283,8 +316,20 @@ export function createInitialState(): AppState {
         categoria: 'Academia de luta',
         beneficio: 'Condições especiais para membros TechPass.',
         status: 'ativa',
+        telefone: '(11) 3000-2000',
+        whatsapp: '(11) 97777-2000',
+        email: 'contato@fightcore.com.br',
+        endereco: 'Academia Fight Core',
+        descricao: 'Muay Thai, Jiu Jitsu, MMA e treinos para adultos e crianças.',
+        instagram: '@fightcore',
+        logo_url: '',
         created_at: now,
       },
+    ],
+    parceiro_usuarios: [
+      { id: 'par-techsoft', nome: 'Parceiro TechSoft', email: 'techsoft@parceiro.com', senha: '123456', empresa_id: 'emp-techsoft', tipo_acesso: 'parceiro', created_at: now },
+      { id: 'par-super-geeks', nome: 'Parceiro Super Geeks', email: 'supergeeks@parceiro.com', senha: '123456', empresa_id: 'emp-super-geeks', tipo_acesso: 'parceiro', created_at: now },
+      { id: 'par-fight-core', nome: 'Parceiro Fight Core', email: 'fightcore@parceiro.com', senha: '123456', empresa_id: 'emp-fight-core', tipo_acesso: 'parceiro', created_at: now },
     ],
     clientes: [
       {

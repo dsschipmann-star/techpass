@@ -9,6 +9,8 @@ Use este projeto como MVP React/Vite importado pelo GitHub.
 - `/techpass/TP-SG-000002` exemplo de TechPass ativo.
 - `/login` login do cliente por CPF, WhatsApp ou código TechPass.
 - `/cliente/dashboard` área do cliente com menu e login demo.
+- `/parceiro/login` login da empresa parceira.
+- `/parceiro/dashboard` painel restrito por empresa parceira.
 - `/empresa` painel de empresa parceira filtrado por empresa.
 - `/admin` painel administrativo MVP.
 
@@ -24,6 +26,16 @@ Use este projeto como MVP React/Vite importado pelo GitHub.
 - Apenas TechPass ativo solicita ofertas exclusivas.
 - Leads de ofertas são enviados para a empresa responsável.
 - Fight Core tem bônus de 6 meses quando houver 15 contatos enviados e pelo menos 1 conversão.
+- Parceiro só vê leads, solicitações, ofertas, benefícios e indicações da própria empresa.
+- Oferta criada ou editada por parceiro fica como `PENDENTE_APROVACAO`.
+- Apenas ofertas `ativo` de empresas `ativa` aparecem para clientes.
+- Admin pode aprovar, reprovar, solicitar ajuste ou desativar ofertas.
+
+## Acessos parceiros demo
+
+- `techsoft@parceiro.com` / `123456`
+- `supergeeks@parceiro.com` / `123456`
+- `fightcore@parceiro.com` / `123456`
 
 ## Build
 

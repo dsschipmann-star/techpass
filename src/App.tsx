@@ -86,6 +86,8 @@ const OFERTA_TIPO_LABEL: Record<OfertaTipo, string> = {
   aula_gratis: 'Aula grátis',
   servico: 'Serviço',
   brinde: 'Brinde',
+  desconto: 'Desconto',
+  cashback: 'Cashback',
   indicacao: 'Indicação',
   renovacao: 'Renovação',
 };
@@ -260,6 +262,14 @@ function App() {
 
   if (path.startsWith('/cliente')) {
     return <ClientArea state={state} actions={actions} navigate={navigate} />;
+  }
+
+  if (path.startsWith('/parceiro/login')) {
+    return <PartnerLogin state={state} navigate={navigate} />;
+  }
+
+  if (path.startsWith('/parceiro/dashboard')) {
+    return <PartnerDashboard state={state} actions={actions} navigate={navigate} />;
   }
 
   if (path.startsWith('/empresa')) {
@@ -1107,7 +1117,7 @@ function ClientOffers({ state, actions, cliente, techpass, ofertas }: { state: A
   );
 }
 
-function OfferCard({ state, oferta, onClick }: { state: AppState; oferta: OfertaParceiro; onClick: () => void }) {
+function OfferCard({ state, oferta, onClick, children }: { state: AppState; oferta: OfertaParceiro; onClick: () => void; children?: ReactNode }) {
   return (
     <Card className="grid content-between gap-5 p-5">
       <div>
@@ -1116,7 +1126,10 @@ function OfferCard({ state, oferta, onClick }: { state: AppState; oferta: Oferta
             <p className="text-xs font-black uppercase tracking-[0.18em] text-tech-neon">{getEmpresaName(state, oferta.empresa_id)}</p>
             <h3 className="mt-2 text-xl font-black text-white">{oferta.nome}</h3>
           </div>
-          <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">{OFERTA_TIPO_LABEL[oferta.tipo]}</Pill>
+          <div className="flex flex-col gap-2">
+            <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">{OFERTA_TIPO_LABEL[oferta.tipo]}</Pill>
+            <Pill className={oferta.status === 'ativo' ? 'border-tech-neon/40 bg-tech-neon/10 text-tech-neon' : 'border-yellow-300/30 bg-yellow-400/10 text-yellow-100'}>{oferta.status}</Pill>
+          </div>
         </div>
         <p className="mt-4 text-sm leading-6 text-zinc-400">{oferta.descricao}</p>
         <div className="mt-5 grid gap-2">
@@ -1128,6 +1141,7 @@ function OfferCard({ state, oferta, onClick }: { state: AppState; oferta: Oferta
         <p className="mt-4 text-xs leading-5 text-zinc-500">{oferta.regras}</p>
       </div>
       <Button onClick={onClick}>{oferta.cta}</Button>
+      {children}
     </Card>
   );
 }
@@ -1222,11 +1236,11 @@ function BeneficiosServicosScreen({ state, actions }: { state: AppState; actions
 }
 
 function OfertasAdminScreen({ state, actions }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions'] }) {
-  const [form, setForm] = useState<Omit<OfertaParceiro, 'id' | 'created_at'>>({ empresa_id: state.empresas[0]?.id ?? '', nome: '', tipo: 'plano', preco_normal: '', preco_techpass: '', economia: '', descricao: '', regras: '', beneficio_extra: '', status: 'ativo', cta: 'Tenho interesse' });
+  const [form, setForm] = useState<Omit<OfertaParceiro, 'id' | 'created_at'>>({ empresa_id: state.empresas[0]?.id ?? '', nome: '', tipo: 'plano', preco_normal: '', preco_techpass: '', economia: '', descricao: '', descricao_completa: '', regras: '', beneficio_extra: '', validade: null, status: 'ativo', cta: 'Tenho interesse', origem: 'admin' });
   const submit = (event: FormEvent) => {
     event.preventDefault();
     actions.addOferta(form);
-    setForm({ ...form, nome: '', preco_normal: '', preco_techpass: '', economia: '', descricao: '', regras: '', beneficio_extra: '' });
+    setForm({ ...form, nome: '', preco_normal: '', preco_techpass: '', economia: '', descricao: '', descricao_completa: '', regras: '', beneficio_extra: '', validade: null });
   };
   return (
     <div className="grid gap-6">
@@ -1236,20 +1250,125 @@ function OfertasAdminScreen({ state, actions }: { state: AppState; actions: Retu
           <Field label="Empresa parceira"><Select value={form.empresa_id} onChange={(event) => setForm({ ...form, empresa_id: event.target.value })}>{state.empresas.map((empresa) => <option key={empresa.id} value={empresa.id}>{empresa.nome}</option>)}</Select></Field>
           <Field label="Nome da oferta"><Input value={form.nome} onChange={(event) => setForm({ ...form, nome: event.target.value })} required /></Field>
           <Field label="Tipo"><Select value={form.tipo} onChange={(event) => setForm({ ...form, tipo: event.target.value as OfertaTipo })}>{Object.entries(OFERTA_TIPO_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></Field>
-          <Field label="Status"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as 'ativo' | 'inativo' })}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></Select></Field>
+          <Field label="Status"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as OfertaParceiro['status'] })}><option value="ativo">Ativo</option><option value="inativo">Inativo</option><option value="PENDENTE_APROVACAO">Pendente aprovação</option><option value="AJUSTE_SOLICITADO">Ajuste solicitado</option><option value="REPROVADA">Reprovada</option></Select></Field>
           <Field label="Preço normal"><Input value={form.preco_normal} onChange={(event) => setForm({ ...form, preco_normal: event.target.value })} /></Field>
           <Field label="Preço TechPass"><Input value={form.preco_techpass} onChange={(event) => setForm({ ...form, preco_techpass: event.target.value })} /></Field>
           <Field label="Economia estimada"><Input value={form.economia} onChange={(event) => setForm({ ...form, economia: event.target.value })} /></Field>
           <Field label="Botão"><Input value={form.cta} onChange={(event) => setForm({ ...form, cta: event.target.value })} /></Field>
-          <div className="md:col-span-2"><Field label="Descrição"><Textarea value={form.descricao} onChange={(event) => setForm({ ...form, descricao: event.target.value })} /></Field></div>
+          <Field label="Validade"><Input type="date" value={form.validade ?? ''} onChange={(event) => setForm({ ...form, validade: event.target.value || null })} /></Field>
+          <div className="md:col-span-2"><Field label="Descrição curta"><Textarea value={form.descricao} onChange={(event) => setForm({ ...form, descricao: event.target.value })} /></Field></div>
+          <div className="md:col-span-2"><Field label="Descrição completa"><Textarea value={form.descricao_completa} onChange={(event) => setForm({ ...form, descricao_completa: event.target.value })} /></Field></div>
           <div className="md:col-span-2"><Field label="Regras"><Textarea value={form.regras} onChange={(event) => setForm({ ...form, regras: event.target.value })} /></Field></div>
           <div className="md:col-span-2 xl:col-span-4"><Field label="Benefício extra"><Input value={form.beneficio_extra} onChange={(event) => setForm({ ...form, beneficio_extra: event.target.value })} /></Field></div>
           <div className="md:col-span-2 xl:col-span-4"><Button type="submit"><Plus className="h-4 w-4" />Criar oferta</Button></div>
         </form>
       </Card>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{state.ofertas.map((oferta) => <OfferCard key={oferta.id} state={state} oferta={oferta} onClick={() => actions.updateOferta(oferta.id, { status: oferta.status === 'ativo' ? 'inativo' : 'ativo' })} />)}</div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {state.ofertas.map((oferta) => (
+          <OfferCard key={oferta.id} state={state} oferta={oferta} onClick={() => actions.updateOferta(oferta.id, { status: oferta.status === 'ativo' ? 'inativo' : 'ativo' })}>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button variant="secondary" onClick={() => actions.updateOferta(oferta.id, { status: 'ativo' })}>Aprovar</Button>
+              <Button variant="secondary" onClick={() => actions.updateOferta(oferta.id, { status: 'AJUSTE_SOLICITADO' })}>Solicitar ajuste</Button>
+              <Button variant="secondary" onClick={() => actions.updateOferta(oferta.id, { status: 'REPROVADA' })}>Reprovar</Button>
+              <Button variant="secondary" onClick={() => actions.updateOferta(oferta.id, { status: 'inativo' })}>Desativar</Button>
+            </div>
+          </OfferCard>
+        ))}
+      </div>
     </div>
   );
+}
+
+type PartnerView = 'dashboard' | 'ofertas' | 'beneficios' | 'leads' | 'solicitacoes' | 'indicacoes' | 'configuracoes';
+
+function PartnerLogin({ state, navigate }: { state: AppState; navigate: (path: string) => void }) {
+  const [form, setForm] = useState({ email: 'fightcore@parceiro.com', senha: '123456' });
+  const [message, setMessage] = useState('');
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const user = state.parceiro_usuarios.find((item) => item.email.toLowerCase() === form.email.trim().toLowerCase() && item.senha === form.senha);
+    if (!user) {
+      setMessage('Usuário parceiro não encontrado.');
+      return;
+    }
+    localStorage.setItem('techpass-partner-user-id', user.id);
+    navigate('/parceiro/dashboard');
+  };
+  return <PublicShell><Card className="mx-auto max-w-2xl p-6 sm:p-8"><PageTitle title="Login parceiro" subtitle="Acesse com o usuário da sua empresa parceira." /><form onSubmit={submit} className="mt-6 grid gap-4"><Field label="E-mail"><Input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></Field><Field label="Senha"><Input type="password" value={form.senha} onChange={(event) => setForm({ ...form, senha: event.target.value })} /></Field><Button type="submit"><LockKeyhole className="h-4 w-4" />Entrar no painel parceiro</Button></form>{message && <p className="mt-4 text-sm text-red-100">{message}</p>}<p className="mt-4 text-sm text-zinc-400">Demonstração: fightcore@parceiro.com / 123456</p></Card></PublicShell>;
+}
+
+function PartnerDashboard({ state, actions, navigate }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; navigate: (path: string) => void }) {
+  const userId = localStorage.getItem('techpass-partner-user-id') ?? 'par-fight-core';
+  const user = state.parceiro_usuarios.find((item) => item.id === userId) ?? state.parceiro_usuarios[0];
+  const empresa = user ? state.empresas.find((item) => item.id === user.empresa_id) : null;
+  const [view, setView] = useState<PartnerView>('dashboard');
+  if (!user || !empresa) return <PublicShell><EmptyMessage title="Parceiro não autenticado" description="Entre pela rota /parceiro/login." /></PublicShell>;
+  const leads = state.leads.filter((item) => item.empresa_id === empresa.id);
+  const solicitacoes = state.solicitacoes.filter((item) => item.empresa_id === empresa.id);
+  const ofertas = state.ofertas.filter((item) => item.empresa_id === empresa.id);
+  const beneficios = state.beneficios_servicos.filter((item) => item.empresa_id === empresa.id);
+  return (
+    <PublicShell>
+      <div className="grid gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <PageTitle title={'Painel parceiro · ' + empresa.nome} subtitle="Gerencie ofertas, benefícios, leads e solicitações da sua empresa." />
+          <div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => navigate('/parceiro/login')}>Trocar parceiro</Button><Button variant="secondary" onClick={() => navigate('/')}>Site público</Button></div>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+          <Card className="h-max p-3">
+            {[
+              ['dashboard', 'Dashboard'],
+              ['ofertas', 'Minhas ofertas'],
+              ['beneficios', 'Benefícios'],
+              ['leads', 'Leads recebidos'],
+              ['solicitacoes', 'Solicitações'],
+              ['indicacoes', 'Indicações'],
+              ['configuracoes', 'Configurações'],
+            ].map(([id, label]) => <button key={id} onClick={() => setView(id as PartnerView)} className={cx('block w-full rounded-md px-3 py-3 text-left text-sm font-bold transition', view === id ? 'bg-tech-neon text-black' : 'text-zinc-300 hover:bg-white/[0.08] hover:text-white')}>{label}</button>)}
+          </Card>
+          <PartnerScopedView state={state} actions={actions} empresa={empresa} view={view} leads={leads} solicitacoes={solicitacoes} ofertas={ofertas} beneficios={beneficios} />
+        </div>
+      </div>
+    </PublicShell>
+  );
+}
+
+function PartnerScopedView({ state, actions, empresa, view, leads, solicitacoes, ofertas, beneficios }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; empresa: AppState['empresas'][number]; view: PartnerView; leads: LeadParceiro[]; solicitacoes: Solicitacao[]; ofertas: OfertaParceiro[]; beneficios: BeneficioServico[] }) {
+  if (view === 'ofertas') return <PartnerOffers state={state} actions={actions} empresa={empresa} ofertas={ofertas} />;
+  if (view === 'beneficios') return <PartnerBenefits actions={actions} empresa={empresa} beneficios={beneficios} />;
+  if (view === 'leads') return <Card><PageTitle title="Leads recebidos" subtitle="Atualize status, registre observações e abra o WhatsApp do cliente." /><LeadList state={state} actions={actions} leads={leads} /></Card>;
+  if (view === 'solicitacoes') return <SolicitacoesList state={state} actions={actions} solicitacoes={solicitacoes} />;
+  if (view === 'indicacoes') return <PartnerIndications state={state} actions={actions} empresa={empresa} />;
+  if (view === 'configuracoes') return <PartnerSettings actions={actions} empresa={empresa} />;
+  const closed = leads.filter((item) => item.status === 'fechado').length;
+  const conversion = leads.length ? Math.round((closed / leads.length) * 100) : 0;
+  const requested = solicitacoes.reduce<Record<string, number>>((acc, item) => ({ ...acc, [getServicoName(state, item.beneficio_servico_id)]: (acc[getServicoName(state, item.beneficio_servico_id)] ?? 0) + 1 }), {});
+  return <div className="grid gap-6"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="Benefícios solicitados" value={solicitacoes.length} /><Stat label="Leads recebidos" value={leads.length} tone="neon" /><Stat label="Leads novos" value={leads.filter((item) => item.status === 'novo').length} /><Stat label="Em negociação" value={leads.filter((item) => item.status === 'negociacao').length} /><Stat label="Leads fechados" value={closed} tone="neon" /><Stat label="Leads perdidos" value={leads.filter((item) => item.status === 'perdido').length} tone="danger" /><Stat label="Ofertas ativas" value={ofertas.filter((item) => item.status === 'ativo').length} /><Stat label="Ofertas inativas" value={ofertas.filter((item) => item.status === 'inativo').length} /></div><Card><PageTitle title="Performance" subtitle="Conversão e benefícios mais solicitados." /><div className="mt-5 grid gap-3 md:grid-cols-2"><Info label="Conversão de leads" value={conversion + '%'} /><Info label="Solicitações por mês" value={String(solicitacoes.length)} /></div><div className="mt-5 grid gap-2">{Object.entries(requested).map(([name, total]) => <div key={name} className="rounded-lg border border-white/10 bg-black/25 p-3 text-sm text-zinc-200">{name}: <strong className="text-tech-neon">{total}</strong></div>)}{Object.keys(requested).length === 0 && <EmptyMessage title="Sem solicitações" description="Quando clientes solicitarem benefícios, os mais pedidos aparecerão aqui." />}</div></Card></div>;
+}
+
+function PartnerOffers({ state, actions, empresa, ofertas }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; empresa: AppState['empresas'][number]; ofertas: OfertaParceiro[] }) {
+  const [form, setForm] = useState<Omit<OfertaParceiro, 'id' | 'created_at'>>({ empresa_id: empresa.id, nome: '', tipo: 'plano', preco_normal: '', preco_techpass: '', economia: '', descricao: '', descricao_completa: '', regras: '', beneficio_extra: '', validade: null, status: 'PENDENTE_APROVACAO', cta: 'Tenho interesse', origem: 'parceiro' });
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    actions.addOferta({ ...form, empresa_id: empresa.id, status: 'PENDENTE_APROVACAO', origem: 'parceiro' });
+    setForm({ ...form, nome: '', preco_normal: '', preco_techpass: '', economia: '', descricao: '', descricao_completa: '', regras: '', beneficio_extra: '', validade: null });
+  };
+  return <div className="grid gap-6"><PageTitle title="Minhas ofertas" subtitle="Ofertas criadas pelo parceiro entram como pendente de aprovação antes de aparecer para clientes." /><Card><form onSubmit={submit} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><Field label="Nome da oferta"><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></Field><Field label="Tipo"><Select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value as OfertaTipo })}>{Object.entries(OFERTA_TIPO_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></Field><Field label="Preço normal"><Input value={form.preco_normal} onChange={(e) => setForm({ ...form, preco_normal: e.target.value })} /></Field><Field label="Preço TechPass"><Input value={form.preco_techpass} onChange={(e) => setForm({ ...form, preco_techpass: e.target.value })} /></Field><Field label="Economia estimada"><Input value={form.economia} onChange={(e) => setForm({ ...form, economia: e.target.value })} /></Field><Field label="Validade"><Input type="date" value={form.validade ?? ''} onChange={(e) => setForm({ ...form, validade: e.target.value || null })} /></Field><Field label="Botão"><Input value={form.cta} onChange={(e) => setForm({ ...form, cta: e.target.value })} /></Field><Field label="Benefício extra"><Input value={form.beneficio_extra} onChange={(e) => setForm({ ...form, beneficio_extra: e.target.value })} /></Field><div className="md:col-span-2"><Field label="Descrição curta"><Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} /></Field></div><div className="md:col-span-2"><Field label="Descrição completa"><Textarea value={form.descricao_completa} onChange={(e) => setForm({ ...form, descricao_completa: e.target.value })} /></Field></div><div className="md:col-span-2 xl:col-span-4"><Field label="Regras"><Textarea value={form.regras} onChange={(e) => setForm({ ...form, regras: e.target.value })} /></Field></div><div className="md:col-span-2 xl:col-span-4"><Button type="submit"><Plus className="h-4 w-4" />Enviar para aprovação</Button></div></form></Card><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{ofertas.map((oferta) => <OfferCard key={oferta.id} state={state} oferta={oferta} onClick={() => actions.updateOferta(oferta.id, { status: oferta.status === 'inativo' ? 'PENDENTE_APROVACAO' : 'inativo' })} />)}</div></div>;
+}
+
+function PartnerBenefits({ actions, empresa, beneficios }: { actions: ReturnType<typeof useTechPassStore>['actions']; empresa: AppState['empresas'][number]; beneficios: BeneficioServico[] }) {
+  const [form, setForm] = useState<Omit<BeneficioServico, 'id' | 'created_at'>>({ nome: '', tipo: 'beneficio', empresa_id: empresa.id, categoria: '', descricao: '', valor_normal: null, valor_desconto: null, percentual_desconto: null, limite_uso: null, validade: null, status: 'ativo', regras_uso: '' });
+  return <div className="grid gap-6"><PageTitle title="Benefícios" subtitle="Edite os benefícios oferecidos pela sua empresa." /><Card><form onSubmit={(e) => { e.preventDefault(); actions.addBeneficioServico({ ...form, empresa_id: empresa.id }); setForm({ ...form, nome: '', descricao: '', regras_uso: '', limite_uso: null }); }} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><Field label="Nome do benefício"><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></Field><Field label="Limite de uso"><Input type="number" value={form.limite_uso ?? ''} onChange={(e) => setForm({ ...form, limite_uso: e.target.value ? Number(e.target.value) : null })} /></Field><Field label="Status"><Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as 'ativo' | 'inativo' })}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></Select></Field><Field label="Regra de liberação"><Input value={form.regras_uso} onChange={(e) => setForm({ ...form, regras_uso: e.target.value })} /></Field><div className="md:col-span-2 xl:col-span-4"><Field label="Descrição"><Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} /></Field></div><div className="md:col-span-2 xl:col-span-4"><Button type="submit">Criar benefício</Button></div></form></Card><div className="grid gap-3 md:grid-cols-2">{beneficios.map((item) => <Card key={item.id}><div className="flex items-start justify-between gap-3"><div><h3 className="font-black text-white">{item.nome}</h3><p className="text-sm text-zinc-400">{item.descricao}</p><p className="mt-2 text-xs text-zinc-500">Limite: {item.limite_uso ?? 'sem limite'} · Regra: {item.regras_uso}</p></div><Button variant="secondary" onClick={() => actions.updateBeneficioServico(item.id, { status: item.status === 'ativo' ? 'inativo' : 'ativo' })}>{item.status}</Button></div></Card>)}</div></div>;
+}
+
+function PartnerIndications({ state, actions, empresa }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; empresa: AppState['empresas'][number] }) {
+  if (empresa.id !== 'emp-fight-core') return <EmptyMessage title="Sem regra especial" description="Esta empresa ainda não possui uma regra de indicação específica." />;
+  return <Card><PageTitle title="Indicações Fight Core" subtitle="Acompanhe contatos enviados, conversões e liberação do bônus de 6 meses." /><FightCorePartnerList state={state} actions={actions} indicacoes={state.fight_core_indicacoes} /></Card>;
+}
+
+function PartnerSettings({ actions, empresa }: { actions: ReturnType<typeof useTechPassStore>['actions']; empresa: AppState['empresas'][number] }) {
+  const [form, setForm] = useState({ nome: empresa.nome, categoria: empresa.categoria, telefone: empresa.telefone ?? '', whatsapp: empresa.whatsapp ?? '', email: empresa.email ?? '', endereco: empresa.endereco ?? '', descricao: empresa.descricao ?? '', instagram: empresa.instagram ?? '', logo_url: empresa.logo_url ?? '', status: empresa.status });
+  return <Card><PageTitle title="Configurações do parceiro" subtitle="Atualize dados públicos da sua empresa na Rede TechPass." /><form className="mt-5 grid gap-4 md:grid-cols-2" onSubmit={(e) => { e.preventDefault(); actions.updateEmpresa(empresa.id, form); }}><Field label="Nome da empresa"><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></Field><Field label="Categoria"><Input value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} /></Field><Field label="Telefone"><Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></Field><Field label="WhatsApp"><Input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} /></Field><Field label="E-mail"><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field><Field label="Instagram"><Input value={form.instagram} onChange={(e) => setForm({ ...form, instagram: e.target.value })} /></Field><Field label="Endereço"><Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} /></Field><Field label="Logo URL"><Input value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} /></Field><Field label="Status"><Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as 'ativa' | 'inativa' })}><option value="ativa">Ativa</option><option value="inativa">Inativa</option></Select></Field><div className="md:col-span-2"><Field label="Descrição da empresa"><Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} /></Field></div><div className="md:col-span-2"><Button type="submit">Salvar configurações</Button></div></form></Card>;
 }
 
 function PartnerArea({ state, actions, navigate }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; navigate: (path: string) => void }) {

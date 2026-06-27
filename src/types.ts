@@ -1,5 +1,7 @@
 export type EmpresaStatus = 'ativa' | 'inativa';
 
+export type OfertaStatus = 'ativo' | 'inativo' | 'PENDENTE_APROVACAO' | 'REPROVADA' | 'AJUSTE_SOLICITADO';
+
 export type TechPassStatus =
   | 'DISPONIVEL'
   | 'PENDENTE_ATIVACAO'
@@ -15,7 +17,7 @@ export type RecompensaTipo = 'desconto' | 'cashback' | 'brinde';
 
 export type BeneficioServicoTipo = 'beneficio' | 'servico_desconto' | 'brinde' | 'cashback' | 'indicacao';
 
-export type OfertaTipo = 'plano' | 'aula_gratis' | 'servico' | 'brinde' | 'indicacao' | 'renovacao';
+export type OfertaTipo = 'plano' | 'aula_gratis' | 'servico' | 'brinde' | 'desconto' | 'cashback' | 'indicacao' | 'renovacao';
 
 export type LeadStatus = 'novo' | 'contato_realizado' | 'negociacao' | 'fechado' | 'perdido' | 'cancelado';
 
@@ -35,6 +37,23 @@ export interface Empresa {
   categoria: string;
   beneficio: string;
   status: EmpresaStatus;
+  telefone?: string;
+  whatsapp?: string;
+  email?: string;
+  endereco?: string;
+  descricao?: string;
+  instagram?: string;
+  logo_url?: string;
+  created_at: string;
+}
+
+export interface ParceiroUsuario {
+  id: string;
+  nome: string;
+  email: string;
+  senha: string;
+  empresa_id: string;
+  tipo_acesso: 'parceiro';
   created_at: string;
 }
 
@@ -141,8 +160,11 @@ export interface OfertaParceiro {
   descricao: string;
   regras: string;
   beneficio_extra: string;
-  status: 'ativo' | 'inativo';
+  status: OfertaStatus;
   cta: string;
+  descricao_completa: string;
+  validade: string | null;
+  origem: 'admin' | 'parceiro';
   created_at: string;
 }
 
@@ -186,6 +208,7 @@ export interface Utilizacao {
 
 export interface AppState {
   empresas: Empresa[];
+  parceiro_usuarios: ParceiroUsuario[];
   clientes: Cliente[];
   techpasses: TechPass[];
   pending_activations: PendingActivation[];

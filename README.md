@@ -8,6 +8,8 @@ Front-end MVP da Rede TechPass para a TechSoft, criado com React, TypeScript, Ta
 - `/techpass/:serial` - página pública do QR Code do voucher TechPass.
 - `/login` - login do cliente por CPF, WhatsApp ou código TechPass.
 - `/cliente/dashboard` - área do cliente TechPass com menu, ofertas, TechCash, indicações e solicitações.
+- `/parceiro/login` - login exclusivo para empresas parceiras.
+- `/parceiro/dashboard` - painel do parceiro com métricas, ofertas, benefícios, leads, solicitações, indicações e configurações.
 - `/empresa` - painel da empresa parceira para acompanhar solicitações.
 - `/admin` - painel administrativo simples com login local de MVP.
 
@@ -26,7 +28,14 @@ Front-end MVP da Rede TechPass para a TechSoft, criado com React, TypeScript, Ta
 - Cliente solicita ofertas Fight Core e Super Geeks; cada clique gera um lead para a empresa responsável.
 - Fight Core possui regra especial de indicação: 15 contatos enviados + 1 conversão podem liberar 6 meses de bônus.
 - Admin gerencia solicitações, benefícios, serviços, brindes, cashback, indicações e regras de uso.
-- Empresas parceiras visualizam apenas suas solicitações e podem concluir atendimentos.
+- Empresas parceiras entram pelo acesso parceiro, visualizam apenas dados da própria empresa e podem criar ofertas que ficam pendentes de aprovação.
+- Admin TechPass aprova, reprova, solicita ajuste ou desativa ofertas antes de aparecerem para clientes.
+
+## Acessos demo de parceiros
+
+- TechSoft: `techsoft@parceiro.com` / `123456`
+- Super Geeks: `supergeeks@parceiro.com` / `123456`
+- Fight Core: `fightcore@parceiro.com` / `123456`
 
 ## Scripts
 

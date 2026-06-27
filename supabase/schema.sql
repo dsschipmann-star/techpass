@@ -39,8 +39,11 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create type oferta_tipo as enum ('plano', 'aula_gratis', 'servico', 'brinde', 'indicacao', 'renovacao');
+  create type oferta_tipo as enum ('plano', 'aula_gratis', 'servico', 'brinde', 'desconto', 'cashback', 'indicacao', 'renovacao');
 exception when duplicate_object then null; end $$;
+
+alter type oferta_tipo add value if not exists 'desconto';
+alter type oferta_tipo add value if not exists 'cashback';
 
 do $$ begin
   create type lead_status as enum ('novo', 'contato_realizado', 'negociacao', 'fechado', 'perdido', 'cancelado');
@@ -56,6 +59,31 @@ create table if not exists empresas (
   categoria text not null,
   beneficio text not null,
   status empresa_status not null default 'ativa',
+  telefone text,
+  whatsapp text,
+  email text,
+  endereco text,
+  descricao text,
+  instagram text,
+  logo_url text,
+  created_at timestamptz not null default now()
+);
+
+alter table empresas add column if not exists telefone text;
+alter table empresas add column if not exists whatsapp text;
+alter table empresas add column if not exists email text;
+alter table empresas add column if not exists endereco text;
+alter table empresas add column if not exists descricao text;
+alter table empresas add column if not exists instagram text;
+alter table empresas add column if not exists logo_url text;
+
+create table if not exists parceiro_usuarios (
+  id text primary key default gen_random_uuid()::text,
+  nome text not null,
+  email text not null unique,
+  senha text not null,
+  empresa_id text not null references empresas(id) on delete cascade,
+  tipo_acesso text not null default 'parceiro' check (tipo_acesso = 'parceiro'),
   created_at timestamptz not null default now()
 );
 
@@ -174,12 +202,23 @@ create table if not exists ofertas (
   preco_techpass text not null default '',
   economia text not null default '',
   descricao text not null default '',
+  descricao_completa text not null default '',
   regras text not null default '',
   beneficio_extra text not null default '',
-  status text not null default 'ativo' check (status in ('ativo', 'inativo')),
+  validade date,
+  status text not null default 'ativo' check (status in ('ativo', 'inativo', 'PENDENTE_APROVACAO', 'REPROVADA', 'AJUSTE_SOLICITADO')),
   cta text not null default 'Tenho interesse',
+  origem text not null default 'admin' check (origem in ('admin', 'parceiro')),
   created_at timestamptz not null default now()
 );
+
+alter table ofertas add column if not exists descricao_completa text not null default '';
+alter table ofertas add column if not exists validade date;
+alter table ofertas add column if not exists origem text not null default 'admin';
+alter table ofertas drop constraint if exists ofertas_status_check;
+alter table ofertas add constraint ofertas_status_check check (status in ('ativo', 'inativo', 'PENDENTE_APROVACAO', 'REPROVADA', 'AJUSTE_SOLICITADO'));
+alter table ofertas drop constraint if exists ofertas_origem_check;
+alter table ofertas add constraint ofertas_origem_check check (origem in ('admin', 'parceiro'));
 
 create table if not exists leads (
   id text primary key default gen_random_uuid()::text,
