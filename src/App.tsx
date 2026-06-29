@@ -50,10 +50,11 @@ import fightCoreLogo from './assets/fight-core-logo.png';
 import superGeeksLogo from './assets/super-geeks-logo.png';
 import techpassVoucherMockup from './assets/techpass-voucher-mockup.png';
 
-type AdminView = 'dashboard' | 'empresas' | 'techpass' | 'qrcodes' | 'pendentes' | 'ativar' | 'validar' | 'cashback' | 'indicacoes' | 'solicitacoes' | 'beneficios' | 'ofertas' | 'clientes' | 'logs';
+type AdminView = 'dashboard' | 'saude' | 'empresas' | 'techpass' | 'qrcodes' | 'pendentes' | 'ativar' | 'validar' | 'cashback' | 'indicacoes' | 'solicitacoes' | 'beneficios' | 'ofertas' | 'clientes' | 'logs';
 
 const ADMIN_NAV: Array<{ id: AdminView; label: string; icon: typeof Activity }> = [
   { id: 'dashboard', label: 'Dashboard', icon: Activity },
+  { id: 'saude', label: 'Saude da Rede', icon: ShieldCheck },
   { id: 'empresas', label: 'Empresas parceiras', icon: Building2 },
   { id: 'techpass', label: 'Gerar TechPass', icon: CreditCard },
   { id: 'qrcodes', label: 'QR Codes', icon: QrCodeIcon },
@@ -330,6 +331,44 @@ function getEffectiveStatus(techpass: TechPass): TechPassStatus {
   return techpass.status;
 }
 
+function parseMoneyText(value: string | null | undefined) {
+  if (!value) return 0;
+  const normalized = value.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
+  return Number(normalized) || 0;
+}
+
+function getOfferSavingsValue(oferta: OfertaParceiro) {
+  const explicit = parseMoneyText(oferta.economia);
+  if (explicit > 0) return explicit;
+  const normal = parseMoneyText(oferta.preco_normal);
+  const techpass = parseMoneyText(oferta.preco_techpass);
+  return Math.max(normal - techpass, 0);
+}
+
+function getOfferScore(oferta: OfertaParceiro) {
+  const savings = getOfferSavingsValue(oferta);
+  const cashback = oferta.cashback_ativo ? oferta.cashback_valor ?? 35 : 0;
+  const recurring = oferta.preco_techpass.toLowerCase().includes('mes') || oferta.preco_techpass.toLowerCase().includes('/m') ? 60 : 0;
+  const activation = oferta.tipo === 'aula_gratis' || oferta.tipo === 'renovacao' ? 30 : 0;
+  return savings + cashback + recurring + activation;
+}
+
+function getClientEconomy(state: AppState, clienteId: string, techpass: TechPass) {
+  const companyBalances = state.cashback_balances.filter((item) => item.cliente_id === clienteId);
+  const cashbackAvailable = companyBalances.reduce((sum, item) => sum + item.saldo_disponivel, 0);
+  const cashbackPending = companyBalances.reduce((sum, item) => sum + item.saldo_pendente, 0);
+  const filmsUsed = Math.max(6 - techpass.peliculas_restantes, 0);
+  const filmsValue = filmsUsed * 35;
+  const usageValue = state.utilizacoes.filter((item) => item.cliente_id === clienteId).reduce((sum, item) => sum + (item.beneficio.toLowerCase().includes('pelicula') ? 35 : 45), 0);
+  const leadsValue = state.leads.filter((item) => item.cliente_id === clienteId && item.status === 'fechado').reduce((sum, lead) => {
+    const offer = state.ofertas.find((item) => item.id === lead.oferta_id);
+    return sum + (offer ? getOfferSavingsValue(offer) : 0);
+  }, 0);
+  const confirmedValue = Math.max(filmsValue, usageValue) + cashbackAvailable + leadsValue;
+  const potentialValue = state.ofertas.filter((oferta) => oferta.status === 'ativo' && state.empresas.find((empresa) => empresa.id === oferta.empresa_id)?.status === 'ativa').reduce((sum, oferta) => sum + Math.min(getOfferSavingsValue(oferta), 500), 0);
+  return { cashbackAvailable, cashbackPending, filmsUsed, filmsValue, usageValue, leadsValue, confirmedValue, potentialValue };
+}
+
 function StatusPill({ status }: { status: TechPassStatus }) {
   return <Pill className={STATUS_STYLE[status]}>{STATUS_LABEL[status]}</Pill>;
 }
@@ -434,6 +473,10 @@ function App() {
 
   if (path.startsWith('/login')) {
     return <ClientLogin state={state} navigate={navigate} />;
+  }
+
+  if (path.startsWith('/minha-economia')) {
+    return <MyEconomyPage state={state} navigate={navigate} />;
   }
 
   if (path.startsWith('/cliente')) {
@@ -1195,6 +1238,7 @@ function AdminApp({ state, actions, navigate }: { state: AppState; actions: Retu
         </aside>
         <main>
           {view === 'dashboard' && <Dashboard state={state} />}
+          {view === 'saude' && <NetworkHealthScreen state={state} />}
           {view === 'empresas' && <EmpresasScreen state={state} actions={actions} />}
           {view === 'techpass' && <TechPassScreen state={state} actions={actions} navigate={navigate} />}
           {view === 'qrcodes' && <QrCodesScreen state={state} navigate={navigate} />}
@@ -1273,6 +1317,85 @@ function Dashboard({ state }: { state: AppState }) {
           <li><strong className="mr-3 text-tech-neon">3.</strong>Equipe TechSoft confere documento oficial com foto e ativa presencialmente.</li>
           <li><strong className="mr-3 text-tech-neon">4.</strong>Cliente usa benefícios, cashback, indicações e trocas de película.</li>
         </ol>
+      </Card>
+    </div>
+  );
+}
+
+function NetworkHealthScreen({ state }: { state: AppState }) {
+  const today = Date.now();
+  const activePasses = state.techpasses.filter((item) => getEffectiveStatus(item) === 'ATIVO');
+  const expiringSoon = activePasses.filter((item) => item.expires_at && new Date(item.expires_at).getTime() - today <= 1000 * 60 * 60 * 24 * 30);
+  const pendingLeads = state.leads.filter((item) => ['novo', 'negociacao'].includes(item.status));
+  const closedLeads = state.leads.filter((item) => item.status === 'fechado').length;
+  const conversion = state.leads.length ? Math.round((closedLeads / state.leads.length) * 100) : 0;
+  const pendingOffers = state.ofertas.filter((item) => item.status === 'PENDENTE_APROVACAO');
+  const criticalLogs = state.system_logs.filter((item) => item.nivel === 'error' || item.nivel === 'critical');
+  const partnerHealth = state.empresas.map((empresa) => {
+    const leads = state.leads.filter((lead) => lead.empresa_id === empresa.id);
+    const solicitacoes = state.solicitacoes.filter((item) => item.empresa_id === empresa.id && !['concluida', 'cancelada'].includes(item.status));
+    const offers = state.ofertas.filter((item) => item.empresa_id === empresa.id);
+    const waiting = leads.filter((lead) => ['novo', 'negociacao'].includes(lead.status)).length + solicitacoes.length;
+    return { empresa, leads: leads.length, waiting, activeOffers: offers.filter((item) => item.status === 'ativo').length };
+  }).sort((a, b) => b.waiting - a.waiting);
+  const topOffers = state.ofertas
+    .map((oferta) => ({ oferta, score: getOfferScore(oferta), leads: state.leads.filter((lead) => lead.oferta_id === oferta.id).length }))
+    .sort((a, b) => b.score + b.leads * 50 - (a.score + a.leads * 50))
+    .slice(0, 5);
+
+  return (
+    <div className="grid gap-6">
+      <PageTitle title="Saude da Rede" subtitle="Visao executiva para priorizar ativacao, parceiros, leads e riscos operacionais." />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat label="TechPass ativos" value={activePasses.length} tone="neon" />
+        <Stat label="Vencem em 30 dias" value={expiringSoon.length} tone="warn" />
+        <Stat label="Leads pendentes" value={pendingLeads.length} tone="warn" />
+        <Stat label="Conversao geral" value={conversion + '%'} tone="neon" />
+        <Stat label="Ofertas para aprovar" value={pendingOffers.length} tone="warn" />
+        <Stat label="Erros criticos" value={criticalLogs.length} tone="danger" />
+        <Stat label="Cashback pendente" value={formatMoney(state.cashback_transactions.filter((item) => item.status === 'pendente').reduce((sum, item) => sum + item.valor, 0))} tone="warn" />
+        <Stat label="Solicitacoes abertas" value={state.solicitacoes.filter((item) => !['concluida', 'cancelada'].includes(item.status)).length} />
+      </div>
+      <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
+        <Card>
+          <PageTitle title="Parceiros que precisam de atencao" subtitle="Ordenado por leads e solicitacoes ainda sem conclusao." />
+          <div className="mt-4 grid gap-3">
+            {partnerHealth.map(({ empresa, leads, waiting, activeOffers }) => (
+              <div key={empresa.id} className="rounded-lg border border-white/10 bg-black/25 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div><p className="font-black text-white">{empresa.nome}</p><p className="text-sm text-zinc-400">{empresa.categoria} · {activeOffers} ofertas ativas</p></div>
+                  <Pill className={waiting ? 'border-yellow-300/30 bg-yellow-400/10 text-yellow-100' : 'border-tech-neon/40 bg-tech-neon/10 text-tech-neon'}>{waiting} pendencias</Pill>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2"><Info label="Leads totais" value={String(leads)} /><Info label="Status" value={empresa.status} /></div>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card>
+          <PageTitle title="Ofertas com melhor tracao" subtitle="Ranking por economia percebida, cashback e leads gerados." />
+          <div className="mt-4 grid gap-3">
+            {topOffers.map(({ oferta, score, leads }, index) => (
+              <div key={oferta.id} className="rounded-lg border border-white/10 bg-black/25 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div><p className="text-xs font-black uppercase text-tech-neon">#{index + 1} · {getEmpresaName(state, oferta.empresa_id)}</p><p className="mt-1 font-black text-white">{oferta.nome}</p></div>
+                  <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">{Math.round(score)} pts</Pill>
+                </div>
+                <p className="mt-2 text-sm text-zinc-400">{leads} leads · economia {oferta.economia || 'variavel'}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+      <Card>
+        <PageTitle title="Alertas recentes" subtitle="Logs e notificacoes que merecem acompanhamento do administrador." />
+        <div className="mt-4 grid gap-3">
+          {[...criticalLogs.slice(0, 3).map((log) => ({ id: log.id, title: log.descricao, meta: `${log.nivel} · ${log.pagina} · ${formatDateTime(log.created_at)}`, tone: 'danger' })), ...state.notifications.filter((item) => !item.lida && item.tipo_usuario === 'admin').slice(0, 3).map((item) => ({ id: item.id, title: item.titulo, meta: `${item.tipo} · ${formatDateTime(item.created_at)}`, tone: 'warn' }))].map((item) => (
+            <div key={item.id} className="rounded-lg border border-white/10 bg-black/25 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3"><p className="font-black text-white">{item.title}</p><Pill className={item.tone === 'danger' ? 'border-red-400/40 bg-red-500/10 text-red-100' : 'border-yellow-300/30 bg-yellow-400/10 text-yellow-100'}>{item.tone}</Pill></div>
+              <p className="mt-1 text-sm text-zinc-400">{item.meta}</p>
+            </div>
+          ))}
+        </div>
       </Card>
     </div>
   );
@@ -1623,11 +1746,92 @@ function ClientLogin({ state, navigate }: { state: AppState; navigate: (path: st
   );
 }
 
+function MyEconomyPage({ state, navigate }: { state: AppState; navigate: (path: string) => void }) {
+  const clientId = localStorage.getItem('techpass-client-id') ?? 'cli-maria';
+  const cliente = state.clientes.find((item) => item.id === clientId);
+  const techpass = cliente ? state.techpasses.find((item) => item.cliente_id === cliente.id && item.status === 'ATIVO') : null;
+  return (
+    <PublicShell>
+      <div className="grid gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <PageTitle title="Minha Economia TechPass" subtitle="Veja em dinheiro o que o TechPass ja devolveu em beneficios, TechCash e condicoes exclusivas." />
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => navigate('/cliente/dashboard')}>Dashboard do cliente</Button>
+            <Button variant="secondary" onClick={() => navigate('/')}>Home</Button>
+          </div>
+        </div>
+        {cliente && techpass ? <MyEconomyPanel state={state} cliente={cliente} techpass={techpass} /> : <EmptyMessage title="Cliente nao autenticado" description="Entre pelo login do cliente para consultar sua economia." />}
+      </div>
+    </PublicShell>
+  );
+}
+
+function MyEconomyPanel({ state, cliente, techpass }: { state: AppState; cliente: AppState['clientes'][number]; techpass: TechPass }) {
+  const economy = getClientEconomy(state, cliente.id, techpass);
+  const companyBalances = state.cashback_balances.filter((item) => item.cliente_id === cliente.id);
+  const rankedOffers = state.ofertas
+    .filter((oferta) => oferta.status === 'ativo' && state.empresas.find((empresa) => empresa.id === oferta.empresa_id)?.status === 'ativa')
+    .sort((a, b) => getOfferScore(b) - getOfferScore(a))
+    .slice(0, 4);
+  const progress = Math.min((economy.confirmedValue / Math.max(economy.confirmedValue + economy.potentialValue, 1)) * 100, 100);
+
+  return (
+    <div className="grid gap-6">
+      <Card className="overflow-hidden border-tech-neon/30 bg-tech-neon/10 p-6 sm:p-8">
+        <div className="grid gap-6 lg:grid-cols-[1fr_320px] lg:items-end">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-tech-neon">Resumo pessoal</p>
+            <h2 className="mt-3 text-4xl font-black leading-tight text-white sm:text-5xl">{formatMoney(economy.confirmedValue)}</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-300">Economia registrada para {cliente.nome}, somando beneficios usados, TechCash disponivel e ofertas ja convertidas em leads fechados.</p>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/30 p-4">
+            <p className="text-sm font-black text-white">Potencial ainda disponivel</p>
+            <p className="mt-2 text-3xl font-black text-tech-neon">{formatMoney(economy.potentialValue)}</p>
+            <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-tech-neon" style={{ width: `${progress}%` }} /></div>
+          </div>
+        </div>
+      </Card>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat label="TechCash disponivel" value={formatMoney(economy.cashbackAvailable)} tone="neon" />
+        <Stat label="TechCash pendente" value={formatMoney(economy.cashbackPending)} tone="warn" />
+        <Stat label="Peliculas usadas" value={`${economy.filmsUsed} de 6`} />
+        <Stat label="Peliculas restantes" value={`${techpass.peliculas_restantes} de 6`} />
+      </div>
+      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <Card>
+          <PageTitle title="De onde veio sua economia" subtitle="Uma leitura simples para o cliente entender o valor do TechPass." />
+          <div className="mt-5 grid gap-3">
+            <Info label="Beneficios e usos registrados" value={formatMoney(Math.max(economy.filmsValue, economy.usageValue))} />
+            <Info label="Cashback ja liberado" value={formatMoney(economy.cashbackAvailable)} />
+            <Info label="Ofertas fechadas" value={formatMoney(economy.leadsValue)} />
+            <Info label="Empresa de origem" value={getEmpresaName(state, techpass.empresa_id)} />
+          </div>
+        </Card>
+        <Card>
+          <PageTitle title="Saldos por empresa" subtitle="O TechCash pode ter regras e limites diferentes por parceiro." />
+          <div className="mt-5 grid gap-3">
+            {companyBalances.map((item) => <div key={item.id} className="rounded-lg border border-white/10 bg-black/25 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><p className="font-black text-white">{getEmpresaName(state, item.empresa_id)}</p><Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">{formatMoney(item.saldo_disponivel)} disponivel</Pill></div><p className="mt-2 text-sm text-zinc-400">{formatMoney(item.saldo_pendente)} aguardando confirmacao · limite {formatMoney(item.limite_maximo)}</p></div>)}
+            {companyBalances.length === 0 && <EmptyMessage title="Sem TechCash por empresa" description="Quando uma oferta ou compra gerar cashback, o saldo aparecera aqui." />}
+          </div>
+        </Card>
+      </div>
+      <Card>
+        <PageTitle title="Proximas economias recomendadas" subtitle="Ofertas ordenadas por vantagem percebida, cashback e recorrencia." />
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {rankedOffers.map((oferta, index) => <div key={oferta.id} className="rounded-lg border border-white/10 bg-black/25 p-4"><p className="text-xs font-black uppercase text-tech-neon">#{index + 1} · {getEmpresaName(state, oferta.empresa_id)}</p><h3 className="mt-2 font-black text-white">{oferta.nome}</h3><p className="mt-2 text-sm text-zinc-400">{oferta.economia || 'Condicao especial'} · {oferta.preco_techpass || 'Sob consulta'}</p></div>)}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+type ClientView = 'techpass' | 'economia' | 'beneficios' | 'ofertas' | 'solicitacoes' | 'indicacoes' | 'techcash' | 'perfil';
+
 function ClientArea({ state, actions, navigate }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; navigate: (path: string) => void }) {
   const clientId = localStorage.getItem('techpass-client-id') ?? 'cli-maria';
   const cliente = state.clientes.find((item) => item.id === clientId);
   const matchedPass = cliente ? state.techpasses.find((item) => item.cliente_id === cliente.id && item.status === 'ATIVO') : null;
-  const [view, setView] = useState<'techpass' | 'beneficios' | 'ofertas' | 'solicitacoes' | 'indicacoes' | 'techcash' | 'perfil'>('techpass');
+  const [view, setView] = useState<ClientView>('techpass');
 
   return (
     <PublicShell>
@@ -1645,6 +1849,7 @@ function ClientArea({ state, actions, navigate }: { state: AppState; actions: Re
             <Card className="h-max p-3">
               {[
                 ['techpass', 'Meu TechPass'],
+                ['economia', 'Minha Economia'],
                 ['beneficios', 'Benefícios'],
                 ['ofertas', 'Ofertas Exclusivas'],
                 ['solicitacoes', 'Agendamentos/Solicitações'],
@@ -1653,7 +1858,7 @@ function ClientArea({ state, actions, navigate }: { state: AppState; actions: Re
                 ['perfil', 'Perfil'],
               ].map(([id, label]) => <button key={id} onClick={() => setView(id as typeof view)} className={cx('block w-full rounded-md px-3 py-3 text-left text-sm font-bold transition', view === id ? 'bg-tech-neon text-black' : 'text-zinc-300 hover:bg-white/[0.08] hover:text-white')}>{label}</button>)}
             </Card>
-            <ClientDashboard state={state} actions={actions} cliente={cliente} techpass={matchedPass} view={view} />
+            <ClientDashboard state={state} actions={actions} cliente={cliente} techpass={matchedPass} view={view} navigate={navigate} setView={setView} />
           </div>
         )}
       </div>
@@ -1661,7 +1866,7 @@ function ClientArea({ state, actions, navigate }: { state: AppState; actions: Re
   );
 }
 
-function ClientDashboard({ state, actions, cliente, techpass, view }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; cliente: AppState['clientes'][number]; techpass: TechPass; view: 'techpass' | 'beneficios' | 'ofertas' | 'solicitacoes' | 'indicacoes' | 'techcash' | 'perfil' }) {
+function ClientDashboard({ state, actions, cliente, techpass, view, navigate, setView }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; cliente: AppState['clientes'][number]; techpass: TechPass; view: ClientView; navigate: (path: string) => void; setView: (view: ClientView) => void }) {
   const solicitacoes = state.solicitacoes.filter((item) => item.cliente_id === cliente.id);
   const utilizacoes = state.utilizacoes.filter((item) => item.cliente_id === cliente.id);
   const itensAtivos = state.beneficios_servicos.filter((item) => item.status === 'ativo');
@@ -1683,8 +1888,13 @@ function ClientDashboard({ state, actions, cliente, techpass, view }: { state: A
   const ofertasAtivas = state.ofertas.filter((oferta) => oferta.status === 'ativo' && state.empresas.find((empresa) => empresa.id === oferta.empresa_id)?.status === 'ativa');
   const clientNotifications = state.notifications.filter((item) => item.tipo_usuario === 'cliente' && item.user_id === cliente.id);
   const techCashDisponivel = state.cashback_balances.filter((item) => item.cliente_id === cliente.id).reduce((sum, item) => sum + item.saldo_disponivel, 0);
+  const economy = getClientEconomy(state, cliente.id, techpass);
+  const bestOffer = ofertasAtivas.slice().sort((a, b) => getOfferScore(b) - getOfferScore(a))[0];
   if (view === 'beneficios') {
     return <div className="grid gap-6"><Card><BenefitsList /></Card><Card><PageTitle title="Benefícios utilizados" subtitle="Histórico de películas, limpezas, consultorias, descontos, cashback e indicações." /><UsageHistory state={state} utilizacoes={utilizacoes} /></Card></div>;
+  }
+  if (view === 'economia') {
+    return <MyEconomyPanel state={state} cliente={cliente} techpass={techpass} />;
   }
   if (view === 'ofertas') {
     return <ClientOffers state={state} actions={actions} cliente={cliente} techpass={techpass} ofertas={ofertasAtivas} />;
@@ -1721,6 +1931,19 @@ function ClientDashboard({ state, actions, cliente, techpass, view }: { state: A
           <Info label="Indicações" value={String(state.fight_core_indicacoes.filter((item) => item.cliente_id === cliente.id).length + state.techsoft_indicacoes.filter((item) => item.cliente_id === cliente.id).length)} />
         </div>
       </Card>
+      <Card className="border-tech-neon/30 bg-tech-neon/10">
+        <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-tech-neon">Proxima melhor acao</p>
+            <h3 className="mt-2 text-2xl font-black text-white">{economy.cashbackAvailable >= 100 ? 'Voce ja pode usar seu TechCash.' : bestOffer ? 'Veja a oferta com maior vantagem agora.' : 'Acompanhe sua economia acumulada.'}</h3>
+            <p className="mt-2 text-sm leading-6 text-zinc-300">{economy.cashbackAvailable >= 100 ? 'Seu saldo passou do ponto de resgate. Use em brinde, servico ou desconto conforme regras da empresa.' : bestOffer ? `${bestOffer.nome} concentra uma das melhores condicoes disponiveis para membros TechPass.` : 'A tela de economia mostra cashback, beneficios usados e valor potencial da rede.'}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => navigate('/minha-economia')}>Ver minha economia</Button>
+            {bestOffer && <Button variant="secondary" onClick={() => setView('ofertas')}>Abrir ofertas</Button>}
+          </div>
+        </div>
+      </Card>
       <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
         <Card><BenefitsList /></Card>
         <Card><PageTitle title="Solicitações em aberto" subtitle="Pedidos aguardando análise, confirmação ou atendimento." /><div className="mt-4 grid gap-3">{openSolicitacoes.map((item) => <SolicitacaoRow key={item.id} state={state} solicitacao={item} />)}{openSolicitacoes.length === 0 && <EmptyMessage title="Nada em aberto" description="Solicite um serviço ou benefício quando precisar." />}</div></Card>
@@ -1755,6 +1978,8 @@ function UsageHistory({ state, utilizacoes }: { state: AppState; utilizacoes: Ap
 
 function ClientOffers({ state, actions, cliente, techpass, ofertas }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; cliente: AppState['clientes'][number]; techpass: TechPass; ofertas: OfertaParceiro[] }) {
   const [message, setMessage] = useState('');
+  const rankedOffers = ofertas.slice().sort((a, b) => getOfferScore(b) - getOfferScore(a));
+  const topOffer = rankedOffers[0];
   const requestOffer = (oferta: OfertaParceiro) => {
     if (getEffectiveStatus(techpass) !== 'ATIVO') {
       setMessage('Apenas clientes com TechPass ativo podem solicitar ofertas exclusivas.');
@@ -1767,8 +1992,20 @@ function ClientOffers({ state, actions, cliente, techpass, ofertas }: { state: A
     <div className="grid gap-6">
       <PageTitle title="Ofertas Exclusivas" subtitle="Compare a condição normal com a condição TechPass antes de demonstrar interesse." />
       {message && <Card className="border-tech-neon/30 bg-tech-neon/10 p-4 text-sm font-semibold text-tech-neon">{message}</Card>}
+      {topOffer && (
+        <Card className="border-tech-neon/30 bg-tech-neon/10">
+          <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-tech-neon">Oferta mais vantajosa agora</p>
+              <h3 className="mt-2 text-2xl font-black text-white">{topOffer.nome}</h3>
+              <p className="mt-2 text-sm leading-6 text-zinc-300">{getEmpresaName(state, topOffer.empresa_id)} · economia estimada {topOffer.economia || formatMoney(getOfferSavingsValue(topOffer))} · score {Math.round(getOfferScore(topOffer))}</p>
+            </div>
+            <Button onClick={() => requestOffer(topOffer)}>{topOffer.cta}</Button>
+          </div>
+        </Card>
+      )}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {ofertas.map((oferta) => <OfferCard key={oferta.id} state={state} oferta={oferta} onClick={() => requestOffer(oferta)} />)}
+        {rankedOffers.map((oferta, index) => <OfferCard key={oferta.id} state={state} oferta={oferta} onClick={() => requestOffer(oferta)}>{index < 3 && <Pill className="justify-self-start border-tech-neon/40 bg-tech-neon/10 text-tech-neon">Top {index + 1} em vantagem</Pill>}</OfferCard>)}
       </div>
     </div>
   );
@@ -1991,7 +2228,7 @@ function OfertasAdminScreen({ state, actions }: { state: AppState; actions: Retu
   );
 }
 
-type PartnerView = 'dashboard' | 'ofertas' | 'beneficios' | 'leads' | 'solicitacoes' | 'indicacoes' | 'cashback' | 'configuracoes';
+type PartnerView = 'dashboard' | 'funil' | 'ofertas' | 'beneficios' | 'leads' | 'solicitacoes' | 'indicacoes' | 'cashback' | 'configuracoes';
 
 function PartnerLogin({ state, navigate }: { state: AppState; navigate: (path: string) => void }) {
   const [form, setForm] = useState({ email: 'fightcore@parceiro.com', senha: '123456' });
@@ -2034,6 +2271,7 @@ function PartnerDashboard({ state, actions, navigate }: { state: AppState; actio
           <Card className="h-max p-3">
             {[
               ['dashboard', 'Dashboard'],
+              ['funil', 'Funil comercial'],
               ['ofertas', 'Minhas ofertas'],
               ['beneficios', 'Benefícios'],
               ['leads', 'Leads recebidos'],
@@ -2051,6 +2289,7 @@ function PartnerDashboard({ state, actions, navigate }: { state: AppState; actio
 }
 
 function PartnerScopedView({ state, actions, empresa, view, leads, solicitacoes, ofertas, beneficios }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; empresa: AppState['empresas'][number]; view: PartnerView; leads: LeadParceiro[]; solicitacoes: Solicitacao[]; ofertas: OfertaParceiro[]; beneficios: BeneficioServico[] }) {
+  if (view === 'funil') return <PartnerPipeline state={state} actions={actions} leads={leads} />;
   if (view === 'ofertas') return <PartnerOffers state={state} actions={actions} empresa={empresa} ofertas={ofertas} />;
   if (view === 'beneficios') return <PartnerBenefits actions={actions} empresa={empresa} beneficios={beneficios} />;
   if (view === 'leads') return <Card><PageTitle title="Leads recebidos" subtitle="Atualize status, registre observações e abra o WhatsApp do cliente." /><LeadList state={state} actions={actions} leads={leads} /></Card>;
@@ -2095,6 +2334,52 @@ function PartnerScopedView({ state, actions, empresa, view, leads, solicitacoes,
         <PageTitle title="Solicitações e agendamentos" subtitle="Pedidos que precisam de análise ou confirmação." />
         <div className="mt-4 grid gap-2">{solicitacoes.slice(0, 4).map((item) => <div key={item.id} className="rounded-lg border border-white/10 bg-black/25 p-3 text-sm text-zinc-200">{getClientName(state, item.cliente_id)} · {getServicoName(state, item.beneficio_servico_id)} · <strong className="text-tech-neon">{SOLICITACAO_LABEL[item.status]}</strong></div>)}{solicitacoes.length === 0 && <EmptyMessage title="Sem solicitações" description="Quando clientes solicitarem benefícios, eles aparecerão aqui." />}</div>
       </Card>
+    </div>
+  );
+}
+
+function PartnerPipeline({ state, actions, leads }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; leads: LeadParceiro[] }) {
+  const columns: LeadStatus[] = ['novo', 'contato_realizado', 'negociacao', 'fechado', 'perdido'];
+  const openLeads = leads.filter((item) => !['fechado', 'perdido', 'cancelado'].includes(item.status)).length;
+  const closed = leads.filter((item) => item.status === 'fechado').length;
+  const conversion = leads.length ? Math.round((closed / leads.length) * 100) : 0;
+
+  return (
+    <div className="grid gap-6">
+      <PageTitle title="Funil comercial" subtitle="Acompanhe cada lead TechPass da chegada ate o fechamento." />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Stat label="Leads em aberto" value={openLeads} tone="warn" />
+        <Stat label="Fechados" value={closed} tone="neon" />
+        <Stat label="Conversao" value={conversion + '%'} />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-5">
+        {columns.map((status) => {
+          const items = leads.filter((lead) => lead.status === status);
+          return (
+            <Card key={status} className="p-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-black uppercase text-white">{LEAD_STATUS_LABEL[status]}</h3>
+                <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">{items.length}</Pill>
+              </div>
+              <div className="mt-4 grid gap-3">
+                {items.map((lead) => (
+                  <div key={lead.id} className="rounded-lg border border-white/10 bg-black/25 p-3">
+                    <p className="font-black text-white">{getClientName(state, lead.cliente_id)}</p>
+                    <p className="mt-1 text-xs leading-5 text-zinc-400">{lead.oferta_nome} · {lead.telefone_cliente}</p>
+                    <p className="mt-2 text-xs text-zinc-500">{formatDateTime(lead.created_at)}</p>
+                    <div className="mt-3">
+                      <Select value={lead.status} onChange={(event) => actions.updateLead(lead.id, { status: event.target.value as LeadStatus })}>
+                        {Object.entries(LEAD_STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                      </Select>
+                    </div>
+                  </div>
+                ))}
+                {items.length === 0 && <p className="rounded-lg border border-dashed border-white/10 p-4 text-center text-xs text-zinc-500">Sem leads nesta etapa.</p>}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
