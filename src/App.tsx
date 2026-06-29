@@ -497,181 +497,176 @@ function NotificationsPage({ state, actions, navigate }: { state: AppState; acti
 }
 
 function LandingPage({ state, navigate }: { state: AppState; navigate: (path: string) => void }) {
+  const activePartners = state.empresas.filter((empresa) => empresa.status === 'ativa');
+  const activeOffers = state.ofertas.filter((oferta) => oferta.status === 'ativo').slice(0, 3);
+  const partnerNames = activePartners.map((empresa) => empresa.nome);
+  const faq = [
+    ['O TechPass é um cartão de desconto?', 'Não. Ele é um voucher premium com QR Code, código secreto, painel do cliente, TechCash, ofertas exclusivas, indicações e benefícios controlados por status.'],
+    ['Preciso ativar na loja?', 'Sim. O cadastro começa pelo QR Code, mas a liberação final acontece presencialmente para proteger o cliente, a empresa e os benefícios.'],
+    ['Quanto posso economizar?', 'Depende do uso, mas a combinação de películas, TechCash, serviços com desconto e ofertas de parceiros pode passar de R$1.200 em valor percebido no ano.'],
+    ['Consigo ver o benefício antes de chamar no WhatsApp?', 'Sim. As ofertas mostram preço normal, preço TechPass, economia estimada e regras antes do contato.'],
+    ['O TechCash vira dinheiro?', 'Não. O saldo é usado em benefícios, descontos, brindes ou serviços participantes, conforme a regra da empresa parceira.'],
+  ];
+
   return (
-    <div className="min-h-screen overflow-hidden bg-black text-tech-ink">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
+    <div className="landing-v2 min-h-screen overflow-hidden bg-[#050607] text-white">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#050607]/78 backdrop-blur-2xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <Brand />
-          <nav className="hidden items-center gap-7 text-sm font-black uppercase tracking-normal text-zinc-400 md:flex">
-            <button className="transition hover:text-tech-neon" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Home</button>
-            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('empresas')?.scrollIntoView({ behavior: 'smooth' })}>Empresas Parceiras</button>
-            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('beneficios')?.scrollIntoView({ behavior: 'smooth' })}>Benefícios</button>
-            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('ofertas')?.scrollIntoView({ behavior: 'smooth' })}>Ofertas Exclusivas</button>
-            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth' })}>Como Funciona</button>
-            <button className="transition hover:text-tech-neon" onClick={() => navigate('/login')}>Entrar</button>
+          <nav className="hidden items-center gap-6 text-xs font-black uppercase tracking-[0.14em] text-zinc-400 lg:flex">
+            <button className="transition hover:text-white" onClick={() => document.getElementById('economia')?.scrollIntoView({ behavior: 'smooth' })}>Economia</button>
+            <button className="transition hover:text-white" onClick={() => document.getElementById('beneficios')?.scrollIntoView({ behavior: 'smooth' })}>Benefícios</button>
+            <button className="transition hover:text-white" onClick={() => document.getElementById('empresas')?.scrollIntoView({ behavior: 'smooth' })}>Empresas</button>
+            <button className="transition hover:text-white" onClick={() => document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth' })}>Como funciona</button>
+            <button className="transition hover:text-white" onClick={() => document.getElementById('faq-cliente')?.scrollIntoView({ behavior: 'smooth' })}>FAQ</button>
           </nav>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" onClick={() => navigate('/login')}><Users className="h-4 w-4" />Entrar</Button>
-            <Button onClick={() => navigate('/techpass/TP-SG-000001')}>Ativar TechPass</Button>
-            <Button variant="secondary" onClick={() => navigate('/admin')}><LockKeyhole className="h-4 w-4" />Painel</Button>
+            <Button variant="ghost" className="hidden rounded-full sm:inline-flex" onClick={() => navigate('/login')}>Entrar</Button>
+            <Button className="rounded-full px-5 shadow-[0_0_36px_rgba(141,255,42,0.2)]" onClick={() => navigate('/techpass/TP-SG-000001')}>Ativar TechPass</Button>
           </div>
         </div>
       </header>
 
       <main>
-        <section className="relative mx-auto grid min-h-[calc(100vh-74px)] max-w-7xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:py-16">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(141,255,42,0.18),transparent_28rem),radial-gradient(circle_at_88%_18%,rgba(255,255,255,0.08),transparent_18rem)]" />
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 rounded-sm border border-tech-neon/35 bg-tech-neon/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-tech-neon">
-              <Sparkles className="h-3.5 w-3.5" /> Clube local de benefícios
+        <section className="relative isolate mx-auto grid min-h-[calc(100vh-74px)] max-w-7xl gap-12 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-[1.04fr_0.96fr] lg:items-center lg:pb-24 lg:pt-20">
+          <div className="premium-grid absolute inset-0 -z-20 opacity-70" />
+          <div className="reveal-up">
+            <Pill className="border-tech-neon/35 bg-tech-neon/10 px-3 py-1.5 text-tech-neon">Clube premium de vantagens locais</Pill>
+            <h1 className="mt-7 max-w-5xl text-5xl font-black leading-[0.9] tracking-normal text-white sm:text-7xl lg:text-8xl">
+              Um voucher. Dezenas de vantagens.
+            </h1>
+            <p className="mt-6 max-w-2xl text-xl font-semibold leading-8 text-zinc-300 sm:text-2xl">
+              Economize antes mesmo de chamar no WhatsApp. Ative seu TechPass e veja ofertas, TechCash, benefícios e agendamentos em um dashboard só seu.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button className="min-h-12 rounded-full px-6 text-base shadow-[0_0_36px_rgba(141,255,42,0.24)] hover:scale-[1.02]" onClick={() => navigate('/techpass/TP-SG-000001')}>Ativar meu TechPass <ArrowRight className="h-4 w-4" /></Button>
+              <Button variant="secondary" className="min-h-12 rounded-full px-6 text-base" onClick={() => document.getElementById('economia')?.scrollIntoView({ behavior: 'smooth' })}>Ver minha economia</Button>
             </div>
-            <h1 className="mt-7 max-w-5xl text-5xl font-black leading-[0.92] tracking-normal text-white sm:text-7xl lg:text-8xl">Rede TechPass</h1>
-            <p className="mt-6 max-w-3xl text-2xl font-black leading-tight text-tech-neon sm:text-3xl">Seu voucher abre descontos, TechCash, brindes, aulas e serviços exclusivos em empresas parceiras.</p>
-            <p className="mt-6 max-w-3xl text-lg leading-8 text-zinc-300">Ative seu TechPass, acompanhe tudo pelo dashboard do cliente e escolha as ofertas que fazem sentido para você: tecnologia, educação, luta, assistência técnica e benefícios locais em uma só rede.</p>
-            <div className="mt-6 rounded-lg border border-tech-neon/30 bg-tech-neon/10 p-4 text-base font-black text-white">
-              Comprou ou ganhou um voucher TechPass? Escaneie o QR Code, informe o código secreto e finalize a ativação presencial para liberar os benefícios.
-            </div>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Button onClick={() => navigate('/techpass/TP-SG-000001')}>Ativar TechPass <ArrowRight className="h-4 w-4" /></Button>
-              <Button variant="secondary" onClick={() => navigate('/login')}>Entrar no dashboard</Button>
-              <Button variant="secondary" onClick={() => document.getElementById('empresas')?.scrollIntoView({ behavior: 'smooth' })}>Ver empresas participantes</Button>
-            </div>
-            <div className="mt-10 grid max-w-3xl grid-cols-3 gap-3">
-              <LandingMetric value="6" label="trocas de película" />
-              <LandingMetric value="R$100" label="meta TechCash" />
-              <LandingMetric value="15" label="indicações por campanha" />
+            <div className="mt-9 grid max-w-3xl grid-cols-3 gap-3">
+              <PremiumStat value="R$1.240" label="valor anual estimado" />
+              <PremiumStat value="6x" label="películas inclusas" />
+              <PremiumStat value={String(activePartners.length || 3)} label="empresas ativas" />
             </div>
           </div>
 
-          <div className="relative z-10">
-            <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3 shadow-2xl shadow-tech-neon/10 backdrop-blur">
-              <img src={techpassVoucherMockup} alt="Mockup 3D do voucher TechPass Premium" className="w-full rounded-md object-cover" />
-            </div>
-          </div>
-        </section>
-
-        <section id="beneficios" className="border-y border-white/10 bg-[#050505] text-white">
-          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.22em] text-tech-neon">O que é o TechPass</p>
-              <h2 className="mt-3 text-4xl font-black text-white">Um voucher de benefícios com painel digital.</h2>
-            </div>
-            <div className="grid gap-5">
-              <p className="text-lg leading-8 text-zinc-300">O TechPass é um voucher físico com QR Code e código secreto. Depois da ativação, o cliente acessa um dashboard para acompanhar validade, TechCash, benefícios, ofertas, solicitações, agendamentos e indicações.</p>
-              <p className="rounded-lg border border-tech-neon/30 bg-tech-neon/10 p-5 text-xl font-black leading-tight text-white">Você entende a vantagem antes de chamar no WhatsApp ou solicitar um serviço.</p>
+          <div className="relative reveal-up lg:delay-150">
+            <div className="relative overflow-hidden rounded-[1.75rem] border border-white/12 bg-white/[0.06] p-3 shadow-2xl shadow-black/60 backdrop-blur-2xl">
+              <img src={techpassVoucherMockup} alt="Mockup premium do voucher físico TechPass com QR Code e código de ativação" className="aspect-[1.16/1] w-full rounded-[1.35rem] object-cover" />
+              <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/12 bg-black/75 p-4 backdrop-blur-xl">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-tech-neon">Dashboard ativo</p>
+                    <p className="mt-1 text-lg font-black text-white">R$ 68,50 em TechCash</p>
+                  </div>
+                  <div className="grid h-12 w-12 place-items-center rounded-full bg-tech-neon text-black"><Wallet className="h-5 w-5" /></div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <section id="como-funciona" className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-          <LandingHeader eyebrow="Como funciona" title="Do voucher ao dashboard do cliente." subtitle="O fluxo foi pensado para liberar benefícios com segurança e manter tudo organizado." />
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <StepCard number="1" title="Compre ou receba o voucher" text="O TechPass pode ser adquirido nas lojas das empresas participantes." />
-            <StepCard number="2" title="Escaneie o QR Code" text="Informe o código secreto do voucher e envie o pré-cadastro." />
-            <StepCard number="3" title="Ative presencialmente" text="A ativação final acontece na loja, com documento oficial com foto." />
-            <StepCard number="4" title="Use seus benefícios" text="Acompanhe ofertas, TechCash, agendamentos, indicações e histórico pelo dashboard." />
-          </div>
-        </section>
-
-        <section id="empresas" className="border-y border-white/10 bg-[#050505]">
-          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-            <LandingHeader eyebrow="Empresas participantes" title="Uma rede local com marcas reais e novos segmentos." subtitle="Conheça algumas empresas que fazem parte ou podem fazer parte da Rede TechPass." />
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {LANDING_PARTNERS.map((partner) => <LandingPartnerCard key={partner.name} partner={partner} />)}
-            </div>
-          </div>
-        </section>
-
-        <section id="voucher" className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-          <div>
-            <LandingHeader eyebrow="Voucher TechPass" title="Um benefício físico com experiência digital." subtitle="O cliente recebe um voucher físico com QR Code, número de identificação e código revelado no estilo raspadinha." />
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {['Voucher físico premium', 'QR Code exclusivo', 'Código único revelado no cartão', 'Pré-cadastro online', 'Ativação presencial com documento oficial', 'Dashboard de benefícios'].map((item) => (
-                <div key={item} className="flex items-center gap-3 rounded-lg border border-white/10 bg-black/35 p-3 text-sm font-bold text-zinc-200"><CheckCircle2 className="h-5 w-5 text-tech-neon" />{item}</div>
-              ))}
-            </div>
-          </div>
-          <img src={techpassVoucherMockup} alt="Frente e verso do voucher TechPass Premium" className="w-full rounded-lg border border-tech-neon/25 shadow-2xl shadow-tech-neon/10" />
-        </section>
-
-        <section id="ofertas" className="border-y border-white/10 bg-[#050505]">
-          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-            <LandingHeader eyebrow="Ofertas exclusivas TechPass" title="Ofertas exclusivas para membros TechPass." subtitle="Cada parceiro pode publicar ofertas especiais, mostrando preço normal, preço TechPass, economia estimada e benefício extra antes do cliente chamar no WhatsApp." />
-            <div className="mt-8 grid gap-4 lg:grid-cols-3">
-              {LANDING_OFFERS.map((offer) => <LandingOfferCard key={offer.title} offer={offer} />)}
-            </div>
-          </div>
-        </section>
-
-        <section id="techcash" className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-          <div>
-            <LandingHeader eyebrow="TechCash" title="Cashback exclusivo para membros TechPass." subtitle="Clientes TechPass acumulam cashback em compras e serviços participantes na TechSoft." />
-            <div className="mt-6 grid gap-3">
-              {['Compras e serviços acima de R$ 250 geram TechCash.', 'O saldo é cumulativo.', 'Ao atingir R$ 100, o cliente pode trocar por brinde, serviço ou desconto.', 'O saldo não pode ser convertido em dinheiro.', 'Benefício exclusivo para membros TechPass ativos.'].map((item) => (
-                <div key={item} className="flex items-start gap-3 text-zinc-300"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-tech-neon" />{item}</div>
-              ))}
-            </div>
-          </div>
-          <Card className="p-8">
-            <p className="text-sm font-black uppercase tracking-[0.22em] text-tech-neon">Saldo TechCash</p>
-            <div className="mt-5 flex items-end justify-between gap-4">
-              <p className="text-5xl font-black text-white">R$ 68,50</p>
-              <p className="pb-2 font-bold text-zinc-400">/ R$ 100,00</p>
-            </div>
-            <div className="mt-6 h-4 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full w-[68.5%] rounded-full bg-tech-neon shadow-neon" />
-            </div>
-            <p className="mt-4 text-sm font-semibold text-zinc-300">Faltam R$ 31,50 para desbloquear um resgate.</p>
-          </Card>
-        </section>
-
-        <section className="border-y border-white/10 bg-[#050505]">
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[1fr_1fr] lg:items-start">
-            <div>
-              <LandingHeader eyebrow="Indique e Ganhe" title="Mais indicações, mais benefícios." subtitle="Membros TechPass possuem um código exclusivo de indicação. Quando uma pessoa indicada fecha serviço ou compra acima de R$ 350 em uma empresa participante, o membro pode receber uma recompensa." />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {['Até R$ 50 em desconto', 'Cashback', 'Brinde especial', 'Benefício exclusivo em empresa parceira'].map((item) => <LandingFeature key={item} icon={Gift} title={item} text="Recompensa possível conforme regra da oferta e empresa participante." />)}
-            </div>
+        <section id="economia" className="border-y border-white/10 bg-[#f5f7ef] text-[#10140f]">
+          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:items-start">
+            <SectionIntro eyebrow="Valor em 15 segundos" title="O TechPass precisa se pagar rápido. Por isso ele mostra a economia antes do contato." subtitle="Compare o que você pagaria como cliente comum com o que desbloqueia como membro ativo." dark={false} />
+            <SavingsSimulator />
           </div>
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-          <LandingHeader eyebrow="Dashboard do cliente" title="Tudo em um só painel." subtitle="O membro acompanha status, validade, benefícios, ofertas, TechCash, indicações, solicitações e agendamentos em um único lugar." />
-          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {['Status do TechPass', 'Validade', 'Benefícios disponíveis', 'Benefícios já utilizados', 'Trocas de película', 'Saldo TechCash', 'Código de indicação', 'Ofertas exclusivas', 'Solicitações enviadas', 'Agendamento de serviços'].map((item) => (
-              <div key={item} className="rounded-lg border border-white/10 bg-white/[0.045] p-4 text-sm font-bold text-white">{item}</div>
-            ))}
+          <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.045] p-6 sm:p-8">
+              <p className="text-sm font-black uppercase tracking-[0.2em] text-tech-neon">Cliente comum</p>
+              <h2 className="mt-4 text-3xl font-black tracking-normal text-white sm:text-5xl">Paga primeiro. Descobre depois.</h2>
+              <div className="mt-8 grid gap-3 text-zinc-400">
+                {['Chama no WhatsApp sem saber a vantagem.', 'Paga preço cheio em serviços recorrentes.', 'Não acompanha histórico, saldo ou validade.', 'Perde ofertas porque não existe uma central.'].map((item) => <ComparisonLine key={item} tone="muted" text={item} />)}
+              </div>
+            </div>
+            <div className="rounded-[1.5rem] border border-tech-neon/35 bg-tech-neon p-6 text-black shadow-[0_24px_80px_rgba(141,255,42,0.18)] sm:p-8">
+              <p className="text-sm font-black uppercase tracking-[0.2em]">Cliente TechPass</p>
+              <h2 className="mt-4 text-3xl font-black tracking-normal sm:text-5xl">Vê a vantagem. Solicita com contexto.</h2>
+              <div className="mt-8 grid gap-3">
+                {['Compara preço normal x preço TechPass.', 'Acumula TechCash em compras participantes.', 'Acompanha benefícios, solicitações e indicações.', 'Ativa ofertas de TechSoft, Super Geeks e Fight Core.'].map((item) => <ComparisonLine key={item} tone="strong" text={item} />)}
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="border-y border-white/10 bg-[#050505]">
+        <section id="beneficios" className="border-y border-white/10 bg-[#080a09]">
           <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-            <div className="rounded-lg border border-tech-neon/40 bg-tech-neon p-8 text-black shadow-neon lg:grid lg:grid-cols-[1fr_auto] lg:items-center lg:gap-8">
-              <div>
-                <p className="text-sm font-black uppercase">Ativação TechPass</p>
-                <h2 className="mt-3 max-w-3xl text-4xl font-black">Ative seu voucher e acompanhe tudo pelo dashboard.</h2>
-                <p className="mt-4 max-w-3xl text-base font-semibold text-black/75">Use o código secreto do voucher, finalize a ativação presencial e tenha acesso a ofertas, TechCash, indicações, benefícios e solicitações em um único painel.</p>
-              </div>
-              <div className="mt-6 flex flex-wrap gap-3 lg:mt-0">
-                <Button className="border-black bg-black text-white hover:bg-zinc-900" onClick={() => navigate('/techpass/TP-SG-000001')}>Ativar TechPass <ArrowRight className="h-4 w-4" /></Button>
-                <Button variant="secondary" className="border-black/30 bg-black/10 text-black hover:bg-black hover:text-white" onClick={() => navigate('/login')}>Entrar</Button>
-              </div>
+            <SectionIntro eyebrow="Benefícios por categoria" title="Um único acesso para tecnologia, educação, treino e recompensas." subtitle="A página não precisa listar tudo. Ela precisa mostrar que existe valor real em várias situações do mês." />
+            <div className="mt-10 grid gap-4 lg:grid-cols-4">
+              <BenefitTile className="lg:col-span-2 lg:row-span-2" icon={ShieldCheck} title="TechSoft sem improviso" value="30% OFF" text="Manutenção, diagnóstico, limpeza, acessórios, películas e TechCash em compras participantes." />
+              <BenefitTile icon={Users} title="Super Geeks" value="R$492/ano" text="Condição especial no plano anual e renovação TechPass para famílias." />
+              <BenefitTile icon={Activity} title="Fight Core" value="R$480" text="Planos especiais, aulas grátis e bônus por indicação qualificada." />
+              <BenefitTile icon={Gift} title="Indique e ganhe" value="15 contatos" text="Campanhas por empresa com brindes, cashback ou bônus conforme regra." />
+              <BenefitTile icon={Wallet} title="TechCash" value="R$100" text="Saldo acumulado para trocar por benefícios, descontos ou serviços." />
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-          <div className="rounded-lg border border-tech-neon/40 bg-tech-neon p-8 text-black shadow-neon lg:grid lg:grid-cols-[1fr_auto] lg:items-center lg:gap-8">
-            <div>
-              <p className="text-sm font-black uppercase">Rede TechPass</p>
-              <h2 className="mt-3 max-w-3xl text-3xl font-black">Sua empresa quer fazer parte da Rede TechPass?</h2>
-            </div>
-            <div className="mt-6 flex flex-wrap gap-3 lg:mt-0">
-              <Button className="border-black bg-black text-white hover:bg-zinc-900" onClick={() => navigate('/parceiros')}>Seja nosso parceiro <ArrowRight className="h-4 w-4" /></Button>
+        <section id="empresas" className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+          <SectionIntro eyebrow="Empresas participantes" title="Marcas locais conectadas por uma experiência premium." subtitle="Não é um cupom solto. Cada empresa tem ofertas, regras, leads e benefícios organizados dentro da rede." />
+          <div className="mt-8 flex flex-wrap gap-3">
+            {(partnerNames.length ? partnerNames : ['TechSoft', 'Super Geeks', 'Fight Core']).map((name) => <span key={name} className="rounded-full border border-white/12 bg-white/[0.055] px-5 py-3 text-sm font-black text-white">{name}</span>)}
+          </div>
+          <div className="mt-8 grid gap-4 lg:grid-cols-3">
+            {(activeOffers.length ? activeOffers : state.ofertas.slice(0, 3)).map((offer) => <OfferPreview key={offer.id} state={state} offer={offer} />)}
+          </div>
+        </section>
+
+        <section className="border-y border-white/10 bg-[#f5f7ef] text-[#10140f]">
+          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.86fr_1.14fr] lg:items-center">
+            <SectionIntro eyebrow="Dashboard do cliente" title="Tudo que importa aparece em uma tela." subtitle="Status, validade, TechCash, películas, ofertas, solicitações e indicações. Sem depender de conversa perdida no WhatsApp." dark={false} />
+            <ClientDashboardMockup />
+          </div>
+        </section>
+
+        <section id="como-funciona" className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+          <SectionIntro eyebrow="Ativação simples" title="Três passos, sem bagunça." subtitle="O QR Code leva para a tela certa. O código secreto protege o voucher. A loja valida presencialmente." />
+          <div className="mt-10 grid gap-4 lg:grid-cols-3">
+            <ProcessCard number="01" title="Escaneie o voucher" text="Abra o QR Code e informe o código secreto impresso no TechPass físico." />
+            <ProcessCard number="02" title="Envie o cadastro" text="Preencha CPF, telefone e dados do cliente para gerar a solicitação." />
+            <ProcessCard number="03" title="Ative na loja" text="A equipe confere documento oficial e libera o painel de benefícios." />
+          </div>
+        </section>
+
+        <section className="border-y border-white/10 bg-[#080a09]">
+          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+            <SectionIntro eyebrow="Prova de valor" title="Pensado para situações reais, não para uma lista bonita de descontos." subtitle="O TechPass é útil quando você troca película, faz manutenção, procura aula, fecha plano ou indica alguém." />
+            <div className="mt-10 grid gap-4 lg:grid-cols-3">
+              <TestimonialCard quote="Antes eu perguntava preço no WhatsApp. Agora eu vejo a condição TechPass e já solicito com o benefício certo." name="Maria Eduarda" role="Cliente TechPass" />
+              <TestimonialCard quote="O painel deixou claro o que o cliente pediu. Chega menos conversa solta e mais atendimento pronto." name="Equipe parceira" role="Atendimento local" />
+              <TestimonialCard quote="A vantagem ficou fácil de explicar: voucher, ativação presencial, dashboard e histórico de uso." name="TechSoft" role="Operação TechPass" />
             </div>
           </div>
         </section>
+
+        <section id="faq-cliente" className="mx-auto max-w-5xl px-4 py-20 sm:px-6">
+          <SectionIntro eyebrow="FAQ" title="Perguntas antes de ativar." subtitle="Respostas curtas para decidir com segurança." center />
+          <FaqList items={faq} />
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 pb-10 pt-6 sm:px-6">
+          <FinalCta
+            eyebrow="Comece pelo voucher"
+            title="Ative seu TechPass e veja sua rede de vantagens em minutos."
+            subtitle="Use o código secreto, faça o pré-cadastro e finalize a ativação presencial para desbloquear ofertas, TechCash e benefícios."
+            primary="Ativar meu TechPass"
+            secondary="Entrar no dashboard"
+            onPrimary={() => navigate('/techpass/TP-SG-000001')}
+            onSecondary={() => navigate('/login')}
+          />
+        </section>
+
+        <footer className="border-t border-white/10 px-4 py-10 sm:px-6">
+          <div className="mx-auto flex max-w-7xl flex-col gap-5 text-sm text-zinc-400 md:flex-row md:items-center md:justify-between">
+            <Brand />
+            <div className="flex flex-wrap items-center gap-3">
+              <span>Sua empresa quer fazer parte da Rede TechPass?</span>
+              <Button variant="secondary" className="rounded-full" onClick={() => navigate('/parceiros')}>Seja nosso parceiro</Button>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   );
@@ -683,195 +678,364 @@ function PartnerLandingPage({ navigate }: { navigate: (path: string) => void }) 
     window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer');
   };
 
+  return <PartnerLandingV2 navigate={navigate} openWhatsApp={openWhatsApp} />;
+
+}
+
+function PartnerLandingV2({ navigate, openWhatsApp }: { navigate: (path: string) => void; openWhatsApp: () => void }) {
+  const faq = [
+    ['Por que entrar na Rede TechPass?', 'Para transformar benefício em aquisição. Sua empresa publica ofertas, recebe leads com contexto e aparece para clientes de outras marcas parceiras.'],
+    ['Como recebo os clientes?', 'O cliente clica na oferta, envia interesse e a solicitação aparece no painel parceiro com nome, telefone, TechPass, status e observação.'],
+    ['Consigo publicar minhas próprias ofertas?', 'Sim. O parceiro cria ofertas, benefícios, brindes ou condições especiais. O administrador pode aprovar antes de aparecer para clientes.'],
+    ['Quanto custa?', 'A parceria pode variar por volume de vouchers, presença na rede e campanha. A landing prepara o lead e a proposta fecha com a TechSoft.'],
+    ['O parceiro vê dados de outras empresas?', 'Não. Cada empresa acessa apenas seus leads, solicitações, ofertas, cashback e indicações.'],
+  ];
+  const cases = [
+    ['Fight Core', 'Aulas grátis por modalidade, planos com desconto e bônus de 6 meses por indicação qualificada.'],
+    ['Super Geeks', 'Plano anual com condição TechPass, renovação especial e novos interessados vindos da rede.'],
+    ['TechSoft', 'Serviços técnicos, películas, TechCash, brindes e indicações organizados em um funil próprio.'],
+  ];
+
   return (
-    <div className="min-h-screen overflow-hidden bg-black text-tech-ink">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-black/80 backdrop-blur-xl">
+    <div className="landing-v2 min-h-screen overflow-hidden bg-[#050607] text-white">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#050607]/78 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <Brand />
-          <nav className="hidden items-center gap-6 text-sm font-black uppercase text-zinc-400 lg:flex">
-            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('recebe')?.scrollIntoView({ behavior: 'smooth' })}>Benefícios</button>
-            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('funciona')?.scrollIntoView({ behavior: 'smooth' })}>Como funciona</button>
-            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('painel-parceiro')?.scrollIntoView({ behavior: 'smooth' })}>Painel</button>
-            <button className="transition hover:text-tech-neon" onClick={() => document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' })}>Planos</button>
+          <nav className="hidden items-center gap-6 text-xs font-black uppercase tracking-[0.14em] text-zinc-400 lg:flex">
+            <button className="transition hover:text-white" onClick={() => document.getElementById('por-que')?.scrollIntoView({ behavior: 'smooth' })}>Por que entrar</button>
+            <button className="transition hover:text-white" onClick={() => document.getElementById('fluxo-parceiro')?.scrollIntoView({ behavior: 'smooth' })}>Como funciona</button>
+            <button className="transition hover:text-white" onClick={() => document.getElementById('painel-parceiro-v2')?.scrollIntoView({ behavior: 'smooth' })}>Painel</button>
+            <button className="transition hover:text-white" onClick={() => document.getElementById('planos-parceiro')?.scrollIntoView({ behavior: 'smooth' })}>Planos</button>
+            <button className="transition hover:text-white" onClick={() => document.getElementById('faq-parceiro')?.scrollIntoView({ behavior: 'smooth' })}>FAQ</button>
           </nav>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" onClick={() => navigate('/')}>Rede TechPass</Button>
-            <Button onClick={openWhatsApp}>Quero ser parceiro</Button>
+            <Button variant="ghost" className="hidden rounded-full sm:inline-flex" onClick={() => navigate('/')}>Clientes</Button>
+            <Button className="rounded-full px-5 shadow-[0_0_36px_rgba(141,255,42,0.2)]" onClick={openWhatsApp}>Entrar na rede</Button>
           </div>
         </div>
       </header>
 
       <main>
-        <section className="relative mx-auto grid min-h-[calc(100vh-74px)] max-w-7xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:py-16">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(141,255,42,0.09)_1px,transparent_1px),linear-gradient(180deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:72px_72px] opacity-35" />
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(141,255,42,0.2),transparent_26rem),radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.08),transparent_18rem)]" />
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 rounded-sm border border-tech-neon/35 bg-tech-neon/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-tech-neon">
-              <Handshake className="h-3.5 w-3.5" /> Seja Parceiro TechPass
+        <section className="relative isolate mx-auto grid min-h-[calc(100vh-74px)] max-w-7xl gap-12 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:pb-24 lg:pt-20">
+          <div className="premium-grid absolute inset-0 -z-20 opacity-70" />
+          <div className="reveal-up">
+            <Pill className="border-tech-neon/35 bg-tech-neon/10 px-3 py-1.5 text-tech-neon">Seja Parceiro TechPass</Pill>
+            <h1 className="mt-7 max-w-5xl text-5xl font-black leading-[0.9] tracking-normal text-white sm:text-7xl lg:text-8xl">
+              Transforme clientes ocasionais em recorrentes.
+            </h1>
+            <p className="mt-6 max-w-2xl text-xl font-semibold leading-8 text-zinc-300 sm:text-2xl">
+              Entre em uma rede local onde um voucher gera ofertas, leads, agendamentos, indicações e dados de conversão para sua empresa.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button className="min-h-12 rounded-full px-6 text-base shadow-[0_0_36px_rgba(141,255,42,0.24)] hover:scale-[1.02]" onClick={openWhatsApp}>Receber clientes pela rede <ArrowRight className="h-4 w-4" /></Button>
+              <Button variant="secondary" className="min-h-12 rounded-full px-6 text-base" onClick={() => document.getElementById('fluxo-parceiro')?.scrollIntoView({ behavior: 'smooth' })}>Ver o fluxo completo</Button>
             </div>
-            <h1 className="mt-7 max-w-5xl text-5xl font-black leading-[0.92] text-white sm:text-7xl lg:text-8xl">Sua empresa pode virar parceira da Rede TechPass</h1>
-            <p className="mt-6 max-w-3xl text-2xl font-black leading-tight text-tech-neon sm:text-3xl">Entregue mais valor aos seus clientes, receba leads qualificados e seja divulgado em uma rede local de benefícios.</p>
-            <p className="mt-6 max-w-3xl text-lg leading-8 text-zinc-300">Ao aderir ao TechPass, sua empresa recebe vouchers para vender ou entregar como brinde. Cada voucher conecta o cliente a vantagens, ofertas exclusivas e agendamentos com empresas parceiras da região.</p>
-            <div className="mt-6 rounded-lg border border-tech-neon/35 bg-tech-neon/10 p-5 text-lg font-black leading-tight text-white">Mais do que um cartão de benefícios: o TechPass é uma ponte entre empresas locais e clientes prontos para comprar.</div>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Button onClick={openWhatsApp}>Quero ser parceiro <ArrowRight className="h-4 w-4" /></Button>
-              <Button variant="secondary" onClick={() => document.getElementById('funciona')?.scrollIntoView({ behavior: 'smooth' })}>Ver como funciona</Button>
-            </div>
-            <div className="mt-10 grid max-w-3xl grid-cols-3 gap-3">
-              <LandingMetric value="Leads" label="com intenção clara" />
-              <LandingMetric value="Painel" label="para cada parceiro" />
-              <LandingMetric value="Rede" label="de indicação local" />
-            </div>
-          </div>
-          <div className="relative z-10">
-            <div className="rounded-lg border border-tech-neon/25 bg-white/[0.045] p-3 shadow-2xl shadow-tech-neon/10 backdrop-blur">
-              <img src={techpassVoucherMockup} alt="Mockup do voucher TechPass para empresas parceiras" className="w-full rounded-md object-cover" />
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              {[superGeeksLogo, fightCoreLogo].map((logo, index) => (
-                <div key={index} className="grid h-20 place-items-center rounded-lg border border-white/10 bg-black/45 p-3">
-                  <img src={logo} alt={index === 0 ? 'Logo Super Geeks' : 'Logo Fight Core'} className="max-h-14 max-w-full object-contain" />
-                </div>
-              ))}
-              <div className="grid h-20 place-items-center rounded-lg border border-tech-neon/30 bg-tech-neon/10 text-center text-sm font-black text-tech-neon">Sua marca aqui</div>
+            <div className="mt-9 grid max-w-3xl grid-cols-3 gap-3">
+              <PremiumStat value="Leads" label="com intenção clara" />
+              <PremiumStat value="24h" label="operação simples" />
+              <PremiumStat value="1 painel" label="para sua empresa" />
             </div>
           </div>
+          <PartnerDashboardShowcase />
         </section>
 
-        <section id="recebe" className="border-y border-white/10 bg-[#050505]">
-          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-            <LandingHeader eyebrow="O que sua empresa recebe" title="Uma oferta comercial mais forte sem baixar o preço principal." subtitle="O TechPass agrega valor ao que sua empresa já vende e cria novos caminhos de contato com clientes qualificados." />
-            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {PARTNER_RECEIVES.map((item) => <LandingFeature key={item.title} icon={item.icon} title={item.title} text={item.text} />)}
-            </div>
-          </div>
-        </section>
-
-        <section id="funciona" className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-          <LandingHeader eyebrow="Como funciona" title="Do voucher ao WhatsApp, com contexto." subtitle="O cliente entende o benefício, informa o que precisa e chega ao atendimento com dados úteis para a empresa parceira." />
-          <div className="mt-8 grid gap-4 lg:grid-cols-5">
-            {PARTNER_FLOW.map(([number, title, text]) => <StepCard key={number} number={number} title={title} text={text} />)}
-          </div>
-        </section>
-
-        <section className="border-y border-white/10 bg-[#050505]">
+        <section id="por-que" className="border-y border-white/10 bg-[#f5f7ef] text-[#10140f]">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-            <LandingHeader eyebrow="Vantagem comercial" title="Sua empresa entrega mais valor sem precisar baixar o preço principal" subtitle="Em vez de simplesmente dar desconto, sua empresa cria uma experiência de benefício, fidelização e indicação. O cliente percebe mais valor, volta mais vezes e ainda pode chegar de outras empresas parceiras." />
-            <div className="grid gap-3 sm:grid-cols-2">
-              {PARTNER_ADVANTAGES.map((item) => (
-                <div key={item} className="rounded-lg border border-white/10 bg-black/35 p-4 text-sm font-semibold leading-6 text-zinc-200">{item}</div>
-              ))}
+            <SectionIntro eyebrow="Por que entrar" title="Pare de competir só por preço. Venda valor percebido." subtitle="O TechPass transforma uma oferta isolada em uma rede de benefícios com rastreio, contexto e recorrência." dark={false} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <PartnerValueCard title="Clientes de outras marcas" text="Sua empresa aparece para membros ativados por parceiros da rede." />
+              <PartnerValueCard title="Leads menos frios" text="O cliente escolhe a oferta e chega com telefone, TechPass e intenção." />
+              <PartnerValueCard title="Ofertas com aprovação" text="Você cria condições próprias e o admin mantém a qualidade da rede." />
+              <PartnerValueCard title="Métricas no painel" text="Acompanhe leads novos, negociação, fechados, perdidos e ofertas ativas." />
             </div>
+          </div>
+        </section>
+
+        <section id="fluxo-parceiro" className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+          <SectionIntro eyebrow="Fluxo completo" title="Do voucher ao atendimento, sem depender de planilha." subtitle="Cada etapa foi desenhada para reduzir atrito comercial e aumentar clareza no atendimento." />
+          <div className="mt-10 grid gap-4 lg:grid-cols-4">
+            <ProcessCard number="01" title="Você publica ofertas" text="Planos, aulas, brindes, serviços, cashback e condições especiais." />
+            <ProcessCard number="02" title="O cliente vê a vantagem" text="Preço normal, preço TechPass, economia e regra aparecem antes do clique." />
+            <ProcessCard number="03" title="O lead chega no painel" text="Dados do cliente, oferta escolhida, status e observações ficam centralizados." />
+            <ProcessCard number="04" title="Sua equipe fecha o ciclo" text="Atualiza status, adiciona observação e mede a conversão por oferta." />
+          </div>
+        </section>
+
+        <section id="painel-parceiro-v2" className="border-y border-white/10 bg-[#080a09]">
+          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.86fr_1.14fr] lg:items-center">
+            <SectionIntro eyebrow="Painel parceiro" title="Oferta, lead, solicitação e indicação no mesmo lugar." subtitle="Cada empresa visualiza apenas seus dados e ganha autonomia para atualizar o que vende dentro da Rede TechPass." />
+            <PartnerDashboardPreview />
           </div>
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-          <LandingHeader eyebrow="Objeções resolvidas" title="A parceria foi pensada para empresas locais, com pouco atrito." subtitle="A página explica o valor antes do contato e o sistema qualifica o lead antes de chegar no WhatsApp." />
-          <div className="mt-8 grid gap-4 lg:grid-cols-3">
-            {PARTNER_OBJECTIONS.map(([title, text]) => (
-              <Card key={title} className="relative overflow-hidden p-6">
-                <div className="absolute right-4 top-4 font-mono text-6xl font-black text-tech-neon/[0.07]">?</div>
-                <h3 className="relative text-2xl font-black text-white">{title}</h3>
-                <p className="relative mt-4 text-sm leading-7 text-zinc-400">{text}</p>
-              </Card>
-            ))}
+          <SectionIntro eyebrow="Gestão comercial" title="O parceiro controla a operação sem depender da TechSoft para tudo." subtitle="A autonomia vem com governança: ofertas podem entrar como pendentes de aprovação antes de aparecerem para clientes." />
+          <div className="mt-10 grid gap-4 lg:grid-cols-3">
+            <BenefitTile icon={Sparkles} title="Gestão de ofertas" value="Preço + regra" text="Publique planos, descontos, aulas grátis, serviços, brindes e renovações." />
+            <BenefitTile icon={QrCodeIcon} title="Gestão de vouchers" value="QR + código" text="Acompanhe TechPass gerados, ativos, pendentes e vinculados à empresa." />
+            <BenefitTile icon={Gift} title="Gestão de indicações" value="Campanhas" text="Veja contatos indicados, conversões, bônus, brindes e status por cliente." />
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-          <LandingHeader eyebrow="Pré-formulário + WhatsApp" title="Leads mais preparados antes de chegar no WhatsApp" subtitle="Cada serviço ou oferta pode ter perguntas específicas do nicho. Quando o cliente chama, a mensagem já leva nome, TechPass, oferta e respostas." />
-          <div className="mt-8 grid gap-4 lg:grid-cols-4">
-            {PRE_FORM_EXAMPLES.map((item) => (
-              <Card key={item.niche} className="p-5">
-                <h3 className="text-xl font-black text-white">{item.niche}</h3>
-                <div className="mt-4 grid gap-2">
-                  {item.questions.map((question) => <p key={question} className="rounded-md border border-white/10 bg-black/30 p-3 text-sm text-zinc-300">{question}</p>)}
-                </div>
-              </Card>
-            ))}
-          </div>
-          <Card className="mt-6 grid gap-6 p-6 lg:grid-cols-[0.9fr_1.1fr]">
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.2em] text-tech-neon">Mensagem automática</p>
-              <h3 className="mt-3 text-3xl font-black text-white">Chamar no WhatsApp com tudo pronto.</h3>
-              <p className="mt-3 text-zinc-400">Depois do pré-formulário, o botão abre o WhatsApp da empresa com um resumo claro para acelerar o atendimento.</p>
-            </div>
-            <div className="rounded-lg border border-tech-neon/25 bg-tech-neon/10 p-5 font-mono text-sm leading-7 text-zinc-100">
-              Olá, sou membro TechPass e tenho interesse na oferta Plano Anual Fight Core.<br /><br />
-              Nome: João Silva<br />
-              TechPass: TP-SG-000001<br />
-              Modalidade: Muay Thai<br />
-              Objetivo: condicionamento físico<br />
-              Horário preferido: noite
-            </div>
-          </Card>
-        </section>
-
-        <section id="painel-parceiro" className="border-y border-white/10 bg-[#050505]">
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-            <LandingHeader eyebrow="Painel parceiro" title="Sua empresa acompanha tudo em um painel próprio" subtitle="Cada parceiro atualiza ofertas, edita descontos, acompanha solicitações e mede os resultados gerados pela Rede TechPass." />
-            <div className="grid gap-3 sm:grid-cols-2">
-              {['Leads recebidos', 'Benefícios solicitados', 'Ofertas mais acessadas', 'Agendamentos pendentes', 'Leads em negociação', 'Leads fechados', 'Conversão por oferta', 'Clientes vindos da Rede TechPass'].map((item, index) => (
-                <div key={item} className="rounded-lg border border-white/10 bg-black/35 p-4">
-                  <p className="text-3xl font-black text-white">{index % 3 === 0 ? '24' : index % 3 === 1 ? '8' : '63%'}</p>
-                  <p className="mt-1 text-sm font-semibold text-zinc-400">{item}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-          <LandingHeader eyebrow="Exemplos de uso" title="A Rede TechPass se adapta a segmentos diferentes." subtitle="Cada empresa usa o voucher para fortalecer uma oferta, gerar recorrência ou receber clientes de outras marcas parceiras." />
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {PARTNER_USE_CASES.map(([title, text]) => <Card key={title} className="p-5"><h3 className="text-xl font-black text-white">{title}</h3><p className="mt-3 text-sm leading-6 text-zinc-400">{text}</p></Card>)}
-          </div>
-        </section>
-
-        <section id="planos" className="border-y border-white/10 bg-[#050505]">
+        <section className="border-y border-white/10 bg-[#f5f7ef] text-[#10140f]">
           <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-            <LandingHeader eyebrow="Planos de parceria" title="Escolha o nível de presença da sua empresa na Rede." subtitle="Planos conceituais, sem preço fixo nesta etapa. A proposta pode ser ajustada por segmento, volume de vouchers e campanha." />
-            <div className="mt-8 grid gap-4 lg:grid-cols-3">
-              {PARTNER_PLANS.map(([title, subtitle, text], index) => (
-                <Card key={title} className={cx('p-6', index === 1 && 'border-tech-neon/45 bg-tech-neon/10')}>
-                  <p className="text-sm font-black uppercase tracking-[0.18em] text-tech-neon">{index === 1 ? 'Mais indicado' : 'Parceria'}</p>
-                  <h3 className="mt-3 text-3xl font-black text-white">{title}</h3>
-                  <p className="mt-3 font-bold text-zinc-200">{subtitle}</p>
-                  <p className="mt-4 min-h-20 text-sm leading-6 text-zinc-400">{text}</p>
-                  <Button className="mt-6 w-full" onClick={openWhatsApp}>Quero conversar</Button>
-                </Card>
-              ))}
+            <SectionIntro eyebrow="Estudos de caso" title="Três exemplos claros de como uma empresa usa a rede." subtitle="O TechPass se adapta ao que cada parceiro já vende: plano, serviço, aula, brinde ou renovação." dark={false} />
+            <div className="mt-10 grid gap-4 lg:grid-cols-3">
+              {cases.map(([title, text]) => <PartnerCaseCard key={title} title={title} text={text} />)}
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-          <LandingHeader eyebrow="Perguntas frequentes" title="O que uma empresa precisa saber antes de entrar." subtitle="Respostas diretas para reduzir dúvida antes do primeiro contato comercial." />
-          <div className="mt-8 grid gap-3 lg:grid-cols-2">
-            {PARTNER_FAQ.map(([question, answer]) => (
-              <div key={question} className="rounded-lg border border-white/10 bg-white/[0.045] p-5">
-                <h3 className="text-lg font-black text-white">{question}</h3>
-                <p className="mt-3 text-sm leading-7 text-zinc-400">{answer}</p>
+        <section id="planos-parceiro" className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+          <SectionIntro eyebrow="Quanto custa" title="Planos por presença, volume e campanha." subtitle="Sem empurrar pacote genérico: a parceria pode começar simples e evoluir conforme o volume de vouchers e leads." />
+          <div className="mt-10 grid gap-4 lg:grid-cols-3">
+            {[
+              ['Inicial', 'Validar a rede', 'Presença básica, ofertas essenciais e volume reduzido de vouchers.'],
+              ['Premium', 'Crescer a aquisição', 'Destaque na landing, mais vouchers, campanhas e painel parceiro completo.'],
+              ['Estratégico', 'Operar em conjunto', 'Ações locais, campanhas sazonais, metas de leads e acompanhamento próximo.'],
+            ].map(([name, goal, description], index) => (
+              <div key={name} className={cx('rounded-[1.5rem] border p-6 transition hover:-translate-y-1', index === 1 ? 'border-tech-neon/40 bg-tech-neon text-black shadow-[0_24px_80px_rgba(141,255,42,0.18)]' : 'border-white/10 bg-white/[0.045] text-white')}>
+                <p className={cx('text-xs font-black uppercase tracking-[0.18em]', index === 1 ? 'text-black/70' : 'text-tech-neon')}>{index === 1 ? 'Mais indicado' : 'Parceria'}</p>
+                <h3 className="mt-4 text-3xl font-black">{name}</h3>
+                <p className={cx('mt-2 font-black', index === 1 ? 'text-black' : 'text-zinc-200')}>{goal}</p>
+                <p className={cx('mt-5 min-h-24 text-sm leading-7', index === 1 ? 'text-black/72' : 'text-zinc-400')}>{description}</p>
+                <Button className={cx('mt-6 w-full rounded-full', index === 1 && 'border-black bg-black text-white hover:bg-zinc-900')} onClick={openWhatsApp}>Solicitar proposta</Button>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-          <div className="rounded-lg border border-tech-neon/40 bg-tech-neon p-8 text-black shadow-neon lg:grid lg:grid-cols-[1fr_auto] lg:items-center lg:gap-8">
-            <div>
-              <p className="text-sm font-black uppercase">CTA final</p>
-              <h2 className="mt-3 max-w-4xl text-4xl font-black">Transforme seus clientes em uma rede de oportunidades</h2>
-              <p className="mt-4 max-w-3xl text-base font-semibold text-black/75">Entre para a Rede TechPass e ofereça benefícios reais, receba indicações qualificadas e aumente o valor percebido da sua empresa.</p>
-            </div>
-            <Button className="mt-6 border-black bg-black text-white hover:bg-zinc-900 lg:mt-0" onClick={openWhatsApp}>Quero ser parceiro TechPass <ArrowRight className="h-4 w-4" /></Button>
-          </div>
+        <section id="faq-parceiro" className="mx-auto max-w-5xl px-4 py-20 sm:px-6">
+          <SectionIntro eyebrow="FAQ parceiro" title="O que sua empresa precisa saber." subtitle="Sem jargão. Só o que decide a próxima conversa." center />
+          <FaqList items={faq} />
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 pb-10 pt-6 sm:px-6">
+          <FinalCta
+            eyebrow="Próximo passo"
+            title="Coloque sua empresa dentro de uma rede que gera valor antes do desconto."
+            subtitle="Publique ofertas, receba leads com contexto e acompanhe resultados em um painel exclusivo para parceiros."
+            primary="Quero entrar na Rede TechPass"
+            secondary="Ver painel parceiro"
+            onPrimary={openWhatsApp}
+            onSecondary={() => navigate('/parceiro/login')}
+          />
         </section>
       </main>
     </div>
   );
 }
 
+function SectionIntro({ eyebrow, title, subtitle, center = false, dark = true }: { eyebrow: string; title: string; subtitle: string; center?: boolean; dark?: boolean }) {
+  return (
+    <div className={cx(center ? 'mx-auto max-w-3xl text-center' : 'max-w-3xl')}>
+      <p className={cx('text-xs font-black uppercase tracking-[0.22em]', dark ? 'text-tech-neon' : 'text-[#4d6d19]')}>{eyebrow}</p>
+      <h2 className={cx('mt-4 text-4xl font-black leading-[0.95] tracking-normal sm:text-6xl', dark ? 'text-white' : 'text-[#10140f]')}>{title}</h2>
+      <p className={cx('mt-5 text-lg leading-8', dark ? 'text-zinc-400' : 'text-[#4b5148]')}>{subtitle}</p>
+    </div>
+  );
+}
+
+function PremiumStat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 backdrop-blur transition hover:-translate-y-1 hover:border-tech-neon/40">
+      <p className="text-2xl font-black text-white sm:text-3xl">{value}</p>
+      <p className="mt-1 text-xs font-bold uppercase leading-5 text-zinc-500">{label}</p>
+    </div>
+  );
+}
+
+function SavingsSimulator() {
+  const [peliculas, setPeliculas] = useState(4);
+  const [servicos, setServicos] = useState(2);
+  const [ofertas, setOfertas] = useState(1);
+  const techCash = 100;
+  const total = peliculas * 35 + servicos * 120 + ofertas * 480 + techCash;
+  return (
+    <div className="rounded-[1.6rem] border border-[#10140f]/10 bg-white p-5 shadow-2xl shadow-black/10 sm:p-7">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-black/10 pb-6">
+        <div>
+          <p className="text-sm font-black uppercase tracking-[0.18em] text-[#5f7f1d]">Simulador de economia</p>
+          <p className="mt-3 text-5xl font-black tracking-normal text-[#10140f]">{formatMoney(total)}</p>
+        </div>
+        <p className="max-w-52 text-sm font-semibold leading-6 text-[#5b6358]">Estimativa anual combinando películas, serviços, ofertas e TechCash.</p>
+      </div>
+      <div className="mt-6 grid gap-5">
+        <SavingSlider label="Trocas de película" value={peliculas} max={6} suffix="x" onChange={setPeliculas} />
+        <SavingSlider label="Serviços com desconto" value={servicos} max={6} suffix="x" onChange={setServicos} />
+        <SavingSlider label="Ofertas premium usadas" value={ofertas} max={3} suffix="x" onChange={setOfertas} />
+      </div>
+      <div className="mt-6 rounded-2xl bg-[#10140f] p-4 text-white">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-bold text-zinc-400">Meta TechCash</span>
+          <strong className="text-tech-neon">+ {formatMoney(techCash)}</strong>
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+          <div className="h-full w-full rounded-full bg-tech-neon" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SavingSlider({ label, value, max, suffix, onChange }: { label: string; value: number; max: number; suffix: string; onChange: (value: number) => void }) {
+  return (
+    <label className="grid gap-2">
+      <span className="flex items-center justify-between text-sm font-black text-[#10140f]"><span>{label}</span><span>{value}{suffix}</span></span>
+      <input aria-label={label} type="range" min={0} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} className="accent-[#8DFF2A]" />
+    </label>
+  );
+}
+
+function ComparisonLine({ text, tone }: { text: string; tone: 'muted' | 'strong' }) {
+  return <div className={cx('flex items-start gap-3 rounded-2xl p-3 text-sm font-bold leading-6', tone === 'strong' ? 'bg-black/10 text-black' : 'bg-white/[0.04] text-zinc-300')}><CheckCircle2 className={cx('mt-0.5 h-5 w-5 shrink-0', tone === 'strong' ? 'text-black' : 'text-tech-neon')} />{text}</div>;
+}
+
+function BenefitTile({ icon: Icon, title, value, text, className }: { icon: typeof Activity; title: string; value: string; text: string; className?: string }) {
+  return (
+    <div className={cx('group rounded-[1.5rem] border border-white/10 bg-white/[0.045] p-6 transition duration-300 hover:-translate-y-1 hover:border-tech-neon/40 hover:bg-white/[0.07]', className)}>
+      <div className="grid h-12 w-12 place-items-center rounded-2xl bg-tech-neon/12 text-tech-neon transition group-hover:bg-tech-neon group-hover:text-black"><Icon className="h-5 w-5" /></div>
+      <p className="mt-6 text-sm font-black uppercase tracking-[0.18em] text-zinc-500">{title}</p>
+      <h3 className="mt-2 text-4xl font-black tracking-normal text-white">{value}</h3>
+      <p className="mt-4 text-sm leading-7 text-zinc-400">{text}</p>
+    </div>
+  );
+}
+
+function OfferPreview({ state, offer }: { state: AppState; offer: OfertaParceiro }) {
+  return (
+    <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.045] p-5 transition hover:-translate-y-1 hover:border-tech-neon/40">
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-tech-neon">{getEmpresaName(state, offer.empresa_id)}</p>
+      <h3 className="mt-3 text-2xl font-black tracking-normal text-white">{offer.nome}</h3>
+      <p className="mt-4 min-h-16 text-sm leading-6 text-zinc-400">{offer.descricao}</p>
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <Info label="Normal" value={offer.preco_normal || 'Sob consulta'} />
+        <Info label="TechPass" value={offer.preco_techpass || 'Condição especial'} />
+      </div>
+      <p className="mt-4 text-sm font-black text-tech-neon">{offer.economia || offer.beneficio_extra}</p>
+    </div>
+  );
+}
+
+function ClientDashboardMockup() {
+  const items = [
+    ['Status', 'Ativo'],
+    ['TechCash', 'R$ 68,50'],
+    ['Películas', '4 de 6'],
+    ['Indicações', '3 enviadas'],
+  ];
+  return (
+    <div className="rounded-[1.6rem] border border-black/10 bg-[#10140f] p-4 shadow-2xl shadow-black/20">
+      <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-tech-neon">Meu TechPass</p>
+            <h3 className="mt-2 text-3xl font-black text-white">Maria Eduarda</h3>
+          </div>
+          <Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">Ativo</Pill>
+        </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          {items.map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-black/30 p-4"><p className="text-xs font-bold uppercase text-zinc-500">{label}</p><p className="mt-2 text-2xl font-black text-white">{value}</p></div>)}
+        </div>
+        <div className="mt-5 rounded-2xl bg-tech-neon p-4 text-black">
+          <p className="text-xs font-black uppercase tracking-[0.18em]">Próxima melhor ação</p>
+          <p className="mt-2 text-xl font-black">Solicitar troca de película na TechSoft</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProcessCard({ number, title, text }: { number: string; title: string; text: string }) {
+  return (
+    <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.045] p-6 transition hover:-translate-y-1 hover:border-tech-neon/40">
+      <p className="font-mono text-sm font-black text-tech-neon">{number}</p>
+      <h3 className="mt-5 text-2xl font-black tracking-normal text-white">{title}</h3>
+      <p className="mt-3 text-sm leading-7 text-zinc-400">{text}</p>
+    </div>
+  );
+}
+
+function TestimonialCard({ quote, name, role }: { quote: string; name: string; role: string }) {
+  return (
+    <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.045] p-6">
+      <p className="text-lg font-semibold leading-8 text-white">“{quote}”</p>
+      <div className="mt-6 flex items-center gap-3">
+        <div className="grid h-11 w-11 place-items-center rounded-full bg-tech-neon text-sm font-black text-black">{name.slice(0, 2).toUpperCase()}</div>
+        <div>
+          <p className="font-black text-white">{name}</p>
+          <p className="text-sm text-zinc-500">{role}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FaqList({ items }: { items: string[][] }) {
+  return <div className="mt-10 grid gap-3">{items.map(([question, answer]) => <details key={question} className="group rounded-2xl border border-white/10 bg-white/[0.045] p-5 open:border-tech-neon/35"><summary className="cursor-pointer list-none text-lg font-black text-white">{question}</summary><p className="mt-4 text-sm leading-7 text-zinc-400">{answer}</p></details>)}</div>;
+}
+
+function FinalCta({ eyebrow, title, subtitle, primary, secondary, onPrimary, onSecondary }: { eyebrow: string; title: string; subtitle: string; primary: string; secondary: string; onPrimary: () => void; onSecondary: () => void }) {
+  return (
+    <div className="relative overflow-hidden rounded-[2rem] border border-tech-neon/35 bg-tech-neon p-6 text-black shadow-[0_24px_90px_rgba(141,255,42,0.18)] sm:p-10">
+      <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-black/65">{eyebrow}</p>
+          <h2 className="mt-4 max-w-4xl text-4xl font-black leading-[0.95] tracking-normal sm:text-6xl">{title}</h2>
+          <p className="mt-5 max-w-2xl text-base font-semibold leading-7 text-black/72">{subtitle}</p>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+          <Button className="min-h-12 rounded-full border-black bg-black px-6 text-white hover:bg-zinc-900" onClick={onPrimary}>{primary} <ArrowRight className="h-4 w-4" /></Button>
+          <Button variant="secondary" className="min-h-12 rounded-full border-black/20 bg-black/10 px-6 text-black hover:bg-black hover:text-white" onClick={onSecondary}>{secondary}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PartnerDashboardShowcase() {
+  return (
+    <div className="relative reveal-up lg:delay-150">
+      <div className="relative rounded-[1.7rem] border border-white/12 bg-white/[0.06] p-4 shadow-2xl shadow-black/60 backdrop-blur-2xl">
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div><p className="text-xs font-black uppercase tracking-[0.2em] text-tech-neon">Painel parceiro</p><p className="mt-1 text-2xl font-black text-white">Fight Core</p></div>
+          <Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">12 novos</Pill>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {[
+            ['Leads recebidos', '48'],
+            ['Em negociação', '17'],
+            ['Fechados', '9'],
+            ['Conversão', '18%'],
+          ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-black/30 p-4"><p className="text-xs font-bold uppercase text-zinc-500">{label}</p><p className="mt-2 text-3xl font-black text-white">{value}</p></div>)}
+        </div>
+        <div className="mt-4 rounded-2xl bg-tech-neon p-4 text-black"><p className="text-xs font-black uppercase tracking-[0.18em]">Lead mais recente</p><p className="mt-2 font-black">Plano anual Fight Core · WhatsApp pronto para contato</p></div>
+      </div>
+    </div>
+  );
+}
+
+function PartnerDashboardPreview() {
+  return (
+    <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-4 shadow-2xl shadow-black/30">
+      <div className="grid gap-3 md:grid-cols-3">
+        {['Ofertas ativas', 'Leads novos', 'Cashback pendente'].map((label, index) => <div key={label} className="rounded-2xl border border-white/10 bg-black/35 p-4"><p className="text-xs font-bold uppercase text-zinc-500">{label}</p><p className="mt-2 text-3xl font-black text-white">{index === 0 ? 8 : index === 1 ? 12 : 'R$178'}</p></div>)}
+      </div>
+      <div className="mt-4 rounded-2xl border border-white/10 bg-black/35 p-4">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-tech-neon">Fila comercial</p>
+        {['Maria · Aula grátis Muay Thai', 'Lucas · Plano semestral', 'Ana · Renovação Super Geeks'].map((item) => <div key={item} className="mt-3 flex items-center justify-between rounded-xl bg-white/[0.05] px-3 py-3 text-sm text-zinc-300"><span>{item}</span><span className="font-bold text-tech-neon">novo</span></div>)}
+      </div>
+    </div>
+  );
+}
+
+function PartnerValueCard({ title, text }: { title: string; text: string }) {
+  return <div className="rounded-[1.35rem] border border-black/10 bg-white p-5 shadow-xl shadow-black/5"><h3 className="text-2xl font-black tracking-normal text-[#10140f]">{title}</h3><p className="mt-3 text-sm leading-7 text-[#5b6358]">{text}</p></div>;
+}
+
+function PartnerCaseCard({ title, text }: { title: string; text: string }) {
+  return <div className="rounded-[1.5rem] border border-black/10 bg-white p-6 shadow-xl shadow-black/5"><p className="text-xs font-black uppercase tracking-[0.18em] text-[#5f7f1d]">Caso de uso</p><h3 className="mt-4 text-3xl font-black tracking-normal text-[#10140f]">{title}</h3><p className="mt-4 text-sm leading-7 text-[#5b6358]">{text}</p></div>;
+}
 
 function PublicTechPassPage({ serial, state, actions }: { serial: string; state: AppState; actions: ReturnType<typeof useTechPassStore>['actions'] }) {
   const techpass = state.techpasses.find((item) => item.serial.toLowerCase() === serial.toLowerCase());

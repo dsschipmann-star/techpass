@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Manrope:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Manrope:wght@400;600;700;800&family=Sora:wght@600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,8 +8,9 @@
   color-scheme: dark;
   background: #050505;
   color: #f8faf7;
-  --font-display: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
 * {
@@ -36,6 +37,10 @@ h3 {
   font-family: var(--font-display);
 }
 
+.font-mono {
+  font-family: var(--font-mono);
+}
+
 button, input, select, textarea {
   font: inherit;
 }
@@ -51,4 +56,44 @@ textarea:focus-visible {
 
 .qr-pixelated img {
   image-rendering: pixelated;
+}
+
+.landing-v2 {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 18rem),
+    linear-gradient(135deg, #050607 0%, #080a09 52%, #0f130d 100%);
+}
+
+.premium-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(141, 255, 42, 0.08), transparent 48%);
+  background-size: 80px 80px, 80px 80px, 100% 100%;
+}
+
+.reveal-up {
+  animation: reveal-up 680ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
