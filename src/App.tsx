@@ -101,6 +101,35 @@ const TECHSOFT_BUDGET_INFO = {
   endereco: 'Rua Josué Di Bernardi, 221 - Campinas / São José - SC',
 };
 
+const BUDGET_SERVICE_PRESETS = [
+  { id: 'iphone-11-screen-low', categoria: 'Celular', modelo: 'iPhone 11', peca: 'Tela compatível baixo custo', nome: 'Troca de tela iPhone 11 - peça compatível baixo custo', valor: 390 },
+  { id: 'iphone-11-screen-mid', categoria: 'Celular', modelo: 'iPhone 11', peca: 'Tela compatível premium', nome: 'Troca de tela iPhone 11 - peça compatível premium', valor: 590 },
+  { id: 'iphone-11-screen-high', categoria: 'Celular', modelo: 'iPhone 11', peca: 'Peça original/padrão autorizado', nome: 'Troca de tela iPhone 11 - peça original/premium', valor: 890 },
+  { id: 'iphone-12-screen-low', categoria: 'Celular', modelo: 'iPhone 12/13', peca: 'Tela compatível baixo custo', nome: 'Troca de tela iPhone 12/13 - peça compatível baixo custo', valor: 590 },
+  { id: 'iphone-12-screen-mid', categoria: 'Celular', modelo: 'iPhone 12/13', peca: 'Tela OLED compatível premium', nome: 'Troca de tela iPhone 12/13 - OLED compatível premium', valor: 890 },
+  { id: 'iphone-12-screen-high', categoria: 'Celular', modelo: 'iPhone 12/13', peca: 'Peça original/padrão autorizado', nome: 'Troca de tela iPhone 12/13 - peça original/premium', valor: 1450 },
+  { id: 'samsung-a-screen-low', categoria: 'Celular', modelo: 'Samsung linha A', peca: 'Display compatível baixo custo', nome: 'Troca de display Samsung linha A - compatível baixo custo', valor: 250 },
+  { id: 'samsung-a-screen-mid', categoria: 'Celular', modelo: 'Samsung linha A', peca: 'Display compatível premium', nome: 'Troca de display Samsung linha A - compatível premium', valor: 390 },
+  { id: 'samsung-a-screen-high', categoria: 'Celular', modelo: 'Samsung linha A', peca: 'Display original', nome: 'Troca de display Samsung linha A - peça original', valor: 650 },
+  { id: 'samsung-s-screen-low', categoria: 'Celular', modelo: 'Samsung linha S', peca: 'Display compatível', nome: 'Troca de display Samsung linha S - compatível', valor: 650 },
+  { id: 'samsung-s-screen-mid', categoria: 'Celular', modelo: 'Samsung linha S', peca: 'Display premium', nome: 'Troca de display Samsung linha S - premium', valor: 950 },
+  { id: 'samsung-s-screen-high', categoria: 'Celular', modelo: 'Samsung linha S', peca: 'Display original', nome: 'Troca de display Samsung linha S - peça original', valor: 1500 },
+  { id: 'iphone-battery-low', categoria: 'Celular', modelo: 'iPhone 11/12/13', peca: 'Bateria compatível', nome: 'Troca de bateria iPhone - compatível', valor: 220 },
+  { id: 'iphone-battery-mid', categoria: 'Celular', modelo: 'iPhone 11/12/13', peca: 'Bateria premium', nome: 'Troca de bateria iPhone - premium', valor: 320 },
+  { id: 'iphone-battery-high', categoria: 'Celular', modelo: 'iPhone 11/12/13', peca: 'Bateria original/padrão autorizado', nome: 'Troca de bateria iPhone - original/premium', valor: 490 },
+  { id: 'connector-phone', categoria: 'Celular', modelo: 'iPhone / Samsung / Motorola', peca: 'Conector de carga', nome: 'Troca de conector de carga', valor: 240 },
+  { id: 'diagnostic-phone', categoria: 'Celular', modelo: 'Smartphone', peca: 'Diagnóstico técnico', nome: 'Diagnóstico técnico de smartphone', valor: 60 },
+  { id: 'format-pc', categoria: 'Computador', modelo: 'PC/Notebook', peca: 'Serviço técnico', nome: 'Formatação com backup básico e drivers', valor: 160 },
+  { id: 'ssd-240-low', categoria: 'Computador', modelo: 'Notebook/PC', peca: 'SSD 240GB entrada', nome: 'Upgrade SSD 240GB - peça entrada + instalação', valor: 260 },
+  { id: 'ssd-480-mid', categoria: 'Computador', modelo: 'Notebook/PC', peca: 'SSD 480/512GB intermediário', nome: 'Upgrade SSD 480/512GB - peça intermediária + instalação', valor: 430 },
+  { id: 'ssd-1tb-high', categoria: 'Computador', modelo: 'Notebook/PC', peca: 'SSD 1TB premium', nome: 'Upgrade SSD 1TB - peça premium + instalação', valor: 720 },
+  { id: 'ram-8gb', categoria: 'Computador', modelo: 'Notebook/PC', peca: 'Memória RAM 8GB', nome: 'Upgrade memória RAM 8GB + instalação', valor: 320 },
+  { id: 'ram-16gb', categoria: 'Computador', modelo: 'Notebook/PC', peca: 'Memória RAM 16GB', nome: 'Upgrade memória RAM 16GB + instalação', valor: 520 },
+  { id: 'notebook-clean', categoria: 'Computador', modelo: 'Notebook', peca: 'Limpeza interna', nome: 'Limpeza interna de notebook com troca de pasta térmica', valor: 220 },
+  { id: 'console-clean', categoria: 'Videogame', modelo: 'PS4/PS5/Xbox', peca: 'Limpeza preventiva', nome: 'Limpeza preventiva de videogame', valor: 250 },
+  { id: 'controller-analog', categoria: 'Videogame', modelo: 'Controle PS/Xbox', peca: 'Analógico compatível', nome: 'Troca de analógico de controle', valor: 180 },
+];
+
 const TIPO_LABEL: Record<BeneficioServicoTipo, string> = {
   beneficio: 'Benefício',
   servico_desconto: 'Serviço com desconto',
@@ -521,7 +550,7 @@ function App() {
     return <PartnerArea state={state} actions={actions} navigate={navigate} />;
   }
 
-  return <LandingPage state={state} navigate={navigate} />;
+  return <ShortLandingPage state={state} navigate={navigate} />;
 }
 
 function NotificationsPage({ state, actions, navigate }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; navigate: (path: string) => void }) {
@@ -558,6 +587,106 @@ function NotificationsPage({ state, actions, navigate }: { state: AppState; acti
         </div>
       </div>
     </PublicShell>
+  );
+}
+
+function ShortLandingPage({ state, navigate }: { state: AppState; navigate: (path: string) => void }) {
+  const activePartners = state.empresas.filter((empresa) => empresa.status === 'ativa');
+  const steps = [
+    ['1', 'Escaneie o QR Code', 'Use o QR do voucher ou acesse a tela de ativação pelo botão abaixo.'],
+    ['2', 'Digite o código secreto', 'O código vem no voucher físico e libera o pré-cadastro do cliente.'],
+    ['3', 'Escolha Basic ou Premium', 'Basic ganha 1 película. Premium libera benefícios anuais por R$59,90.'],
+    ['4', 'Finalize na TechSoft', 'Compareça com documento para ativar e usar os benefícios com segurança.'],
+  ];
+  return (
+    <div className="min-h-screen bg-[#050607] text-white">
+      <header className="border-b border-white/10 bg-black/70 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+          <Brand />
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => navigate('/login')}>Entrar</Button>
+            <Button onClick={() => navigate('/techpass/TP-SG-000001')}>Ativar TechPass</Button>
+          </div>
+        </div>
+      </header>
+      <main>
+        <section className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_420px] lg:items-center lg:py-20">
+          <div>
+            <Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">TechSoft Campinas</Pill>
+            <h1 className="mt-6 max-w-3xl text-5xl font-black leading-[0.95] text-white sm:text-7xl">Cadastre seu TechPass em poucos passos.</h1>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-300">Escolha Basic ou Premium, faça o cadastro pelo voucher e finalize a ativação presencialmente na TechSoft.</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button className="min-h-12 rounded-full px-6 text-base" onClick={() => navigate('/techpass/TP-SG-000001')}>Começar cadastro <ArrowRight className="h-4 w-4" /></Button>
+              <Button variant="secondary" className="min-h-12 rounded-full px-6 text-base" onClick={() => navigate('/login')}>Já tenho cadastro</Button>
+            </div>
+            <div className="mt-8 flex flex-wrap gap-3 text-sm text-zinc-300">
+              <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">{activePartners.length || 3} empresas participantes</Pill>
+              <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">Ativação segura na loja</Pill>
+              <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">Dashboard do cliente</Pill>
+            </div>
+          </div>
+          <Card className="border-tech-neon/30 bg-tech-neon/10 p-6">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-tech-neon">Resumo rápido</p>
+            <div className="mt-5 grid gap-3">
+              {steps.map(([number, title, text]) => <div key={number} className="grid grid-cols-[40px_1fr] gap-4 rounded-lg border border-white/10 bg-black/30 p-4"><div className="grid h-10 w-10 place-items-center rounded-full bg-tech-neon font-black text-black">{number}</div><div><h3 className="font-black text-white">{title}</h3><p className="mt-1 text-sm leading-6 text-zinc-300">{text}</p></div></div>)}
+            </div>
+          </Card>
+        </section>
+
+        <section className="border-y border-white/10 bg-[#f5f7ef] text-[#10140f]">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+            <div className="grid gap-5 lg:grid-cols-2">
+              <div className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
+                <p className="text-sm font-black uppercase text-zinc-500">Basic</p>
+                <h2 className="mt-3 text-4xl font-black">Grátis</h2>
+                <p className="mt-3 text-zinc-700">Para quem quer entrar no sistema TechPass e ganhar uma película ao concluir o cadastro.</p>
+                <ul className="mt-6 grid gap-3 text-sm font-semibold text-zinc-800">
+                  <li>1 película para cadastro concluído</li>
+                  <li>Acesso ao dashboard do cliente</li>
+                  <li>Ofertas públicas da rede</li>
+                  <li>Ativação presencial na TechSoft</li>
+                </ul>
+                <Button className="mt-6" onClick={() => navigate('/techpass/TP-SG-000001')}>Cadastrar Basic</Button>
+              </div>
+              <div className="rounded-lg border border-tech-neon bg-[#071006] p-6 text-white shadow-[0_24px_70px_rgba(141,255,42,0.18)]">
+                <p className="text-sm font-black uppercase text-tech-neon">Premium</p>
+                <h2 className="mt-3 text-4xl font-black">R$59,90/ano</h2>
+                <p className="mt-3 text-zinc-300">Para clientes que querem economizar em manutenção e participar das campanhas da Rede TechPass.</p>
+                <ul className="mt-6 grid gap-3 text-sm font-semibold text-zinc-100">
+                  <li>Garantia estendida conforme regra do serviço</li>
+                  <li>Prêmios por indicações aprovadas</li>
+                  <li>Cashback/benefícios em campanhas participantes</li>
+                  <li>30% de desconto no valor da mão de obra</li>
+                </ul>
+                <Button className="mt-6" onClick={() => navigate('/techpass/TP-SG-000001')}>Ativar Premium</Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+          <div className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-tech-neon">Depois do cadastro</p>
+              <h2 className="mt-3 text-4xl font-black">Você acompanha tudo pelo painel.</h2>
+              <p className="mt-3 leading-7 text-zinc-400">Status do plano, benefícios, indicações, ofertas, solicitações e histórico ficam organizados no dashboard do cliente.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Info label="Benefício Basic" value="1 película" />
+              <Info label="Premium anual" value="R$59,90" />
+              <Info label="Mão de obra" value="30% OFF" />
+            </div>
+          </div>
+        </section>
+
+        <footer className="border-t border-white/10 px-4 py-8 sm:px-6">
+          <div className="mx-auto flex max-w-6xl flex-col gap-4 text-sm text-zinc-400 md:flex-row md:items-center md:justify-between">
+            <span>TechSoft Campinas · TechPass Premium</span>
+            <Button variant="secondary" onClick={() => navigate('/parceiros')}>Seja parceiro</Button>
+          </div>
+        </footer>
+      </main>
+    </div>
   );
 }
 
@@ -1824,6 +1953,7 @@ function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnTyp
   const [form, setForm] = useState<BudgetForm>(createEmptyBudgetForm());
   const [items, setItems] = useState<BudgetItemForm[]>([createEmptyBudgetItem(1)]);
   const [selectedId, setSelectedId] = useState(state.budgets[0]?.id ?? '');
+  const [presetId, setPresetId] = useState(BUDGET_SERVICE_PRESETS[0]?.id ?? '');
   const total = items.reduce((sum, item) => sum + (Number(item.quantidade) || 0) * (Number(item.valor_unitario) || 0), 0);
   const selectedBudget = state.budgets.find((item) => item.id === selectedId) ?? null;
 
@@ -1866,6 +1996,19 @@ function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnTyp
     const newId = actions.duplicateBudget(id);
     const duplicated = state.budgets.find((item) => item.id === newId);
     if (duplicated) loadBudget(duplicated);
+  };
+  const addPreset = () => {
+    const preset = BUDGET_SERVICE_PRESETS.find((item) => item.id === presetId);
+    if (!preset) return;
+    const nextItem = {
+      item_numero: items.length + 1,
+      nome: `${preset.nome} | Modelo: ${preset.modelo} | Peça: ${preset.peca}`,
+      quantidade: 1,
+      valor_unitario: preset.valor,
+      subtotal: preset.valor,
+    };
+    const hasBlankOnly = items.length === 1 && !items[0].nome.trim() && Number(items[0].valor_unitario) === 0;
+    setItems(hasBlankOnly ? [nextItem] : [...items, nextItem]);
   };
 
   return (
@@ -1915,6 +2058,13 @@ function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnTyp
               <PageTitle title="Serviços / produtos" subtitle="Adicione quantos itens precisar. Os totais são calculados automaticamente." />
               <Button variant="secondary" onClick={() => setItems([...items, createEmptyBudgetItem(items.length + 1)])}><Plus className="h-4 w-4" />Adicionar item</Button>
             </div>
+            <Card className="mt-4 bg-black/25">
+              <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+                <Field label="Adicionar serviço/modelo/peça pesquisado"><Select value={presetId} onChange={(event) => setPresetId(event.target.value)}>{BUDGET_SERVICE_PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.categoria} · {preset.modelo} · {preset.peca} · {formatMoney(preset.valor)}</option>)}</Select></Field>
+                <Button variant="secondary" onClick={addPreset}><Plus className="h-4 w-4" />Adicionar ao orçamento</Button>
+              </div>
+              <p className="mt-3 text-xs leading-5 text-zinc-500">Valores de referência para orçamento rápido. Ajuste cada item conforme modelo exato, disponibilidade da peça e diagnóstico.</p>
+            </Card>
             <div className="mt-4 grid gap-3">
               {items.map((item, index) => {
                 const subtotal = (Number(item.quantidade) || 0) * (Number(item.valor_unitario) || 0);
