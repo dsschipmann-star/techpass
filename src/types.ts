@@ -30,6 +30,7 @@ export type IndicacaoTechSoftStatus = 'enviada' | 'em_contato' | 'comprou_fechou
 export type NotificationTipo = 'informacao' | 'sucesso' | 'alerta' | 'erro';
 export type TipoUsuario = 'admin' | 'parceiro' | 'cliente';
 export type LogNivel = 'info' | 'warning' | 'error' | 'critical';
+export type BudgetStatus = 'rascunho' | 'enviado' | 'aprovado' | 'recusado' | 'concluido';
 
 export type SolicitacaoStatus =
   | 'nova'
@@ -295,6 +296,40 @@ export interface SystemLog {
   created_at: string;
 }
 
+export interface Budget {
+  id: string;
+  numero: string;
+  data_orcamento: string;
+  previsao_entrega: string;
+  tecnico_responsavel: string;
+  aos_cuidados_de: string;
+  cliente_nome: string;
+  cliente_documento: string;
+  cliente_endereco: string;
+  cliente_cep: string;
+  cliente_cidade: string;
+  cliente_estado: string;
+  cliente_telefone: string;
+  cliente_email: string;
+  garantia_texto: string;
+  subtotal: number;
+  total: number;
+  status: BudgetStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BudgetItem {
+  id: string;
+  budget_id: string;
+  item_numero: number;
+  nome: string;
+  quantidade: number;
+  valor_unitario: number;
+  subtotal: number;
+  created_at: string;
+}
+
 export interface AppState {
   empresas: Empresa[];
   parceiro_usuarios: ParceiroUsuario[];
@@ -315,4 +350,6 @@ export interface AppState {
   techsoft_indicacoes: IndicacaoTechSoft[];
   notifications: NotificationItem[];
   system_logs: SystemLog[];
+  budgets: Budget[];
+  budget_items: BudgetItem[];
 }

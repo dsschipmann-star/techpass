@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { createInitialState } from '../data';
 import { hasSupabaseConfig, supabase } from './supabase';
-import type { AppState, BeneficioServico, CashbackBalance, CashbackMovement, CashbackSetting, CashbackTransaction, Cliente, Empresa, Indicacao, IndicacaoFightCore, IndicacaoTechSoft, LeadParceiro, NotificationItem, OfertaParceiro, ParceiroUsuario, PendingActivation, Solicitacao, SystemLog, TechPass, TechPassStatus, TipoUsuario, Utilizacao } from '../types';
+import type { AppState, BeneficioServico, Budget, BudgetItem, BudgetStatus, CashbackBalance, CashbackMovement, CashbackSetting, CashbackTransaction, Cliente, Empresa, Indicacao, IndicacaoFightCore, IndicacaoTechSoft, LeadParceiro, NotificationItem, OfertaParceiro, ParceiroUsuario, PendingActivation, Solicitacao, SystemLog, TechPass, TechPassStatus, TipoUsuario, Utilizacao } from '../types';
 
 const STORAGE_KEY = 'techpass-premium-state-v2';
 
@@ -24,6 +24,8 @@ function safeParse(value: string | null): AppState | null {
       techsoft_indicacoes: parsed.techsoft_indicacoes ?? [],
       notifications: parsed.notifications ?? createInitialState().notifications,
       system_logs: parsed.system_logs ?? createInitialState().system_logs,
+      budgets: parsed.budgets ?? createInitialState().budgets,
+      budget_items: parsed.budget_items ?? createInitialState().budget_items,
       utilizacoes: (parsed.utilizacoes ?? []).map((item: any) => ({
         empresa_id: item.empresa_id ?? parsed.techpasses?.find((tp) => tp.id === item.techpass_id)?.empresa_id ?? 'emp-techsoft',
         solicitacao_id: item.solicitacao_id ?? null,
@@ -99,7 +101,7 @@ function normalizeOferta(oferta: any): OfertaParceiro {
 
 async function loadSupabaseState(): Promise<AppState | null> {
   if (!supabase) return null;
-  const [empresas, parceiroUsuarios, clientes, techpass, pending, cashback, cashbackSettings, cashbackBalances, cashbackTransactions, indicacoes, utilizacoes, beneficiosServicos, solicitacoes, ofertas, leads, fightCoreIndicacoes, techSoftIndicacoes, notifications, systemLogs] = await Promise.all([
+  const [empresas, parceiroUsuarios, clientes, techpass, pending, cashback, cashbackSettings, cashbackBalances, cashbackTransactions, indicacoes, utilizacoes, beneficiosServicos, solicitacoes, ofertas, leads, fightCoreIndicacoes, techSoftIndicacoes, notifications, systemLogs, budgets, budgetItems] = await Promise.all([
     supabase.from('empresas').select('*').order('created_at', { ascending: false }),
     supabase.from('parceiro_usuarios').select('*').order('created_at', { ascending: false }),
     supabase.from('clientes').select('*').order('created_at', { ascending: false }),
@@ -119,8 +121,10 @@ async function loadSupabaseState(): Promise<AppState | null> {
     supabase.from('techsoft_indicacoes').select('*').order('created_at', { ascending: false }),
     supabase.from('notifications').select('*').order('created_at', { ascending: false }),
     supabase.from('system_logs').select('*').order('created_at', { ascending: false }),
+    supabase.from('budgets').select('*').order('created_at', { ascending: false }),
+    supabase.from('budget_items').select('*').order('item_numero', { ascending: true }),
   ]);
-  const error = empresas.error ?? parceiroUsuarios.error ?? clientes.error ?? techpass.error ?? pending.error ?? cashback.error ?? cashbackSettings.error ?? cashbackBalances.error ?? cashbackTransactions.error ?? indicacoes.error ?? utilizacoes.error ?? beneficiosServicos.error ?? solicitacoes.error ?? ofertas.error ?? leads.error ?? fightCoreIndicacoes.error ?? techSoftIndicacoes.error ?? notifications.error ?? systemLogs.error;
+  const error = empresas.error ?? parceiroUsuarios.error ?? clientes.error ?? techpass.error ?? pending.error ?? cashback.error ?? cashbackSettings.error ?? cashbackBalances.error ?? cashbackTransactions.error ?? indicacoes.error ?? utilizacoes.error ?? beneficiosServicos.error ?? solicitacoes.error ?? ofertas.error ?? leads.error ?? fightCoreIndicacoes.error ?? techSoftIndicacoes.error ?? notifications.error ?? systemLogs.error ?? budgets.error ?? budgetItems.error;
   if (error) throw error;
   return {
     empresas: empresas.data ?? [],
@@ -142,6 +146,8 @@ async function loadSupabaseState(): Promise<AppState | null> {
     techsoft_indicacoes: techSoftIndicacoes.data ?? [],
     notifications: notifications.data ?? [],
     system_logs: systemLogs.data ?? [],
+    budgets: budgets.data ?? [],
+    budget_items: budgetItems.data ?? [],
   };
 }
 
@@ -167,6 +173,8 @@ async function syncSupabaseState(state: AppState) {
     state.techsoft_indicacoes.length ? supabase.from('techsoft_indicacoes').upsert(state.techsoft_indicacoes as any) : null,
     state.notifications.length ? supabase.from('notifications').upsert(state.notifications as any) : null,
     state.system_logs.length ? supabase.from('system_logs').upsert(state.system_logs as any) : null,
+    state.budgets.length ? supabase.from('budgets').upsert(state.budgets as any) : null,
+    state.budget_items.length ? supabase.from('budget_items').upsert(state.budget_items as any) : null,
   ].filter(Boolean);
   const results = await Promise.all(tasks);
   const failed = results.find((result: any) => result.error);
@@ -206,6 +214,30 @@ function upsertBalance(balances: CashbackBalance[], payload: { cliente_id: strin
     limite_maximo: payload.limite_maximo,
     updated_at: now,
   } : item);
+}
+
+function getNextBudgetNumber(budgets: Budget[]) {
+  const year = new Date().getFullYear();
+  const prefix = `TS-${year}-`;
+  const max = budgets
+    .filter((item) => item.numero.startsWith(prefix))
+    .map((item) => Number(item.numero.replace(prefix, '')))
+    .filter(Number.isFinite)
+    .reduce((current, item) => Math.max(current, item), 0);
+  return prefix + String(max + 1).padStart(4, '0');
+}
+
+function normalizeBudgetItems(budgetId: string, items: Array<Omit<BudgetItem, 'id' | 'budget_id' | 'created_at'>>, now: string) {
+  return items.map((item, index) => ({
+    ...item,
+    id: makeId('bitem'),
+    budget_id: budgetId,
+    item_numero: index + 1,
+    quantidade: Math.max(Number(item.quantidade) || 0, 0),
+    valor_unitario: Math.max(Number(item.valor_unitario) || 0, 0),
+    subtotal: Math.max(Number(item.quantidade) || 0, 0) * Math.max(Number(item.valor_unitario) || 0, 0),
+    created_at: now,
+  }));
 }
 
 export function useTechPassStore() {
@@ -780,6 +812,79 @@ export function useTechPassStore() {
       setState((current) => ({
         ...current,
         system_logs: [{ ...payload, id: makeId('log'), created_at: new Date().toISOString() }, ...current.system_logs],
+      }));
+    },
+    saveBudget(payload: Omit<Budget, 'id' | 'numero' | 'subtotal' | 'total' | 'created_at' | 'updated_at'> & { id?: string; numero?: string }, items: Array<Omit<BudgetItem, 'id' | 'budget_id' | 'created_at'>>) {
+      let budgetId = payload.id ?? '';
+      setState((current) => {
+        const now = new Date().toISOString();
+        const existing = payload.id ? current.budgets.find((item) => item.id === payload.id) : null;
+        budgetId = existing?.id ?? makeId('bud');
+        const normalizedItems = normalizeBudgetItems(budgetId, items, now);
+        const total = normalizedItems.reduce((sum, item) => sum + item.subtotal, 0);
+        const budget: Budget = {
+          ...payload,
+          id: budgetId,
+          numero: existing?.numero ?? payload.numero ?? getNextBudgetNumber(current.budgets),
+          subtotal: total,
+          total,
+          created_at: existing?.created_at ?? now,
+          updated_at: now,
+        };
+        return {
+          ...current,
+          budgets: existing ? current.budgets.map((item) => item.id === existing.id ? budget : item) : [budget, ...current.budgets],
+          budget_items: [...normalizedItems, ...current.budget_items.filter((item) => item.budget_id !== budgetId)],
+        };
+      });
+      return budgetId;
+    },
+    deleteBudget(id: string) {
+      setState((current) => ({
+        ...current,
+        budgets: current.budgets.filter((item) => item.id !== id),
+        budget_items: current.budget_items.filter((item) => item.budget_id !== id),
+      }));
+    },
+    duplicateBudget(id: string) {
+      let newId = '';
+      setState((current) => {
+        const budget = current.budgets.find((item) => item.id === id);
+        if (!budget) return current;
+        const now = new Date().toISOString();
+        newId = makeId('bud');
+        const copiedItems = current.budget_items
+          .filter((item) => item.budget_id === id)
+          .map((item) => ({
+            item_numero: item.item_numero,
+            nome: item.nome,
+            quantidade: item.quantidade,
+            valor_unitario: item.valor_unitario,
+            subtotal: item.subtotal,
+          }));
+        const normalizedItems = normalizeBudgetItems(newId, copiedItems, now);
+        const total = normalizedItems.reduce((sum, item) => sum + item.subtotal, 0);
+        return {
+          ...current,
+          budgets: [{
+            ...budget,
+            id: newId,
+            numero: getNextBudgetNumber(current.budgets),
+            status: 'rascunho',
+            subtotal: total,
+            total,
+            created_at: now,
+            updated_at: now,
+          }, ...current.budgets],
+          budget_items: [...normalizedItems, ...current.budget_items],
+        };
+      });
+      return newId;
+    },
+    setBudgetStatus(id: string, status: BudgetStatus) {
+      setState((current) => ({
+        ...current,
+        budgets: current.budgets.map((item) => item.id === id ? { ...item, status, updated_at: new Date().toISOString() } : item),
       }));
     },
   }), []);

@@ -13,11 +13,13 @@ import {
   Download,
   ExternalLink,
   Film,
+  FileText,
   FileWarning,
   Gift,
   Handshake,
   LockKeyhole,
   Plus,
+  Printer,
   QrCode as QrCodeIcon,
   RefreshCw,
   ScanLine,
@@ -25,6 +27,7 @@ import {
   ShieldCheck,
   Sparkles,
   Store,
+  Trash2,
   X,
   UserCheck,
   Users,
@@ -43,14 +46,14 @@ import {
   getTechPassSecret,
   useTechPassStore,
 } from './lib/store';
-import type { AppState, BeneficioServico, BeneficioServicoTipo, CashbackCalculoTipo, CashbackTipo, IndicacaoFightCoreStatus, IndicacaoStatus, IndicacaoTechSoftStatus, LeadParceiro, LeadStatus, LogNivel, NotificationItem, NotificationTipo, OfertaCashbackTipo, OfertaParceiro, OfertaTipo, RecompensaTipo, Solicitacao, SolicitacaoStatus, TechPass, TechPassStatus } from './types';
+import type { AppState, BeneficioServico, BeneficioServicoTipo, Budget, BudgetItem, BudgetStatus, CashbackCalculoTipo, CashbackTipo, IndicacaoFightCoreStatus, IndicacaoStatus, IndicacaoTechSoftStatus, LeadParceiro, LeadStatus, LogNivel, NotificationItem, NotificationTipo, OfertaCashbackTipo, OfertaParceiro, OfertaTipo, RecompensaTipo, Solicitacao, SolicitacaoStatus, TechPass, TechPassStatus } from './types';
 import { Button, Card, Field, Input, Pill, Select, Stat, Textarea, cx } from './components/ui';
 import { QrCode, createQrDataUrl } from './components/QrCode';
 import fightCoreLogo from './assets/fight-core-logo.png';
 import superGeeksLogo from './assets/super-geeks-logo.png';
 import techpassVoucherMockup from './assets/techpass-voucher-mockup.png';
 
-type AdminView = 'dashboard' | 'saude' | 'empresas' | 'techpass' | 'qrcodes' | 'pendentes' | 'ativar' | 'validar' | 'cashback' | 'indicacoes' | 'solicitacoes' | 'beneficios' | 'ofertas' | 'clientes' | 'logs';
+type AdminView = 'dashboard' | 'saude' | 'empresas' | 'techpass' | 'qrcodes' | 'pendentes' | 'ativar' | 'validar' | 'orcamentos' | 'cashback' | 'indicacoes' | 'solicitacoes' | 'beneficios' | 'ofertas' | 'clientes' | 'logs';
 
 const ADMIN_NAV: Array<{ id: AdminView; label: string; icon: typeof Activity }> = [
   { id: 'dashboard', label: 'Dashboard', icon: Activity },
@@ -61,6 +64,7 @@ const ADMIN_NAV: Array<{ id: AdminView; label: string; icon: typeof Activity }> 
   { id: 'pendentes', label: 'Cadastros pendentes', icon: UserCheck },
   { id: 'ativar', label: 'Ativar TechPass', icon: ShieldCheck },
   { id: 'validar', label: 'Validar TechPass', icon: BadgeCheck },
+  { id: 'orcamentos', label: 'Orçamentos em PDF', icon: FileText },
   { id: 'cashback', label: 'Cashback', icon: Wallet },
   { id: 'indicacoes', label: 'Indique e Ganhe', icon: Gift },
   { id: 'solicitacoes', label: 'Solicitações', icon: Store },
@@ -77,6 +81,24 @@ const SOLICITACAO_LABEL: Record<SolicitacaoStatus, string> = {
   atendimento: 'Em atendimento',
   concluida: 'Concluída',
   cancelada: 'Cancelada',
+};
+
+const BUDGET_STATUS_LABEL: Record<BudgetStatus, string> = {
+  rascunho: 'Rascunho',
+  enviado: 'Enviado',
+  aprovado: 'Aprovado',
+  recusado: 'Recusado',
+  concluido: 'Concluído',
+};
+
+const DEFAULT_WARRANTY_TEXT = 'Este serviço possui garantia de 6 meses a partir da data de conclusão.\n\nA garantia não cobre danos causados por mau uso, quedas, oscilações elétricas, líquidos ou intervenção de terceiros.';
+
+const TECHSOFT_BUDGET_INFO = {
+  nome: 'TechSoft Campinas',
+  cnpj: '54.925.863/0001-07',
+  email: 'techsoft.campinas@gmail.com',
+  responsavel: 'Fabiano Oliveira / Matheus Schipmann',
+  endereco: 'Rua Josué Di Bernardi, 221 - Campinas / São José - SC',
 };
 
 const TIPO_LABEL: Record<BeneficioServicoTipo, string> = {
@@ -1245,6 +1267,7 @@ function AdminApp({ state, actions, navigate }: { state: AppState; actions: Retu
           {view === 'pendentes' && <PendentesScreen state={state} actions={actions} />}
           {view === 'ativar' && <PendentesScreen state={state} actions={actions} />}
           {view === 'validar' && <ValidarScreen state={state} actions={actions} />}
+          {view === 'orcamentos' && <BudgetsScreen state={state} actions={actions} />}
           {view === 'cashback' && <CashbackScreen state={state} actions={actions} />}
           {view === 'indicacoes' && <IndicacoesScreen state={state} actions={actions} />}
           {view === 'solicitacoes' && <SolicitacoesScreen state={state} actions={actions} />}
@@ -1633,6 +1656,322 @@ function ValidarScreen({ state, actions }: { state: AppState; actions: ReturnTyp
         <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">{results.map((item) => <button key={item.id} onClick={() => setSelectedId(item.id)} className={cx('rounded-lg border p-4 text-left transition', selected?.id === item.id ? 'border-tech-neon bg-tech-neon/10' : 'border-white/10 bg-black/25 hover:border-tech-neon/50')}><p className="font-mono text-sm font-black text-white">{item.serial}</p><p className="mt-1 text-sm text-zinc-400">{getClientName(state, item.cliente_id)}</p></button>)}</div>
       </Card>
       {selected ? <Card><div className="grid gap-5 xl:grid-cols-[1fr_360px]"><div><div className="flex flex-wrap items-center gap-3"><h3 className="text-2xl font-black text-white">{cliente?.nome ?? 'Cliente'}</h3><StatusPill status={getEffectiveStatus(selected)} /></div><div className="mt-4 grid gap-3 sm:grid-cols-2"><Info label="CPF" value={cliente?.cpf ?? 'Não vinculado'} /><Info label="Empresa" value={getEmpresaName(state, selected.empresa_id)} /><Info label="Validade" value={formatDate(selected.expires_at)} /><Info label="Cashback" value={formatMoney(getCashbackBalance(state, selected.id))} /><Info label="Películas restantes" value={String(selected.peliculas_restantes)} /><Info label="Código de indicação" value={selected.codigo_indicacao ?? cliente?.codigo_indicacao ?? 'Não gerado'} /></div></div><div className="rounded-lg border border-white/10 bg-black/25 p-4"><h4 className="font-black text-white">Ações rápidas</h4><div className="mt-4 grid gap-3"><Field label="Observação"><Input value={obs} onChange={(e) => setObs(e.target.value)} /></Field><Button variant="secondary" onClick={registerFilm}><Film className="h-4 w-4" />Registrar troca de película</Button><Button variant="secondary" onClick={() => actions.registerUso(selected.id, 'Uso de benefício', obs)}><BadgeCheck className="h-4 w-4" />Registrar uso</Button><div className="grid gap-2 sm:grid-cols-[120px_1fr]"><Input type="number" min={0} step="0.01" value={cashValue} onChange={(e) => setCashValue(Number(e.target.value))} /><Input value={cashDesc} onChange={(e) => setCashDesc(e.target.value)} /></div><div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => addCash('credito')}><Plus className="h-4 w-4" />Adicionar cashback</Button><Button variant="secondary" onClick={() => addCash('debito')}><Wallet className="h-4 w-4" />Usar cashback</Button></div>{feedback && <p className="text-sm text-tech-neon">{feedback}</p>}</div></div></div></Card> : <EmptyMessage title="Nenhum TechPass ativo" description="Ative um cadastro pendente para validar benefícios." />}
+    </div>
+  );
+}
+
+type BudgetForm = Omit<Budget, 'id' | 'numero' | 'subtotal' | 'total' | 'created_at' | 'updated_at'> & { id?: string; numero?: string };
+type BudgetItemForm = Omit<BudgetItem, 'id' | 'budget_id' | 'created_at'>;
+
+function createEmptyBudgetForm(): BudgetForm {
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    data_orcamento: today,
+    previsao_entrega: '',
+    tecnico_responsavel: TECHSOFT_BUDGET_INFO.responsavel,
+    aos_cuidados_de: '',
+    cliente_nome: '',
+    cliente_documento: '',
+    cliente_endereco: '',
+    cliente_cep: '',
+    cliente_cidade: 'São José',
+    cliente_estado: 'SC',
+    cliente_telefone: '',
+    cliente_email: '',
+    garantia_texto: DEFAULT_WARRANTY_TEXT,
+    status: 'rascunho',
+  };
+}
+
+function createEmptyBudgetItem(index: number): BudgetItemForm {
+  return { item_numero: index, nome: '', quantidade: 1, valor_unitario: 0, subtotal: 0 };
+}
+
+function budgetStatusClass(status: BudgetStatus) {
+  if (status === 'aprovado' || status === 'concluido') return 'border-tech-neon/40 bg-tech-neon/10 text-tech-neon';
+  if (status === 'recusado') return 'border-red-300/30 bg-red-400/10 text-red-100';
+  if (status === 'enviado') return 'border-sky-300/30 bg-sky-400/10 text-sky-100';
+  return 'border-yellow-300/30 bg-yellow-400/10 text-yellow-100';
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char] ?? char));
+}
+
+function getBudgetItems(state: AppState, budgetId: string) {
+  return state.budget_items.filter((item) => item.budget_id === budgetId).sort((a, b) => a.item_numero - b.item_numero);
+}
+
+function buildBudgetPrintHtml(budget: Budget, items: BudgetItem[], telefone: string) {
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantidade, 0);
+  const rows = items.map((item) => `
+    <tr>
+      <td>${item.item_numero}</td>
+      <td>${escapeHtml(item.nome)}</td>
+      <td class="num">${item.quantidade}</td>
+      <td class="num">${formatMoney(item.valor_unitario)}</td>
+      <td class="num">${formatMoney(item.subtotal)}</td>
+    </tr>
+  `).join('');
+  return `<!doctype html>
+  <html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Orçamento ${escapeHtml(budget.numero)}</title>
+    <style>
+      @page { size: A4; margin: 12mm; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #e5e5e5; color: #111; font-family: Arial, Helvetica, sans-serif; }
+      .sheet { width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; padding: 14mm; }
+      .top { display: grid; grid-template-columns: 96px 1fr 170px; gap: 18px; align-items: center; border-bottom: 2px solid #222; padding-bottom: 14px; }
+      .logo { width: 86px; height: 86px; border-radius: 16px; background: #101010; color: #8dff2a; display: grid; place-items: center; font-size: 30px; font-weight: 900; }
+      h1 { margin: 0; font-size: 24px; letter-spacing: .02em; }
+      .meta { border: 1px solid #999; font-size: 12px; }
+      .meta div { display: grid; grid-template-columns: 74px 1fr; border-bottom: 1px solid #ccc; }
+      .meta div:last-child { border-bottom: 0; }
+      .meta b { background: #eee; padding: 7px; border-right: 1px solid #ccc; }
+      .meta span { padding: 7px; }
+      .muted { margin-top: 4px; color: #444; font-size: 12px; line-height: 1.45; }
+      .section-title { margin-top: 18px; background: #e9e9e9; border: 1px solid #b9b9b9; padding: 8px 10px; font-weight: 800; text-transform: uppercase; font-size: 13px; }
+      .grid { display: grid; grid-template-columns: repeat(2, 1fr); border-left: 1px solid #c9c9c9; border-top: 1px solid #c9c9c9; }
+      .field { min-height: 35px; border-right: 1px solid #c9c9c9; border-bottom: 1px solid #c9c9c9; padding: 7px 9px; font-size: 12px; }
+      .field b { display: block; color: #444; font-size: 10px; text-transform: uppercase; margin-bottom: 3px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 0; font-size: 12px; }
+      th { background: #e9e9e9; border: 1px solid #b9b9b9; padding: 8px; text-align: left; text-transform: uppercase; font-size: 11px; }
+      td { border: 1px solid #c9c9c9; padding: 8px; vertical-align: top; }
+      .num { text-align: right; white-space: nowrap; }
+      .totals { margin-left: auto; width: 260px; border: 1px solid #999; border-top: 0; }
+      .totals div { display: grid; grid-template-columns: 1fr 120px; border-top: 1px solid #ccc; font-size: 13px; }
+      .totals b { background: #eee; padding: 8px; }
+      .totals span { padding: 8px; text-align: right; }
+      .warranty { min-height: 92px; border: 1px solid #c9c9c9; border-top: 0; padding: 10px; white-space: pre-line; font-size: 12px; line-height: 1.5; }
+      .signature { margin-top: 42px; display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: end; }
+      .line { border-top: 1px solid #111; text-align: center; padding-top: 8px; font-size: 12px; }
+      .actions { position: fixed; right: 18px; top: 18px; display: flex; gap: 8px; }
+      .actions button { border: 1px solid #111; background: #111; color: #fff; border-radius: 8px; padding: 10px 12px; font-weight: 700; cursor: pointer; }
+      @media print { body { background: #fff; } .sheet { margin: 0; width: auto; min-height: auto; padding: 0; } .actions { display: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="actions"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
+    <main class="sheet">
+      <header class="top">
+        <div class="logo">TS</div>
+        <div>
+          <h1>${TECHSOFT_BUDGET_INFO.nome}</h1>
+          <p class="muted">
+            CNPJ: ${TECHSOFT_BUDGET_INFO.cnpj}<br />
+            E-mail: ${TECHSOFT_BUDGET_INFO.email}<br />
+            Telefone: ${escapeHtml(telefone || 'Configurar no painel')}<br />
+            Responsável Técnico: ${TECHSOFT_BUDGET_INFO.responsavel}<br />
+            Endereço: ${TECHSOFT_BUDGET_INFO.endereco}
+          </p>
+        </div>
+        <div class="meta">
+          <div><b>Orç.</b><span>${escapeHtml(budget.numero)}</span></div>
+          <div><b>Data</b><span>${formatDate(budget.data_orcamento)}</span></div>
+          <div><b>Entrega</b><span>${formatDate(budget.previsao_entrega)}</span></div>
+          <div><b>Status</b><span>${BUDGET_STATUS_LABEL[budget.status]}</span></div>
+        </div>
+      </header>
+      <div class="section-title">Informações gerais</div>
+      <div class="grid">
+        <div class="field"><b>Técnico responsável</b>${escapeHtml(budget.tecnico_responsavel)}</div>
+        <div class="field"><b>Aos cuidados de</b>${escapeHtml(budget.aos_cuidados_de)}</div>
+      </div>
+      <div class="section-title">Dados do cliente / empresa solicitante</div>
+      <div class="grid">
+        <div class="field"><b>Nome / Razão Social</b>${escapeHtml(budget.cliente_nome)}</div>
+        <div class="field"><b>CPF / CNPJ</b>${escapeHtml(budget.cliente_documento)}</div>
+        <div class="field"><b>Endereço</b>${escapeHtml(budget.cliente_endereco)}</div>
+        <div class="field"><b>CEP</b>${escapeHtml(budget.cliente_cep)}</div>
+        <div class="field"><b>Cidade / Estado</b>${escapeHtml(budget.cliente_cidade)} / ${escapeHtml(budget.cliente_estado)}</div>
+        <div class="field"><b>Telefone</b>${escapeHtml(budget.cliente_telefone)}</div>
+        <div class="field"><b>E-mail</b>${escapeHtml(budget.cliente_email)}</div>
+      </div>
+      <div class="section-title">Serviços / produtos</div>
+      <table>
+        <thead><tr><th style="width:52px">Item</th><th>Nome / descrição</th><th style="width:82px" class="num">Qtd.</th><th style="width:125px" class="num">Valor unit.</th><th style="width:125px" class="num">Subtotal</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="totals">
+        <div><b>Quantidade total</b><span>${totalQuantity}</span></div>
+        <div><b>Total serviços</b><span>${formatMoney(budget.subtotal)}</span></div>
+        <div><b>Total geral</b><span><strong>${formatMoney(budget.total)}</strong></span></div>
+      </div>
+      <div class="section-title">Garantia do serviço</div>
+      <div class="warranty">${escapeHtml(budget.garantia_texto)}</div>
+      <div class="signature">
+        <div class="line">Assinatura do cliente</div>
+        <div class="line">${TECHSOFT_BUDGET_INFO.nome}</div>
+      </div>
+    </main>
+    <script>setTimeout(() => window.print(), 300);</script>
+  </body>
+  </html>`;
+}
+
+function openBudgetPdf(budget: Budget, items: BudgetItem[], telefone: string) {
+  const popup = window.open('', '_blank', 'width=980,height=900');
+  if (!popup) return;
+  popup.document.open();
+  popup.document.write(buildBudgetPrintHtml(budget, items, telefone));
+  popup.document.close();
+}
+
+function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions'] }) {
+  const [telefone, setTelefone] = useState(localStorage.getItem('techsoft-budget-phone') ?? '(48) 99151-2020');
+  const [form, setForm] = useState<BudgetForm>(createEmptyBudgetForm());
+  const [items, setItems] = useState<BudgetItemForm[]>([createEmptyBudgetItem(1)]);
+  const [selectedId, setSelectedId] = useState(state.budgets[0]?.id ?? '');
+  const total = items.reduce((sum, item) => sum + (Number(item.quantidade) || 0) * (Number(item.valor_unitario) || 0), 0);
+  const selectedBudget = state.budgets.find((item) => item.id === selectedId) ?? null;
+
+  const loadBudget = (budget: Budget) => {
+    setSelectedId(budget.id);
+    setForm({ ...budget });
+    setItems(getBudgetItems(state, budget.id).map((item) => ({ item_numero: item.item_numero, nome: item.nome, quantidade: item.quantidade, valor_unitario: item.valor_unitario, subtotal: item.subtotal })));
+  };
+  const resetForm = () => {
+    setSelectedId('');
+    setForm(createEmptyBudgetForm());
+    setItems([createEmptyBudgetItem(1)]);
+  };
+  const save = (status?: BudgetStatus) => {
+    const cleanItems = items.filter((item) => item.nome.trim()).map((item, index) => ({
+      ...item,
+      item_numero: index + 1,
+      quantidade: Number(item.quantidade) || 0,
+      valor_unitario: Number(item.valor_unitario) || 0,
+      subtotal: (Number(item.quantidade) || 0) * (Number(item.valor_unitario) || 0),
+    }));
+    const id = actions.saveBudget({ ...form, id: form.id || selectedId || undefined, status: status ?? form.status }, cleanItems.length ? cleanItems : [createEmptyBudgetItem(1)]);
+    setSelectedId(id);
+    setForm((current) => ({ ...current, id, status: status ?? current.status }));
+    localStorage.setItem('techsoft-budget-phone', telefone);
+  };
+  const printCurrent = () => {
+    const budget = state.budgets.find((item) => item.id === selectedId);
+    if (!budget) {
+      save('rascunho');
+      setTimeout(() => {
+        const saved = state.budgets.find((item) => item.id === selectedId);
+        if (saved) openBudgetPdf(saved, getBudgetItems(state, saved.id), telefone);
+      }, 50);
+      return;
+    }
+    openBudgetPdf(budget, getBudgetItems(state, budget.id), telefone);
+  };
+  const duplicate = (id: string) => {
+    const newId = actions.duplicateBudget(id);
+    const duplicated = state.budgets.find((item) => item.id === newId);
+    if (duplicated) loadBudget(duplicated);
+  };
+
+  return (
+    <div className="grid gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <PageTitle title="Gerador de Orçamentos em PDF" subtitle="Crie orçamentos A4 profissionais da TechSoft, prontos para impressão ou salvar como PDF." />
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={resetForm}><Plus className="h-4 w-4" />Criar orçamento</Button>
+          <Button variant="secondary" onClick={() => save('rascunho')}>Salvar rascunho</Button>
+          <Button variant="secondary" onClick={printCurrent}><Printer className="h-4 w-4" />Gerar PDF / Imprimir</Button>
+        </div>
+      </div>
+      <Card>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Info label="Empresa" value={TECHSOFT_BUDGET_INFO.nome} />
+          <Info label="CNPJ" value={TECHSOFT_BUDGET_INFO.cnpj} />
+          <Info label="E-mail" value={TECHSOFT_BUDGET_INFO.email} />
+          <Field label="Telefone configurável"><Input value={telefone} onChange={(event) => setTelefone(event.target.value)} /></Field>
+        </div>
+        <p className="mt-4 text-sm leading-6 text-zinc-400">Responsável Técnico: {TECHSOFT_BUDGET_INFO.responsavel}. Endereço: {TECHSOFT_BUDGET_INFO.endereco}</p>
+      </Card>
+      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+        <Card>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <Field label="Número do orçamento"><Input value={form.numero ?? (selectedBudget?.numero ?? 'Automático ao salvar')} disabled /></Field>
+            <Field label="Data do orçamento"><Input type="date" value={form.data_orcamento} onChange={(e) => setForm({ ...form, data_orcamento: e.target.value })} /></Field>
+            <Field label="Previsão de entrega"><Input type="date" value={form.previsao_entrega} onChange={(e) => setForm({ ...form, previsao_entrega: e.target.value })} /></Field>
+            <Field label="Status"><Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as BudgetStatus })}>{Object.entries(BUDGET_STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></Field>
+            <Field label="Técnico responsável"><Input value={form.tecnico_responsavel} onChange={(e) => setForm({ ...form, tecnico_responsavel: e.target.value })} /></Field>
+            <Field label="Aos cuidados de"><Input value={form.aos_cuidados_de} onChange={(e) => setForm({ ...form, aos_cuidados_de: e.target.value })} /></Field>
+          </div>
+          <div className="mt-6">
+            <PageTitle title="Cliente / empresa solicitante" subtitle="Dados que aparecerão no bloco principal do orçamento." />
+            <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <Field label="Nome / Razão Social"><Input value={form.cliente_nome} onChange={(e) => setForm({ ...form, cliente_nome: e.target.value })} /></Field>
+              <Field label="CPF / CNPJ"><Input value={form.cliente_documento} onChange={(e) => setForm({ ...form, cliente_documento: e.target.value })} /></Field>
+              <Field label="Endereço"><Input value={form.cliente_endereco} onChange={(e) => setForm({ ...form, cliente_endereco: e.target.value })} /></Field>
+              <Field label="CEP"><Input value={form.cliente_cep} onChange={(e) => setForm({ ...form, cliente_cep: e.target.value })} /></Field>
+              <Field label="Cidade"><Input value={form.cliente_cidade} onChange={(e) => setForm({ ...form, cliente_cidade: e.target.value })} /></Field>
+              <Field label="Estado"><Input value={form.cliente_estado} onChange={(e) => setForm({ ...form, cliente_estado: e.target.value.toUpperCase() })} maxLength={2} /></Field>
+              <Field label="Telefone"><Input value={form.cliente_telefone} onChange={(e) => setForm({ ...form, cliente_telefone: e.target.value })} /></Field>
+              <Field label="E-mail"><Input type="email" value={form.cliente_email} onChange={(e) => setForm({ ...form, cliente_email: e.target.value })} /></Field>
+            </div>
+          </div>
+          <div className="mt-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <PageTitle title="Serviços / produtos" subtitle="Adicione quantos itens precisar. Os totais são calculados automaticamente." />
+              <Button variant="secondary" onClick={() => setItems([...items, createEmptyBudgetItem(items.length + 1)])}><Plus className="h-4 w-4" />Adicionar item</Button>
+            </div>
+            <div className="mt-4 grid gap-3">
+              {items.map((item, index) => {
+                const subtotal = (Number(item.quantidade) || 0) * (Number(item.valor_unitario) || 0);
+                return (
+                  <div key={index} className="grid gap-3 rounded-lg border border-white/10 bg-black/25 p-4 lg:grid-cols-[70px_1fr_110px_150px_140px_auto] lg:items-end">
+                    <Field label="Item"><Input type="number" value={index + 1} disabled /></Field>
+                    <Field label="Nome / descrição"><Input value={item.nome} onChange={(e) => setItems(items.map((row, rowIndex) => rowIndex === index ? { ...row, nome: e.target.value } : row))} /></Field>
+                    <Field label="Qtd."><Input type="number" min={0} step="1" value={item.quantidade} onChange={(e) => setItems(items.map((row, rowIndex) => rowIndex === index ? { ...row, quantidade: Number(e.target.value) } : row))} /></Field>
+                    <Field label="Valor unitário"><Input type="number" min={0} step="0.01" value={item.valor_unitario} onChange={(e) => setItems(items.map((row, rowIndex) => rowIndex === index ? { ...row, valor_unitario: Number(e.target.value) } : row))} /></Field>
+                    <Info label="Subtotal" value={formatMoney(subtotal)} />
+                    <Button variant="danger" onClick={() => setItems(items.filter((_, rowIndex) => rowIndex !== index))} disabled={items.length === 1}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-[1fr_260px]">
+            <Field label="Garantia do serviço"><Textarea value={form.garantia_texto} onChange={(e) => setForm({ ...form, garantia_texto: e.target.value })} /></Field>
+            <Card className="h-max bg-black/25">
+              <Info label="Quantidade total" value={String(items.reduce((sum, item) => sum + (Number(item.quantidade) || 0), 0))} />
+              <div className="mt-3"><Info label="Total de serviços" value={formatMoney(total)} /></div>
+              <div className="mt-3"><Info label="Total geral" value={formatMoney(total)} /></div>
+            </Card>
+          </div>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button onClick={() => save('rascunho')}>Salvar rascunho</Button>
+            <Button variant="secondary" onClick={() => save('enviado')}>Marcar como enviado</Button>
+            <Button variant="secondary" onClick={printCurrent}><Download className="h-4 w-4" />Gerar PDF</Button>
+            <Button variant="secondary" onClick={printCurrent}><Printer className="h-4 w-4" />Imprimir</Button>
+          </div>
+        </Card>
+        <div className="grid h-max gap-4">
+          <Card>
+            <PageTitle title="Orçamentos" subtitle="Editar, duplicar, excluir ou atualizar status." />
+            <div className="mt-4 grid gap-3">
+              {state.budgets.map((budget) => (
+                <div key={budget.id} className={cx('rounded-lg border p-4', selectedId === budget.id ? 'border-tech-neon/40 bg-tech-neon/10' : 'border-white/10 bg-black/25')}>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div><p className="font-black text-white">{budget.numero}</p><p className="mt-1 text-sm text-zinc-400">{budget.cliente_nome || 'Cliente não informado'} · {formatMoney(budget.total)}</p></div>
+                    <Pill className={budgetStatusClass(budget.status)}>{BUDGET_STATUS_LABEL[budget.status]}</Pill>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button variant="secondary" onClick={() => loadBudget(budget)}>Editar</Button>
+                    <Button variant="secondary" onClick={() => openBudgetPdf(budget, getBudgetItems(state, budget.id), telefone)}>PDF</Button>
+                    <Button variant="secondary" onClick={() => duplicate(budget.id)}><Copy className="h-4 w-4" />Duplicar</Button>
+                    <Button variant="danger" onClick={() => actions.deleteBudget(budget.id)}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {(['aprovado', 'recusado', 'concluido'] as BudgetStatus[]).map((status) => <Button key={status} variant="secondary" onClick={() => actions.setBudgetStatus(budget.id, status)}>{BUDGET_STATUS_LABEL[status]}</Button>)}
+                  </div>
+                </div>
+              ))}
+              {state.budgets.length === 0 && <EmptyMessage title="Nenhum orçamento" description="Crie o primeiro orçamento profissional em PDF da TechSoft." />}
+            </div>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

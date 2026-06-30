@@ -195,6 +195,42 @@ on conflict (id) do update set
   valor_compra = excluded.valor_compra,
   gerou_brinde = excluded.gerou_brinde;
 
+insert into budgets (id, numero, data_orcamento, previsao_entrega, tecnico_responsavel, aos_cuidados_de, cliente_nome, cliente_documento, cliente_endereco, cliente_cep, cliente_cidade, cliente_estado, cliente_telefone, cliente_email, garantia_texto, subtotal, total, status)
+values
+  ('bud-0001', 'TS-2026-0001', current_date, null, 'Fabiano Oliveira / Matheus Schipmann', 'Maria Eduarda', 'Maria Eduarda', '123.456.789-10', 'Rua Exemplo, 100', '88101-000', 'Sao Jose', 'SC', '(48) 99999-0000', 'maria@email.com', 'Este servico possui garantia de 6 meses a partir da data de conclusao.
+
+A garantia nao cobre danos causados por mau uso, quedas, oscilacoes eletricas, liquidos ou intervencao de terceiros.', 350, 350, 'rascunho')
+on conflict (id) do update set
+  numero = excluded.numero,
+  data_orcamento = excluded.data_orcamento,
+  previsao_entrega = excluded.previsao_entrega,
+  tecnico_responsavel = excluded.tecnico_responsavel,
+  aos_cuidados_de = excluded.aos_cuidados_de,
+  cliente_nome = excluded.cliente_nome,
+  cliente_documento = excluded.cliente_documento,
+  cliente_endereco = excluded.cliente_endereco,
+  cliente_cep = excluded.cliente_cep,
+  cliente_cidade = excluded.cliente_cidade,
+  cliente_estado = excluded.cliente_estado,
+  cliente_telefone = excluded.cliente_telefone,
+  cliente_email = excluded.cliente_email,
+  garantia_texto = excluded.garantia_texto,
+  subtotal = excluded.subtotal,
+  total = excluded.total,
+  status = excluded.status,
+  updated_at = now();
+
+insert into budget_items (id, budget_id, item_numero, nome, quantidade, valor_unitario, subtotal)
+values
+  ('bitem-0001', 'bud-0001', 1, 'Troca de tela iPhone - mao de obra e componente', 1, 350, 350)
+on conflict (id) do update set
+  budget_id = excluded.budget_id,
+  item_numero = excluded.item_numero,
+  nome = excluded.nome,
+  quantidade = excluded.quantidade,
+  valor_unitario = excluded.valor_unitario,
+  subtotal = excluded.subtotal;
+
 insert into notifications (id, user_id, empresa_id, tipo_usuario, titulo, descricao, tipo, url, lida)
 values
   ('not-cli-ativado', 'cli-maria', null, 'cliente', 'TechPass ativado', 'Seu TechPass esta ativo e pronto para usar na Rede TechPass.', 'sucesso', '/cliente/dashboard', false),

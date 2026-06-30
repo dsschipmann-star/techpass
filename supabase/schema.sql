@@ -334,6 +334,40 @@ create table if not exists system_logs (
   created_at timestamptz not null default now()
 );
 
+create table if not exists budgets (
+  id text primary key default gen_random_uuid()::text,
+  numero text not null unique,
+  data_orcamento date not null default current_date,
+  previsao_entrega date,
+  tecnico_responsavel text not null default '',
+  aos_cuidados_de text not null default '',
+  cliente_nome text not null default '',
+  cliente_documento text not null default '',
+  cliente_endereco text not null default '',
+  cliente_cep text not null default '',
+  cliente_cidade text not null default '',
+  cliente_estado text not null default '',
+  cliente_telefone text not null default '',
+  cliente_email text not null default '',
+  garantia_texto text not null default '',
+  subtotal numeric(10,2) not null default 0,
+  total numeric(10,2) not null default 0,
+  status text not null default 'rascunho' check (status in ('rascunho', 'enviado', 'aprovado', 'recusado', 'concluido')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists budget_items (
+  id text primary key default gen_random_uuid()::text,
+  budget_id text not null references budgets(id) on delete cascade,
+  item_numero integer not null,
+  nome text not null default '',
+  quantidade numeric(10,2) not null default 0,
+  valor_unitario numeric(10,2) not null default 0,
+  subtotal numeric(10,2) not null default 0,
+  created_at timestamptz not null default now()
+);
+
 create unique index if not exists techpass_cliente_ativo_pendente_unique
   on techpass(cliente_id)
   where cliente_id is not null and status in ('ATIVO', 'PENDENTE_ATIVACAO');
@@ -369,6 +403,10 @@ create index if not exists idx_notifications_empresa on notifications(empresa_id
 create index if not exists idx_notifications_lida on notifications(lida);
 create index if not exists idx_system_logs_nivel on system_logs(nivel);
 create index if not exists idx_system_logs_created_at on system_logs(created_at);
+create index if not exists idx_budgets_numero on budgets(numero);
+create index if not exists idx_budgets_status on budgets(status);
+create index if not exists idx_budgets_created_at on budgets(created_at);
+create index if not exists idx_budget_items_budget on budget_items(budget_id);
 
 -- MVP: por padrão, RLS pode ficar desabilitado durante testes.
 -- Antes de produção, habilite Supabase Auth, RLS e políticas separando página pública e painel administrativo.
