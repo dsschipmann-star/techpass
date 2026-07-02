@@ -604,6 +604,7 @@ function ShortLandingPage({ state, navigate }: { state: AppState; navigate: (pat
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <Brand />
           <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => navigate('/admin')}>Admin</Button>
             <Button variant="ghost" onClick={() => navigate('/login')}>Entrar</Button>
             <Button onClick={() => navigate('/techpass/TP-SG-000001')}>Ativar TechPass</Button>
           </div>
@@ -620,6 +621,7 @@ function ShortLandingPage({ state, navigate }: { state: AppState; navigate: (pat
               <Button variant="secondary" className="min-h-12 rounded-full px-6 text-base" onClick={() => navigate('/login')}>Já tenho cadastro</Button>
             </div>
             <div className="mt-8 flex flex-wrap gap-3 text-sm text-zinc-300">
+              <Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">Versão: Basic/Premium + Orçamentos PDF</Pill>
               <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">{activePartners.length || 3} empresas participantes</Pill>
               <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">Ativação segura na loja</Pill>
               <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">Dashboard do cliente</Pill>
