@@ -1852,43 +1852,45 @@ function buildBudgetPrintHtml(budget: Budget, items: BudgetItem[], telefone: str
     <meta charset="utf-8" />
     <title>Orçamento ${escapeHtml(budget.numero)}</title>
     <style>
-      @page { size: A4; margin: 10mm; }
+      @page { size: A4; margin: 8mm; }
       * { box-sizing: border-box; }
       body { margin: 0; background: #e9e9e9; color: #111; font-family: Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .sheet { width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; padding: 12mm 14mm 13mm; }
-      .docbar { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; margin-bottom: 14px; font-size: 10px; color: #111; }
+      .sheet { width: 190mm; min-height: auto; margin: 0 auto; background: #fff; padding: 9mm 10mm 10mm; }
+      .docbar { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; margin-bottom: 8px; font-size: 9px; color: #111; }
       .docbar .center { text-align: center; }
-      .top { display: grid; grid-template-columns: 104px 1fr 162px; gap: 10px; align-items: center; border-bottom: 2px solid #2f2f2f; padding-bottom: 18px; }
-      .logo { width: 100px; height: 100px; border: 1px solid #222; background: #000; object-fit: contain; display: block; }
-      h1 { margin: 0 0 6px; font-size: 24px; line-height: 1.05; letter-spacing: .01em; }
-      .meta { border: 1px solid #b8b8b8; font-size: 12px; align-self: start; }
-      .meta div { display: grid; grid-template-columns: 70px 1fr; border-bottom: 1px solid #d2d2d2; min-height: 28px; }
+      .top { display: grid; grid-template-columns: 86px 1fr 154px; gap: 9px; align-items: center; border-bottom: 2px solid #2f2f2f; padding-bottom: 10px; }
+      .logo { width: 82px; height: 82px; border: 1px solid #222; background: #000; object-fit: contain; display: block; }
+      h1 { margin: 0 0 5px; font-size: 22px; line-height: 1.05; letter-spacing: .01em; }
+      .meta { border: 1px solid #b8b8b8; font-size: 11px; align-self: start; }
+      .meta div { display: grid; grid-template-columns: 64px 1fr; border-bottom: 1px solid #d2d2d2; min-height: 26px; }
       .meta div:last-child { border-bottom: 0; }
-      .meta b { background: #f2f2f2; padding: 7px 8px; border-right: 1px solid #d2d2d2; }
-      .meta span { padding: 7px 8px; }
-      .muted { margin: 0; color: #333; font-size: 12px; line-height: 1.5; }
-      .section-title { margin-top: 18px; background: #f4f4f4; border: 1px solid #c9c9c9; padding: 9px 10px; font-weight: 800; font-style: italic; text-transform: uppercase; font-size: 13px; }
+      .meta b { background: #f2f2f2; padding: 6px 7px; border-right: 1px solid #d2d2d2; }
+      .meta span { padding: 6px 7px; }
+      .muted { margin: 0; color: #333; font-size: 11px; line-height: 1.35; }
+      .section-title { margin-top: 12px; background: #f4f4f4; border: 1px solid #c9c9c9; padding: 7px 9px; font-weight: 800; font-style: italic; text-transform: uppercase; font-size: 12px; }
       .grid { display: grid; grid-template-columns: repeat(2, 1fr); border-left: 1px solid #c9c9c9; border-top: 1px solid #c9c9c9; }
-      .field { min-height: 38px; border-right: 1px solid #c9c9c9; border-bottom: 1px solid #c9c9c9; padding: 7px 9px; font-size: 12px; }
-      .field b { display: block; color: #333; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; }
-      table { width: 100%; border-collapse: collapse; margin-top: 0; font-size: 12px; }
-      th { background: #f4f4f4; border: 1px solid #b9b9b9; padding: 8px; text-align: left; text-transform: uppercase; font-size: 11px; }
-      td { border: 1px solid #c9c9c9; padding: 8px; vertical-align: top; }
+      .field { min-height: 32px; border-right: 1px solid #c9c9c9; border-bottom: 1px solid #c9c9c9; padding: 5px 8px; font-size: 11px; }
+      .field b { display: block; color: #333; font-size: 9px; text-transform: uppercase; margin-bottom: 3px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 0; font-size: 11px; }
+      th { background: #f4f4f4; border: 1px solid #b9b9b9; padding: 6px 7px; text-align: left; text-transform: uppercase; font-size: 10px; }
+      td { border: 1px solid #c9c9c9; padding: 6px 7px; vertical-align: top; }
       .num { text-align: right; white-space: nowrap; }
       .totals { margin-left: auto; width: 260px; border: 1px solid #999; border-top: 0; }
-      .totals div { display: grid; grid-template-columns: 1fr 120px; border-top: 1px solid #ccc; font-size: 13px; }
-      .totals b { background: #f2f2f2; padding: 8px; }
-      .totals span { padding: 8px; text-align: right; }
-      .warranty { min-height: 92px; border: 1px solid #c9c9c9; border-top: 0; padding: 10px; white-space: pre-line; font-size: 12px; line-height: 1.5; }
-      .signature { margin-top: 42px; display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: end; }
-      .line { border-top: 1px solid #111; text-align: center; padding-top: 8px; font-size: 12px; }
+      .totals div { display: grid; grid-template-columns: 1fr 110px; border-top: 1px solid #ccc; font-size: 12px; }
+      .totals b { background: #f2f2f2; padding: 6px 8px; }
+      .totals span { padding: 6px 8px; text-align: right; }
+      .warranty { min-height: 58px; border: 1px solid #c9c9c9; border-top: 0; padding: 7px 9px; white-space: pre-line; font-size: 11px; line-height: 1.3; }
+      .signature { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: end; break-inside: avoid; page-break-inside: avoid; }
+      .line { border-top: 1px solid #111; text-align: center; padding-top: 6px; font-size: 11px; }
       .actions { position: fixed; right: 18px; top: 18px; display: flex; gap: 8px; }
       .actions button { border: 1px solid #111; background: #111; color: #fff; border-radius: 8px; padding: 10px 12px; font-weight: 700; cursor: pointer; }
-      @media print { body { background: #fff; } .sheet { margin: 0; width: auto; min-height: auto; padding: 0; } .actions { display: none; } }
+      .hint { position: fixed; right: 18px; top: 64px; max-width: 260px; border-radius: 8px; background: #fff; border: 1px solid #bbb; padding: 10px; font-size: 12px; line-height: 1.35; color: #222; }
+      @media print { body { background: #fff; } .sheet { width: auto; min-height: 0; margin: 0; padding: 0; } .actions, .hint { display: none; } }
     </style>
   </head>
   <body>
     <div class="actions"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
+    <div class="hint">Se aparecer segunda página em branco, selecione margens "Nenhuma" ou "Mínimas" na janela de impressão.</div>
     <main class="sheet">
       <div class="docbar">
         <span>${escapeHtml(generatedAt)}</span>
