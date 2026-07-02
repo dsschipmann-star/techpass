@@ -51,6 +51,7 @@ import { Button, Card, Field, Input, Pill, Select, Stat, Textarea, cx } from './
 import { QrCode, createQrDataUrl } from './components/QrCode';
 import fightCoreLogo from './assets/fight-core-logo.png';
 import superGeeksLogo from './assets/super-geeks-logo.png';
+import techsoftLogo from './assets/techsoft-logo.png';
 import techpassVoucherMockup from './assets/techpass-voucher-mockup.png';
 
 type AdminView = 'dashboard' | 'saude' | 'empresas' | 'techpass' | 'qrcodes' | 'pendentes' | 'ativar' | 'validar' | 'orcamentos' | 'cashback' | 'indicacoes' | 'solicitacoes' | 'beneficios' | 'ofertas' | 'clientes' | 'logs';
@@ -1835,6 +1836,7 @@ function getBudgetItems(state: AppState, budgetId: string) {
 
 function buildBudgetPrintHtml(budget: Budget, items: BudgetItem[], telefone: string) {
   const totalQuantity = items.reduce((sum, item) => sum + item.quantidade, 0);
+  const generatedAt = formatDateTime(new Date().toISOString());
   const rows = items.map((item) => `
     <tr>
       <td>${item.item_numero}</td>
@@ -1850,30 +1852,32 @@ function buildBudgetPrintHtml(budget: Budget, items: BudgetItem[], telefone: str
     <meta charset="utf-8" />
     <title>Orçamento ${escapeHtml(budget.numero)}</title>
     <style>
-      @page { size: A4; margin: 12mm; }
+      @page { size: A4; margin: 10mm; }
       * { box-sizing: border-box; }
-      body { margin: 0; background: #e5e5e5; color: #111; font-family: Arial, Helvetica, sans-serif; }
-      .sheet { width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; padding: 14mm; }
-      .top { display: grid; grid-template-columns: 96px 1fr 170px; gap: 18px; align-items: center; border-bottom: 2px solid #222; padding-bottom: 14px; }
-      .logo { width: 86px; height: 86px; border-radius: 16px; background: #101010; color: #8dff2a; display: grid; place-items: center; font-size: 30px; font-weight: 900; }
-      h1 { margin: 0; font-size: 24px; letter-spacing: .02em; }
-      .meta { border: 1px solid #999; font-size: 12px; }
-      .meta div { display: grid; grid-template-columns: 74px 1fr; border-bottom: 1px solid #ccc; }
+      body { margin: 0; background: #e9e9e9; color: #111; font-family: Arial, Helvetica, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .sheet { width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; padding: 12mm 14mm 13mm; }
+      .docbar { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; margin-bottom: 14px; font-size: 10px; color: #111; }
+      .docbar .center { text-align: center; }
+      .top { display: grid; grid-template-columns: 104px 1fr 162px; gap: 10px; align-items: center; border-bottom: 2px solid #2f2f2f; padding-bottom: 18px; }
+      .logo { width: 100px; height: 100px; border: 1px solid #222; background: #000; object-fit: contain; display: block; }
+      h1 { margin: 0 0 6px; font-size: 24px; line-height: 1.05; letter-spacing: .01em; }
+      .meta { border: 1px solid #b8b8b8; font-size: 12px; align-self: start; }
+      .meta div { display: grid; grid-template-columns: 70px 1fr; border-bottom: 1px solid #d2d2d2; min-height: 28px; }
       .meta div:last-child { border-bottom: 0; }
-      .meta b { background: #eee; padding: 7px; border-right: 1px solid #ccc; }
-      .meta span { padding: 7px; }
-      .muted { margin-top: 4px; color: #444; font-size: 12px; line-height: 1.45; }
-      .section-title { margin-top: 18px; background: #e9e9e9; border: 1px solid #b9b9b9; padding: 8px 10px; font-weight: 800; text-transform: uppercase; font-size: 13px; }
+      .meta b { background: #f2f2f2; padding: 7px 8px; border-right: 1px solid #d2d2d2; }
+      .meta span { padding: 7px 8px; }
+      .muted { margin: 0; color: #333; font-size: 12px; line-height: 1.5; }
+      .section-title { margin-top: 18px; background: #f4f4f4; border: 1px solid #c9c9c9; padding: 9px 10px; font-weight: 800; font-style: italic; text-transform: uppercase; font-size: 13px; }
       .grid { display: grid; grid-template-columns: repeat(2, 1fr); border-left: 1px solid #c9c9c9; border-top: 1px solid #c9c9c9; }
-      .field { min-height: 35px; border-right: 1px solid #c9c9c9; border-bottom: 1px solid #c9c9c9; padding: 7px 9px; font-size: 12px; }
-      .field b { display: block; color: #444; font-size: 10px; text-transform: uppercase; margin-bottom: 3px; }
+      .field { min-height: 38px; border-right: 1px solid #c9c9c9; border-bottom: 1px solid #c9c9c9; padding: 7px 9px; font-size: 12px; }
+      .field b { display: block; color: #333; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; }
       table { width: 100%; border-collapse: collapse; margin-top: 0; font-size: 12px; }
-      th { background: #e9e9e9; border: 1px solid #b9b9b9; padding: 8px; text-align: left; text-transform: uppercase; font-size: 11px; }
+      th { background: #f4f4f4; border: 1px solid #b9b9b9; padding: 8px; text-align: left; text-transform: uppercase; font-size: 11px; }
       td { border: 1px solid #c9c9c9; padding: 8px; vertical-align: top; }
       .num { text-align: right; white-space: nowrap; }
       .totals { margin-left: auto; width: 260px; border: 1px solid #999; border-top: 0; }
       .totals div { display: grid; grid-template-columns: 1fr 120px; border-top: 1px solid #ccc; font-size: 13px; }
-      .totals b { background: #eee; padding: 8px; }
+      .totals b { background: #f2f2f2; padding: 8px; }
       .totals span { padding: 8px; text-align: right; }
       .warranty { min-height: 92px; border: 1px solid #c9c9c9; border-top: 0; padding: 10px; white-space: pre-line; font-size: 12px; line-height: 1.5; }
       .signature { margin-top: 42px; display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: end; }
@@ -1886,8 +1890,13 @@ function buildBudgetPrintHtml(budget: Budget, items: BudgetItem[], telefone: str
   <body>
     <div class="actions"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
     <main class="sheet">
+      <div class="docbar">
+        <span>${escapeHtml(generatedAt)}</span>
+        <span class="center">Orçamento ${escapeHtml(budget.numero)}</span>
+        <span></span>
+      </div>
       <header class="top">
-        <div class="logo">TS</div>
+        <img class="logo" src="${techsoftLogo}" alt="Logo TechSoft" />
         <div>
           <h1>${TECHSOFT_BUDGET_INFO.nome}</h1>
           <p class="muted">
