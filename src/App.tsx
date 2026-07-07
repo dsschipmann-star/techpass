@@ -1794,6 +1794,23 @@ function ValidarScreen({ state, actions }: { state: AppState; actions: ReturnTyp
 
 type BudgetForm = Omit<Budget, 'id' | 'numero' | 'subtotal' | 'total' | 'created_at' | 'updated_at'> & { id?: string; numero?: string };
 type BudgetItemForm = Omit<BudgetItem, 'id' | 'budget_id' | 'created_at'>;
+type CnpjLookupStatus = 'idle' | 'loading' | 'success' | 'error';
+
+interface BrasilApiCnpjResponse {
+  cnpj?: string;
+  razao_social?: string;
+  nome_fantasia?: string;
+  cep?: string;
+  municipio?: string;
+  uf?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  ddd_telefone_1?: string;
+  ddd_telefone_2?: string;
+  email?: string;
+}
 
 function createEmptyBudgetForm(): BudgetForm {
   const today = new Date().toISOString().slice(0, 10);
@@ -1817,6 +1834,36 @@ function createEmptyBudgetForm(): BudgetForm {
 
 function createEmptyBudgetItem(index: number): BudgetItemForm {
   return { item_numero: index, nome: '', quantidade: 1, valor_unitario: 0, subtotal: 0 };
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, '');
+}
+
+function formatCnpj(value: string) {
+  const digits = onlyDigits(value).slice(0, 14);
+  return digits
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2');
+}
+
+function formatCep(value = '') {
+  const digits = onlyDigits(value).slice(0, 8);
+  return digits.replace(/^(\d{5})(\d)/, '$1-$2');
+}
+
+function formatCnpjPhone(data: BrasilApiCnpjResponse) {
+  const phone = data.ddd_telefone_1 || data.ddd_telefone_2 || '';
+  const digits = onlyDigits(phone);
+  if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  if (digits.length === 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  return phone;
+}
+
+function formatCnpjAddress(data: BrasilApiCnpjResponse) {
+  return [data.logradouro, data.numero, data.complemento, data.bairro].filter(Boolean).join(', ');
 }
 
 function budgetStatusClass(status: BudgetStatus) {
@@ -1967,6 +2014,8 @@ function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnTyp
   const [items, setItems] = useState<BudgetItemForm[]>([createEmptyBudgetItem(1)]);
   const [selectedId, setSelectedId] = useState(state.budgets[0]?.id ?? '');
   const [presetId, setPresetId] = useState(BUDGET_SERVICE_PRESETS[0]?.id ?? '');
+  const [cnpjLookupStatus, setCnpjLookupStatus] = useState<CnpjLookupStatus>('idle');
+  const [cnpjLookupMessage, setCnpjLookupMessage] = useState('');
   const total = items.reduce((sum, item) => sum + (Number(item.quantidade) || 0) * (Number(item.valor_unitario) || 0), 0);
   const selectedBudget = state.budgets.find((item) => item.id === selectedId) ?? null;
 
@@ -2023,6 +2072,37 @@ function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnTyp
     const hasBlankOnly = items.length === 1 && !items[0].nome.trim() && Number(items[0].valor_unitario) === 0;
     setItems(hasBlankOnly ? [nextItem] : [...items, nextItem]);
   };
+  const lookupCnpj = async () => {
+    const cnpj = onlyDigits(form.cliente_documento);
+    if (cnpj.length !== 14) {
+      setCnpjLookupStatus('error');
+      setCnpjLookupMessage('Informe um CNPJ com 14 digitos para buscar os dados da empresa.');
+      return;
+    }
+    setCnpjLookupStatus('loading');
+    setCnpjLookupMessage('Consultando dados cadastrais...');
+    try {
+      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+      if (!response.ok) throw new Error(response.status === 404 ? 'CNPJ nao encontrado.' : 'Nao foi possivel consultar este CNPJ agora.');
+      const data = await response.json() as BrasilApiCnpjResponse;
+      setForm((current) => ({
+        ...current,
+        cliente_nome: data.razao_social || data.nome_fantasia || current.cliente_nome,
+        cliente_documento: formatCnpj(data.cnpj || cnpj),
+        cliente_endereco: formatCnpjAddress(data) || current.cliente_endereco,
+        cliente_cep: formatCep(data.cep || current.cliente_cep),
+        cliente_cidade: data.municipio || current.cliente_cidade,
+        cliente_estado: (data.uf || current.cliente_estado).toUpperCase(),
+        cliente_telefone: formatCnpjPhone(data) || current.cliente_telefone,
+        cliente_email: data.email?.toLowerCase() || current.cliente_email,
+      }));
+      setCnpjLookupStatus('success');
+      setCnpjLookupMessage('Dados da empresa preenchidos para o orcamento e NF.');
+    } catch (error) {
+      setCnpjLookupStatus('error');
+      setCnpjLookupMessage(error instanceof Error ? error.message : 'Nao foi possivel consultar este CNPJ agora.');
+    }
+  };
 
   return (
     <div className="grid gap-6">
@@ -2057,7 +2137,28 @@ function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnTyp
             <PageTitle title="Cliente / empresa solicitante" subtitle="Dados que aparecerão no bloco principal do orçamento." />
             <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <Field label="Nome / Razão Social"><Input value={form.cliente_nome} onChange={(e) => setForm({ ...form, cliente_nome: e.target.value })} /></Field>
-              <Field label="CPF / CNPJ"><Input value={form.cliente_documento} onChange={(e) => setForm({ ...form, cliente_documento: e.target.value })} /></Field>
+              <Field label="CPF / CNPJ">
+                <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                  <Input
+                    value={form.cliente_documento}
+                    onChange={(e) => {
+                      setForm({ ...form, cliente_documento: e.target.value });
+                      setCnpjLookupStatus('idle');
+                      setCnpjLookupMessage('');
+                    }}
+                    onBlur={() => {
+                      if (onlyDigits(form.cliente_documento).length === 14) {
+                        setForm((current) => ({ ...current, cliente_documento: formatCnpj(current.cliente_documento) }));
+                      }
+                    }}
+                    placeholder="Digite CPF ou CNPJ"
+                  />
+                  <Button variant="secondary" onClick={lookupCnpj} disabled={cnpjLookupStatus === 'loading'}>
+                    <Search className="h-4 w-4" />{cnpjLookupStatus === 'loading' ? 'Buscando' : 'Buscar CNPJ'}
+                  </Button>
+                </div>
+                {cnpjLookupMessage && <p className={cx('mt-2 text-xs leading-5', cnpjLookupStatus === 'success' ? 'text-tech-neon' : 'text-yellow-100')}>{cnpjLookupMessage}</p>}
+              </Field>
               <Field label="Endereço"><Input value={form.cliente_endereco} onChange={(e) => setForm({ ...form, cliente_endereco: e.target.value })} /></Field>
               <Field label="CEP"><Input value={form.cliente_cep} onChange={(e) => setForm({ ...form, cliente_cep: e.target.value })} /></Field>
               <Field label="Cidade"><Input value={form.cliente_cidade} onChange={(e) => setForm({ ...form, cliente_cidade: e.target.value })} /></Field>
