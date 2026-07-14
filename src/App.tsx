@@ -2376,13 +2376,13 @@ function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnTyp
               {items.map((item, index) => {
                 const subtotal = (Number(item.quantidade) || 0) * (Number(item.valor_unitario) || 0);
                 return (
-                  <div key={index} className="grid gap-3 rounded-lg border border-white/10 bg-black/25 p-4 lg:grid-cols-[70px_1fr_110px_150px_140px_auto] lg:items-end">
+                  <div key={index} className="grid min-w-0 gap-3 rounded-lg border border-white/10 bg-black/25 p-4 sm:grid-cols-2 xl:grid-cols-[64px_minmax(220px,1fr)_88px_132px_132px_52px] xl:items-end">
                     <Field label="Item"><Input type="number" value={index + 1} disabled /></Field>
-                    <Field label="Nome / descrição"><Input value={item.nome} onChange={(e) => setItems(items.map((row, rowIndex) => rowIndex === index ? { ...row, nome: e.target.value } : row))} /></Field>
+                    <Field label="Nome / descrição" className="sm:col-span-2 xl:col-span-1"><Input value={item.nome} onChange={(e) => setItems(items.map((row, rowIndex) => rowIndex === index ? { ...row, nome: e.target.value } : row))} /></Field>
                     <Field label="Qtd."><Input type="number" min={0} step="1" value={item.quantidade} onChange={(e) => setItems(items.map((row, rowIndex) => rowIndex === index ? { ...row, quantidade: Number(e.target.value) } : row))} /></Field>
                     <Field label="Valor unitário"><Input type="number" min={0} step="0.01" value={item.valor_unitario} onChange={(e) => setItems(items.map((row, rowIndex) => rowIndex === index ? { ...row, valor_unitario: Number(e.target.value) } : row))} /></Field>
-                    <Info label="Subtotal" value={formatMoney(subtotal)} />
-                    <Button variant="danger" onClick={() => setItems(items.filter((_, rowIndex) => rowIndex !== index))} disabled={items.length === 1}><Trash2 className="h-4 w-4" /></Button>
+                    <div className="min-w-0"><Info label="Subtotal" value={formatMoney(subtotal)} /></div>
+                    <Button variant="danger" className="h-11 w-full px-3 xl:w-11" onClick={() => setItems(items.filter((_, rowIndex) => rowIndex !== index))} disabled={items.length === 1}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 );
               })}

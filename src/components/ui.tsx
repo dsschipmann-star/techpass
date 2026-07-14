@@ -31,7 +31,7 @@ export function Button({ children, className, variant = 'primary', ...props }: B
 
 export function Field({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <label className={cx('grid gap-2 text-sm text-zinc-300', className)}>
+    <label className={cx('grid min-w-0 gap-2 text-sm text-zinc-300', className)}>
       <span>{label}</span>
       {children}
     </label>
@@ -39,15 +39,15 @@ export function Field({ label, children, className }: { label: string; children:
 }
 
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className="min-h-11 w-full rounded-md border border-white/10 bg-black/40 px-3 text-white placeholder:text-zinc-500" {...props} />;
+  return <input className="min-h-11 w-full min-w-0 rounded-md border border-white/10 bg-black/40 px-3 text-white placeholder:text-zinc-500" {...props} />;
 }
 
 export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className="min-h-11 w-full rounded-md border border-white/10 bg-black/40 px-3 text-white" {...props} />;
+  return <select className="min-h-11 w-full min-w-0 rounded-md border border-white/10 bg-black/40 px-3 text-white" {...props} />;
 }
 
 export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className="min-h-24 w-full rounded-md border border-white/10 bg-black/40 px-3 py-3 text-white placeholder:text-zinc-500" {...props} />;
+  return <textarea className="min-h-24 w-full min-w-0 rounded-md border border-white/10 bg-black/40 px-3 py-3 text-white placeholder:text-zinc-500" {...props} />;
 }
 
 export function Pill({ children, className }: { children: ReactNode; className?: string }) {
