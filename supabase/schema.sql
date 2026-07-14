@@ -349,6 +349,12 @@ create table if not exists budgets (
   cliente_estado text not null default '',
   cliente_telefone text not null default '',
   cliente_email text not null default '',
+  device_id text not null default '',
+  device_modelo text not null default '',
+  device_serial text not null default '',
+  device_specs text not null default '',
+  device_image_url text not null default '',
+  public_notes text not null default '',
   garantia_texto text not null default '',
   subtotal numeric(10,2) not null default 0,
   total numeric(10,2) not null default 0,
@@ -365,8 +371,21 @@ create table if not exists budget_items (
   quantidade numeric(10,2) not null default 0,
   valor_unitario numeric(10,2) not null default 0,
   subtotal numeric(10,2) not null default 0,
+  tipo text not null default 'servico' check (tipo in ('servico', 'peca')),
+  disponibilidade text not null default 'pronta_entrega' check (disponibilidade in ('pronta_entrega', 'encomenda', 'mercado_livre')),
+  fornecedor_url text not null default '',
   created_at timestamptz not null default now()
 );
+
+alter table budgets add column if not exists device_id text not null default '';
+alter table budgets add column if not exists device_modelo text not null default '';
+alter table budgets add column if not exists device_serial text not null default '';
+alter table budgets add column if not exists device_specs text not null default '';
+alter table budgets add column if not exists device_image_url text not null default '';
+alter table budgets add column if not exists public_notes text not null default '';
+alter table budget_items add column if not exists tipo text not null default 'servico';
+alter table budget_items add column if not exists disponibilidade text not null default 'pronta_entrega';
+alter table budget_items add column if not exists fornecedor_url text not null default '';
 
 create unique index if not exists techpass_cliente_ativo_pendente_unique
   on techpass(cliente_id)

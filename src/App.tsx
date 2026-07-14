@@ -47,7 +47,7 @@ import {
   normalizeSecretCode,
   useTechPassStore,
 } from './lib/store';
-import type { AppState, BeneficioServico, BeneficioServicoTipo, Budget, BudgetItem, BudgetStatus, CashbackCalculoTipo, CashbackTipo, IndicacaoFightCoreStatus, IndicacaoStatus, IndicacaoTechSoftStatus, LeadParceiro, LeadStatus, LogNivel, NotificationItem, NotificationTipo, OfertaCashbackTipo, OfertaParceiro, OfertaTipo, RecompensaTipo, Solicitacao, SolicitacaoStatus, TechPass, TechPassStatus } from './types';
+import type { AppState, BeneficioServico, BeneficioServicoTipo, Budget, BudgetItem, BudgetItemAvailability, BudgetStatus, CashbackCalculoTipo, CashbackTipo, DevicePart, IndicacaoFightCoreStatus, IndicacaoStatus, IndicacaoTechSoftStatus, LeadParceiro, LeadStatus, LogNivel, NotificationItem, NotificationTipo, OfertaCashbackTipo, OfertaParceiro, OfertaTipo, RecompensaTipo, Solicitacao, SolicitacaoStatus, TechPass, TechPassStatus } from './types';
 import { Button, Card, Field, Input, Pill, Select, Stat, Textarea, cx } from './components/ui';
 import { QrCode, createQrDataUrl } from './components/QrCode';
 import fightCoreLogo from './assets/fight-core-logo.png';
@@ -218,7 +218,7 @@ const LANDING_PARTNERS = [
   {
     name: 'TechSoft',
     category: 'Assistência técnica e acessórios',
-    benefit: '30% OFF em mão de obra, 15% OFF em acessórios, TechCash e serviços exclusivos.',
+    benefit: '15% OFF em serviços técnicos, 15% OFF em acessórios, TechCash e serviços exclusivos.',
     offer: 'Cashback em compras acima de R$250 e vantagens em manutenção.',
     status: 'Parceiro ativo',
     icon: 'TS',
@@ -517,6 +517,11 @@ function App() {
     return <PublicTechPassPage serial={publicSerial} state={state} actions={actions} />;
   }
 
+  if (path.startsWith('/orcamento/')) {
+    const budgetId = decodeURIComponent(path.split('/').filter(Boolean)[1] ?? '');
+    return <BudgetSharePage budgetId={budgetId} state={state} navigate={navigate} />;
+  }
+
   if (path.startsWith('/admin')) {
     return <AdminApp state={state} actions={actions} navigate={navigate} />;
   }
@@ -660,7 +665,7 @@ function ShortLandingPage({ state, navigate }: { state: AppState; navigate: (pat
                   <li>Garantia estendida conforme regra do serviço</li>
                   <li>Prêmios por indicações aprovadas</li>
                   <li>Cashback/benefícios em campanhas participantes</li>
-                  <li>30% de desconto no valor da mão de obra</li>
+                  <li>15% de desconto em serviços técnicos</li>
                 </ul>
                 <Button className="mt-6" onClick={() => navigate('/techpass/TP-SG-000001')}>Ativar Premium</Button>
               </div>
@@ -678,7 +683,7 @@ function ShortLandingPage({ state, navigate }: { state: AppState; navigate: (pat
             <div className="grid gap-3 sm:grid-cols-3">
               <Info label="Benefício Gift" value="1 película" />
               <Info label="Premium anual" value="R$59,90" />
-              <Info label="Mão de obra" value="30% OFF" />
+              <Info label="Serviços técnicos" value="15% OFF" />
             </div>
           </div>
         </section>
@@ -793,7 +798,7 @@ function LandingPage({ state, navigate }: { state: AppState; navigate: (path: st
           <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
             <SectionIntro eyebrow="Benefícios por categoria" title="Um único acesso para tecnologia, educação, treino e recompensas." subtitle="A página não precisa listar tudo. Ela precisa mostrar que existe valor real em várias situações do mês." />
             <div className="mt-10 grid gap-4 lg:grid-cols-4">
-              <BenefitTile className="lg:col-span-2 lg:row-span-2" icon={ShieldCheck} title="TechSoft sem improviso" value="30% OFF" text="Manutenção, diagnóstico, limpeza, acessórios, películas e TechCash em compras participantes." />
+              <BenefitTile className="lg:col-span-2 lg:row-span-2" icon={ShieldCheck} title="TechSoft sem improviso" value="15% OFF" text="Serviços técnicos, diagnóstico, limpeza, acessórios, películas e TechCash em compras participantes." />
               <BenefitTile icon={Users} title="Super Geeks" value="R$492/ano" text="Condição especial no plano anual e renovação TechPass para famílias." />
               <BenefitTile icon={Activity} title="Fight Core" value="R$480" text="Planos especiais, aulas grátis e bônus por indicação qualificada." />
               <BenefitTile icon={Gift} title="Indique e ganhe" value="15 contatos" text="Campanhas por empresa com brindes, cashback ou bônus conforme regra." />
@@ -1295,14 +1300,39 @@ function AvailableTechPass({ techpass, empresaName, actions }: { techpass: TechP
     setSuccess(result.ok);
   };
 
+  if (success) {
+    return (
+      <div className="grid gap-6">
+        <Card className="overflow-hidden border-tech-neon/35 bg-tech-neon/10 p-6 sm:p-8">
+          <div className="grid gap-6 lg:grid-cols-[1fr_280px] lg:items-center">
+            <div>
+              <Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">Cadastro recebido</Pill>
+              <h1 className="mt-5 text-4xl font-black leading-tight text-white sm:text-6xl">Parabéns, seu TechPass está quase ativo.</h1>
+              <p className="mt-5 text-lg leading-8 text-zinc-300">Agora é só comparecer à TechSoft com documento oficial com foto para concluir a ativação presencial.</p>
+              <div className="mt-6 rounded-lg border border-white/10 bg-black/25 p-4">
+                <p className="text-sm font-black uppercase text-tech-neon">Confirme seu e-mail e receba um brinde</p>
+                <p className="mt-2 text-2xl font-black text-white">Cupom de R$10 de desconto na loja</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-400">Use no atendimento presencial após a equipe validar seu cadastro.</p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/35 p-5">
+              <QrCode serial={techpass.serial} size={190} />
+              <p className="mt-4 text-center font-mono text-sm font-black text-tech-neon">{techpass.serial}</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-6">
       <Card className="p-6 sm:p-8">
         <div className="grid gap-6 lg:grid-cols-[1fr_160px] lg:items-start">
           <div>
             <StatusPill status={techpass.status} />
-            <h1 className="mt-5 text-3xl font-black text-white sm:text-5xl">Parabéns! Você tem um voucher TechPass Premium.</h1>
-            <p className="mt-4 text-xl font-semibold text-tech-neon">Seu acesso já foi comprado. Falta apenas concluir o cadastro e ativar presencialmente na TechSoft.</p>
+            <h1 className="mt-5 text-3xl font-black text-white sm:text-5xl">Bem-vindo ao TechPass.</h1>
+            <p className="mt-4 text-xl font-semibold text-tech-neon">Siga o passo a passo, confirme o código secreto do voucher e finalize a ativação presencialmente na TechSoft.</p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <Info label="Número de série" value={techpass.serial} />
               <Info label="Empresa parceira" value={empresaName} />
@@ -2020,13 +2050,19 @@ function createEmptyBudgetForm(): BudgetForm {
     cliente_estado: 'SC',
     cliente_telefone: '',
     cliente_email: '',
+    device_id: '',
+    device_modelo: '',
+    device_serial: '',
+    device_specs: '',
+    device_image_url: '',
+    public_notes: '',
     garantia_texto: DEFAULT_WARRANTY_TEXT,
     status: 'rascunho',
   };
 }
 
 function createEmptyBudgetItem(index: number): BudgetItemForm {
-  return { item_numero: index, nome: '', quantidade: 1, valor_unitario: 0, subtotal: 0 };
+  return { item_numero: index, nome: '', quantidade: 1, valor_unitario: 0, subtotal: 0, tipo: 'servico', disponibilidade: 'pronta_entrega', fornecedor_url: '' };
 }
 
 function onlyDigits(value: string) {
@@ -2072,6 +2108,20 @@ function escapeHtml(value: string) {
 
 function getBudgetItems(state: AppState, budgetId: string) {
   return state.budget_items.filter((item) => item.budget_id === budgetId).sort((a, b) => a.item_numero - b.item_numero);
+}
+
+function getBudgetShareUrl(budgetId: string) {
+  return `${window.location.origin}/orcamento/${encodeURIComponent(budgetId)}`;
+}
+
+function getBudgetWhatsAppText(budget: Budget) {
+  return encodeURIComponent(`Olá, ${budget.cliente_nome || 'cliente'}! Segue seu orçamento TechSoft: ${getBudgetShareUrl(budget.id)}`);
+}
+
+function availabilityLabel(value?: BudgetItemAvailability) {
+  if (value === 'encomenda') return 'Encomenda';
+  if (value === 'mercado_livre') return 'Mercado Livre';
+  return 'Pronta entrega';
 }
 
 function buildBudgetPrintHtml(budget: Budget, items: BudgetItem[], telefone: string) {
@@ -2201,6 +2251,81 @@ function openBudgetPdf(budget: Budget, items: BudgetItem[], telefone: string) {
   popup.document.close();
 }
 
+function BudgetSharePage({ budgetId, state, navigate }: { budgetId: string; state: AppState; navigate: (path: string) => void }) {
+  const budget = state.budgets.find((item) => item.id === budgetId || item.numero === budgetId);
+  if (!budget) {
+    return <PublicShell><StatusPublic title="Orçamento não encontrado" description="Verifique se o link enviado pela TechSoft está correto." tone="danger" /></PublicShell>;
+  }
+  const items = getBudgetItems(state, budget.id);
+  const services = items.filter((item) => item.tipo !== 'peca');
+  const parts = items.filter((item) => item.tipo === 'peca' || item.fornecedor_url);
+  const whatsapp = `https://wa.me/5548991512020?text=${getBudgetWhatsAppText(budget)}`;
+  return (
+    <div className="min-h-screen bg-[#050607] text-white">
+      <header className="border-b border-white/10 bg-black/70 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+          <Brand />
+          <Pill className="border-tech-neon/35 bg-tech-neon/10 text-tech-neon">Orçamento digital</Pill>
+        </div>
+      </header>
+      <main className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:py-12">
+        <section className="grid gap-6 lg:grid-cols-[1fr_360px] lg:items-stretch">
+          <Card className="overflow-hidden border-tech-neon/25 bg-tech-neon/10 p-0">
+            <div className="grid gap-0 md:grid-cols-[0.92fr_1.08fr]">
+              <div className="min-h-72 bg-black/35">
+                {budget.device_image_url ? <img src={budget.device_image_url} alt={budget.device_modelo || 'Aparelho'} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center p-8 text-center text-zinc-400">Foto do aparelho</div>}
+              </div>
+              <div className="p-6 sm:p-8">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-tech-neon">TechSoft Campinas</p>
+                <h1 className="mt-4 text-3xl font-black leading-tight sm:text-5xl">{budget.device_modelo || 'Orçamento técnico'}</h1>
+                <p className="mt-4 text-lg leading-8 text-zinc-300">Orçamento #{budget.numero} preparado para {budget.cliente_nome || 'cliente'}.</p>
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  <Info label="Número de série" value={budget.device_serial || 'A confirmar'} />
+                  <Info label="Previsão" value={formatDate(budget.previsao_entrega)} />
+                  <Info label="Status" value={BUDGET_STATUS_LABEL[budget.status]} />
+                  <Info label="Total" value={formatMoney(budget.total)} />
+                </div>
+              </div>
+            </div>
+          </Card>
+          <Card className="h-full border-white/10 bg-white/[0.06]">
+            <PageTitle title="Próximos passos" subtitle="Confirme o orçamento com a equipe antes da execução." />
+            <div className="mt-5 grid gap-3 text-sm leading-6 text-zinc-300">
+              <p><strong className="text-tech-neon">1.</strong> Confira modelo, série e serviços.</p>
+              <p><strong className="text-tech-neon">2.</strong> Tire dúvidas pelo WhatsApp.</p>
+              <p><strong className="text-tech-neon">3.</strong> Autorize o serviço com a TechSoft.</p>
+            </div>
+            <a href={whatsapp} target="_blank" rel="noreferrer" className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-md border border-tech-neon bg-tech-neon px-4 font-black text-black">Confirmar pelo WhatsApp</a>
+          </Card>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
+          <Card>
+            <PageTitle title="Especificações do aparelho" subtitle="Dados usados como referência para orçamento." />
+            <p className="mt-4 whitespace-pre-line rounded-lg border border-white/10 bg-black/25 p-4 text-sm leading-7 text-zinc-300">{budget.device_specs || 'Especificações ainda não informadas.'}</p>
+            {budget.public_notes && <p className="mt-4 rounded-lg border border-yellow-300/20 bg-yellow-300/10 p-4 text-sm leading-6 text-yellow-100">{budget.public_notes}</p>}
+          </Card>
+          <Card>
+            <PageTitle title="Resumo financeiro" subtitle="Valores estimados para aprovação." />
+            <div className="mt-5 grid gap-3">
+              <Info label="Serviços" value={formatMoney(services.reduce((sum, item) => sum + item.subtotal, 0))} />
+              <Info label="Peças" value={formatMoney(parts.reduce((sum, item) => sum + item.subtotal, 0))} />
+              <Info label="Total geral" value={formatMoney(budget.total)} />
+            </div>
+          </Card>
+        </section>
+
+        <Card>
+          <PageTitle title="Serviços e peças do orçamento" subtitle="Itens previstos para execução ou compra." />
+          <div className="mt-5 grid gap-3">
+            {items.map((item) => <div key={item.id} className="grid gap-3 rounded-lg border border-white/10 bg-black/25 p-4 md:grid-cols-[1fr_auto] md:items-center"><div><p className="font-black text-white">{item.nome}</p><p className="mt-1 text-sm text-zinc-400">{item.tipo === 'peca' ? 'Peça' : 'Serviço'} · {availabilityLabel(item.disponibilidade)} · Qtd. {item.quantidade}</p>{item.fornecedor_url && <a href={item.fornecedor_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm font-bold text-tech-neon">Ver sugestão de compra</a>}</div><p className="text-xl font-black text-white">{formatMoney(item.subtotal)}</p></div>)}
+          </div>
+        </Card>
+      </main>
+    </div>
+  );
+}
+
 function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions'] }) {
   const [telefone, setTelefone] = useState(localStorage.getItem('techsoft-budget-phone') ?? '(48) 99151-2020');
   const [form, setForm] = useState<BudgetForm>(createEmptyBudgetForm());
@@ -2209,13 +2334,15 @@ function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnTyp
   const [presetId, setPresetId] = useState(BUDGET_SERVICE_PRESETS[0]?.id ?? '');
   const [cnpjLookupStatus, setCnpjLookupStatus] = useState<CnpjLookupStatus>('idle');
   const [cnpjLookupMessage, setCnpjLookupMessage] = useState('');
+  const [deviceDraft, setDeviceDraft] = useState({ marca: '', modelo: '', categoria: 'Smartphone', imagem_url: '', especificacoes: '', servicos: '', peca_nome: '', peca_link: '' });
   const total = items.reduce((sum, item) => sum + (Number(item.quantidade) || 0) * (Number(item.valor_unitario) || 0), 0);
   const selectedBudget = state.budgets.find((item) => item.id === selectedId) ?? null;
+  const selectedDevice = state.devices.find((item) => item.id === form.device_id) ?? null;
 
   const loadBudget = (budget: Budget) => {
     setSelectedId(budget.id);
     setForm({ ...budget });
-    setItems(getBudgetItems(state, budget.id).map((item) => ({ item_numero: item.item_numero, nome: item.nome, quantidade: item.quantidade, valor_unitario: item.valor_unitario, subtotal: item.subtotal })));
+    setItems(getBudgetItems(state, budget.id).map((item) => ({ item_numero: item.item_numero, nome: item.nome, quantidade: item.quantidade, valor_unitario: item.valor_unitario, subtotal: item.subtotal, tipo: item.tipo ?? 'servico', disponibilidade: item.disponibilidade ?? 'pronta_entrega', fornecedor_url: item.fornecedor_url ?? '' })));
   };
   const resetForm = () => {
     setSelectedId('');
@@ -2264,6 +2391,38 @@ function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnTyp
     };
     const hasBlankOnly = items.length === 1 && !items[0].nome.trim() && Number(items[0].valor_unitario) === 0;
     setItems(hasBlankOnly ? [nextItem] : [...items, nextItem]);
+  };
+  const applyDevice = (deviceId: string) => {
+    const device = state.devices.find((item) => item.id === deviceId);
+    setForm((current) => ({
+      ...current,
+      device_id: deviceId,
+      device_modelo: device ? `${device.marca} ${device.modelo}` : '',
+      device_specs: device?.especificacoes ?? '',
+      device_image_url: device?.imagem_url ?? '',
+    }));
+  };
+  const addSuggestedService = (service: string) => {
+    const nextItem = { item_numero: items.length + 1, nome: service, quantidade: 1, valor_unitario: 0, subtotal: 0, tipo: 'servico' as const, disponibilidade: 'pronta_entrega' as const, fornecedor_url: '' };
+    const hasBlankOnly = items.length === 1 && !items[0].nome.trim() && Number(items[0].valor_unitario) === 0;
+    setItems(hasBlankOnly ? [nextItem] : [...items, nextItem]);
+  };
+  const addSuggestedPart = (part: DevicePart) => {
+    const nextItem = { item_numero: items.length + 1, nome: part.nome, quantidade: 1, valor_unitario: part.preco_estimado, subtotal: part.preco_estimado, tipo: 'peca' as const, disponibilidade: part.disponibilidade, fornecedor_url: part.link_sugestao };
+    setItems([...items.filter((item) => item.nome.trim() || Number(item.valor_unitario) > 0), nextItem]);
+  };
+  const addDevice = () => {
+    if (!deviceDraft.modelo.trim()) return;
+    actions.addDevice({
+      marca: deviceDraft.marca || 'Modelo',
+      modelo: deviceDraft.modelo,
+      categoria: deviceDraft.categoria,
+      imagem_url: deviceDraft.imagem_url,
+      especificacoes: deviceDraft.especificacoes,
+      servicos_sugeridos: deviceDraft.servicos.split(',').map((item) => item.trim()).filter(Boolean),
+      pecas_sugeridas: deviceDraft.peca_nome ? [{ nome: deviceDraft.peca_nome, categoria: 'Peça', preco_estimado: 0, disponibilidade: 'encomenda', link_sugestao: deviceDraft.peca_link }] : [],
+    });
+    setDeviceDraft({ marca: '', modelo: '', categoria: 'Smartphone', imagem_url: '', especificacoes: '', servicos: '', peca_nome: '', peca_link: '' });
   };
   const lookupCnpj = async () => {
     const cnpj = onlyDigits(form.cliente_documento);
@@ -2362,6 +2521,47 @@ function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnTyp
           </div>
           <div className="mt-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
+              <PageTitle title="Aparelho do cliente" subtitle="Dados usados no link de orçamento enviado pelo WhatsApp." />
+              {selectedBudget && <Button variant="secondary" onClick={() => navigator.clipboard.writeText(getBudgetShareUrl(selectedBudget.id))}><Copy className="h-4 w-4" />Copiar link orçamento</Button>}
+            </div>
+            <Card className="mt-4 bg-black/25">
+              <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+                <div className="overflow-hidden rounded-lg border border-white/10 bg-black/35">
+                  {form.device_image_url ? <img src={form.device_image_url} alt={form.device_modelo || 'Aparelho'} className="aspect-square w-full object-cover" /> : <div className="grid aspect-square place-items-center p-4 text-center text-sm text-zinc-500">Foto do aparelho</div>}
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Selecionar aparelho"><Select value={form.device_id ?? ''} onChange={(event) => applyDevice(event.target.value)}><option value="">Selecionar</option>{state.devices.map((device) => <option key={device.id} value={device.id}>{device.marca} {device.modelo}</option>)}</Select></Field>
+                  <Field label="Modelo exibido"><Input value={form.device_modelo ?? ''} onChange={(event) => setForm({ ...form, device_modelo: event.target.value })} placeholder="Ex: Apple iPhone 11" /></Field>
+                  <Field label="Número de série / IMEI"><Input value={form.device_serial ?? ''} onChange={(event) => setForm({ ...form, device_serial: event.target.value })} /></Field>
+                  <Field label="URL da foto"><Input value={form.device_image_url ?? ''} onChange={(event) => setForm({ ...form, device_image_url: event.target.value })} placeholder="https://..." /></Field>
+                  <div className="md:col-span-2"><Field label="Especificações"><Textarea value={form.device_specs ?? ''} onChange={(event) => setForm({ ...form, device_specs: event.target.value })} /></Field></div>
+                  <div className="md:col-span-2"><Field label="Observação pública"><Input value={form.public_notes ?? ''} onChange={(event) => setForm({ ...form, public_notes: event.target.value })} placeholder="Ex: sujeito à confirmação técnica após diagnóstico" /></Field></div>
+                  <div className="md:col-span-2 flex flex-wrap gap-2">
+                    <Button type="button" variant="secondary" onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent((form.device_modelo || '') + ' especificações foto')}`, '_blank')}><Search className="h-4 w-4" />Pesquisar especificações</Button>
+                    <Button type="button" variant="secondary" onClick={() => window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent((form.device_modelo || '') + ' produto')}`, '_blank')}><ExternalLink className="h-4 w-4" />Buscar foto</Button>
+                    {selectedBudget && <a className="inline-flex min-h-10 items-center justify-center rounded-md border border-tech-neon bg-tech-neon px-4 py-2 text-sm font-black text-black" href={`https://wa.me/?text=${getBudgetWhatsAppText(selectedBudget)}`} target="_blank" rel="noreferrer">Enviar no WhatsApp</a>}
+                  </div>
+                </div>
+              </div>
+              {selectedDevice && <div className="mt-5 grid gap-4 lg:grid-cols-2"><div><p className="text-sm font-black text-white">Serviços possíveis</p><div className="mt-3 flex flex-wrap gap-2">{selectedDevice.servicos_sugeridos.map((service) => <Button key={service} type="button" variant="secondary" onClick={() => addSuggestedService(service)}>{service}</Button>)}</div></div><div><p className="text-sm font-black text-white">Peças sugeridas</p><div className="mt-3 grid gap-2">{selectedDevice.pecas_sugeridas.map((part) => <button key={part.nome} type="button" onClick={() => addSuggestedPart(part)} className="rounded-md border border-white/10 bg-black/25 p-3 text-left text-sm text-zinc-200 transition hover:border-tech-neon/50"><strong className="text-white">{part.nome}</strong><br />{formatMoney(part.preco_estimado)} · {availabilityLabel(part.disponibilidade)}</button>)}</div></div></div>}
+            </Card>
+            <Card className="mt-4 bg-black/25">
+              <PageTitle title="Adicionar novo aparelho" subtitle="Cadastre modelos recorrentes para reutilizar em futuros orçamentos." />
+              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <Field label="Marca"><Input value={deviceDraft.marca} onChange={(event) => setDeviceDraft({ ...deviceDraft, marca: event.target.value })} /></Field>
+                <Field label="Modelo"><Input value={deviceDraft.modelo} onChange={(event) => setDeviceDraft({ ...deviceDraft, modelo: event.target.value })} /></Field>
+                <Field label="Categoria"><Input value={deviceDraft.categoria} onChange={(event) => setDeviceDraft({ ...deviceDraft, categoria: event.target.value })} /></Field>
+                <Field label="URL da foto"><Input value={deviceDraft.imagem_url} onChange={(event) => setDeviceDraft({ ...deviceDraft, imagem_url: event.target.value })} /></Field>
+                <div className="md:col-span-2"><Field label="Especificações"><Textarea value={deviceDraft.especificacoes} onChange={(event) => setDeviceDraft({ ...deviceDraft, especificacoes: event.target.value })} /></Field></div>
+                <div className="md:col-span-2"><Field label="Serviços sugeridos (separados por vírgula)"><Textarea value={deviceDraft.servicos} onChange={(event) => setDeviceDraft({ ...deviceDraft, servicos: event.target.value })} /></Field></div>
+                <Field label="Peça inicial sugerida"><Input value={deviceDraft.peca_nome} onChange={(event) => setDeviceDraft({ ...deviceDraft, peca_nome: event.target.value })} /></Field>
+                <Field label="Link da peça"><Input value={deviceDraft.peca_link} onChange={(event) => setDeviceDraft({ ...deviceDraft, peca_link: event.target.value })} /></Field>
+                <div className="md:col-span-2"><Button type="button" onClick={addDevice}><Plus className="h-4 w-4" />Adicionar aparelho</Button></div>
+              </div>
+            </Card>
+          </div>
+          <div className="mt-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <PageTitle title="Serviços / produtos" subtitle="Adicione quantos itens precisar. Os totais são calculados automaticamente." />
               <Button variant="secondary" onClick={() => setItems([...items, createEmptyBudgetItem(items.length + 1)])}><Plus className="h-4 w-4" />Adicionar item</Button>
             </div>
@@ -2383,6 +2583,11 @@ function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnTyp
                     <Field label="Valor unitário"><Input type="number" min={0} step="0.01" value={item.valor_unitario} onChange={(e) => setItems(items.map((row, rowIndex) => rowIndex === index ? { ...row, valor_unitario: Number(e.target.value) } : row))} /></Field>
                     <div className="min-w-0"><Info label="Subtotal" value={formatMoney(subtotal)} /></div>
                     <Button variant="danger" className="h-11 w-full px-3 xl:w-11" onClick={() => setItems(items.filter((_, rowIndex) => rowIndex !== index))} disabled={items.length === 1}><Trash2 className="h-4 w-4" /></Button>
+                    <div className="grid gap-3 sm:col-span-2 xl:col-span-6 xl:grid-cols-[160px_180px_minmax(0,1fr)]">
+                      <Field label="Tipo"><Select value={item.tipo ?? 'servico'} onChange={(e) => setItems(items.map((row, rowIndex) => rowIndex === index ? { ...row, tipo: e.target.value as 'servico' | 'peca' } : row))}><option value="servico">Serviço</option><option value="peca">Peça</option></Select></Field>
+                      <Field label="Disponibilidade"><Select value={item.disponibilidade ?? 'pronta_entrega'} onChange={(e) => setItems(items.map((row, rowIndex) => rowIndex === index ? { ...row, disponibilidade: e.target.value as BudgetItemAvailability } : row))}><option value="pronta_entrega">Pronta entrega</option><option value="encomenda">Encomenda</option><option value="mercado_livre">Mercado Livre</option></Select></Field>
+                      <Field label="Link de compra / fornecedor"><Input value={item.fornecedor_url ?? ''} onChange={(e) => setItems(items.map((row, rowIndex) => rowIndex === index ? { ...row, fornecedor_url: e.target.value } : row))} placeholder="https://produto.mercadolivre.com.br/..." /></Field>
+                    </div>
                   </div>
                 );
               })}

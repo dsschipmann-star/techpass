@@ -1,7 +1,7 @@
 ﻿import type { AppState } from './types';
 
 export const BENEFICIOS_PADRAO = [
-  '30% OFF em mão de obra',
+  '15% OFF em serviços técnicos',
   '15% OFF em acessórios',
   '6 trocas de película durante 12 meses',
   'Cashback exclusivo',
@@ -55,6 +55,7 @@ export const EMPTY_STATE: AppState = {
   system_logs: [],
   budgets: [],
   budget_items: [],
+  devices: [],
 };
 
 export function createInitialState(): AppState {
@@ -71,6 +72,51 @@ export function createInitialState(): AppState {
   activatedAt.setMonth(activatedAt.getMonth() - 2);
   const expiresAt = new Date(activatedAt);
   expiresAt.setMonth(expiresAt.getMonth() + 12);
+
+  const devices = [
+    {
+      id: 'dev-iphone-11',
+      marca: 'Apple',
+      modelo: 'iPhone 11',
+      categoria: 'Smartphone',
+      imagem_url: 'https://images.unsplash.com/photo-1591337676887-a217a6970a8a?auto=format&fit=crop&w=900&q=80',
+      especificacoes: 'Tela Liquid Retina HD 6,1", chip A13 Bionic, Face ID, câmera dupla 12 MP, conector Lightning.',
+      servicos_sugeridos: ['Troca de tela', 'Troca de bateria', 'Troca de conector de carga', 'Diagnóstico técnico', 'Película premium'],
+      pecas_sugeridas: [
+        { nome: 'Tela compatível iPhone 11', categoria: 'Tela', preco_estimado: 390, disponibilidade: 'pronta_entrega' as const, link_sugestao: 'https://lista.mercadolivre.com.br/tela-iphone-11' },
+        { nome: 'Bateria iPhone 11', categoria: 'Bateria', preco_estimado: 220, disponibilidade: 'encomenda' as const, link_sugestao: 'https://lista.mercadolivre.com.br/bateria-iphone-11' },
+      ],
+      created_at: now,
+    },
+    {
+      id: 'dev-samsung-a54',
+      marca: 'Samsung',
+      modelo: 'Galaxy A54',
+      categoria: 'Smartphone',
+      imagem_url: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?auto=format&fit=crop&w=900&q=80',
+      especificacoes: 'Tela Super AMOLED 6,4", 5G, câmera tripla, USB-C, bateria 5000 mAh.',
+      servicos_sugeridos: ['Troca de display', 'Troca de tampa traseira', 'Troca de conector USB-C', 'Limpeza interna', 'Diagnóstico técnico'],
+      pecas_sugeridas: [
+        { nome: 'Display Samsung Galaxy A54', categoria: 'Display', preco_estimado: 520, disponibilidade: 'mercado_livre' as const, link_sugestao: 'https://lista.mercadolivre.com.br/display-samsung-a54' },
+        { nome: 'Conector de carga Galaxy A54', categoria: 'Conector', preco_estimado: 120, disponibilidade: 'encomenda' as const, link_sugestao: 'https://lista.mercadolivre.com.br/conector-carga-galaxy-a54' },
+      ],
+      created_at: now,
+    },
+    {
+      id: 'dev-notebook-dell',
+      marca: 'Dell',
+      modelo: 'Notebook Inspiron',
+      categoria: 'Notebook',
+      imagem_url: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&w=900&q=80',
+      especificacoes: 'Notebook linha Inspiron, armazenamento SSD/HD conforme versão, memória RAM expansível, Windows.',
+      servicos_sugeridos: ['Formatação', 'Upgrade de SSD', 'Upgrade de memória RAM', 'Limpeza interna', 'Diagnóstico técnico'],
+      pecas_sugeridas: [
+        { nome: 'SSD SATA/NVMe 480GB', categoria: 'Armazenamento', preco_estimado: 260, disponibilidade: 'pronta_entrega' as const, link_sugestao: 'https://lista.mercadolivre.com.br/ssd-480gb' },
+        { nome: 'Memória RAM notebook DDR4 8GB', categoria: 'Memória', preco_estimado: 180, disponibilidade: 'mercado_livre' as const, link_sugestao: 'https://lista.mercadolivre.com.br/memoria-ram-notebook-ddr4-8gb' },
+      ],
+      created_at: now,
+    },
+  ];
 
   const beneficiosServicos = [
     {
@@ -326,7 +372,7 @@ export function createInitialState(): AppState {
         id: 'emp-techsoft',
         nome: 'TechSoft',
         categoria: 'Assistência técnica e acessórios',
-        beneficio: '30% OFF em mão de obra, 15% OFF em acessórios, cashback e benefícios exclusivos.',
+        beneficio: '15% OFF em serviços técnicos, 15% OFF em acessórios, cashback e benefícios exclusivos.',
         status: 'ativa',
         telefone: '(11) 4002-8922',
         whatsapp: '(11) 99999-0000',
@@ -749,6 +795,12 @@ export function createInitialState(): AppState {
         cliente_estado: 'SC',
         cliente_telefone: '(48) 99999-0000',
         cliente_email: 'maria@email.com',
+        device_id: 'dev-iphone-11',
+        device_modelo: 'Apple iPhone 11',
+        device_serial: 'SN-MARIA-001',
+        device_specs: devices[0].especificacoes,
+        device_image_url: devices[0].imagem_url,
+        public_notes: 'Orçamento sujeito à confirmação técnica após abertura do aparelho.',
         garantia_texto: 'Este servico possui garantia de 6 meses a partir da data de conclusao.\n\nA garantia nao cobre danos causados por mau uso, quedas, oscilacoes eletricas, liquidos ou intervencao de terceiros.',
         subtotal: 350,
         total: 350,
@@ -762,12 +814,16 @@ export function createInitialState(): AppState {
         id: 'bitem-0001',
         budget_id: 'bud-0001',
         item_numero: 1,
-        nome: 'Troca de tela iPhone - mao de obra e componente',
+        nome: 'Troca de tela iPhone - serviço técnico e componente',
         quantidade: 1,
         valor_unitario: 350,
         subtotal: 350,
+        tipo: 'servico',
+        disponibilidade: 'pronta_entrega',
+        fornecedor_url: '',
         created_at: now,
       },
     ],
+    devices,
   };
 }

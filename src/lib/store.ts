@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { createInitialState } from '../data';
 import { hasSupabaseConfig, supabase } from './supabase';
-import type { AppState, BeneficioServico, Budget, BudgetItem, BudgetStatus, CashbackBalance, CashbackMovement, CashbackSetting, CashbackTransaction, Cliente, Empresa, Indicacao, IndicacaoFightCore, IndicacaoTechSoft, LeadParceiro, NotificationItem, OfertaParceiro, ParceiroUsuario, PendingActivation, Solicitacao, SystemLog, TechPass, TechPassStatus, TipoUsuario, Utilizacao } from '../types';
+import type { AppState, BeneficioServico, Budget, BudgetItem, BudgetStatus, CashbackBalance, CashbackMovement, CashbackSetting, CashbackTransaction, Cliente, DeviceModel, Empresa, Indicacao, IndicacaoFightCore, IndicacaoTechSoft, LeadParceiro, NotificationItem, OfertaParceiro, ParceiroUsuario, PendingActivation, Solicitacao, SystemLog, TechPass, TechPassStatus, TipoUsuario, Utilizacao } from '../types';
 
 const STORAGE_KEY = 'techpass-premium-state-v2';
 
@@ -26,6 +26,7 @@ function safeParse(value: string | null): AppState | null {
       system_logs: parsed.system_logs ?? createInitialState().system_logs,
       budgets: parsed.budgets ?? createInitialState().budgets,
       budget_items: parsed.budget_items ?? createInitialState().budget_items,
+      devices: parsed.devices ?? createInitialState().devices,
       utilizacoes: (parsed.utilizacoes ?? []).map((item: any) => ({
         empresa_id: item.empresa_id ?? parsed.techpasses?.find((tp) => tp.id === item.techpass_id)?.empresa_id ?? 'emp-techsoft',
         solicitacao_id: item.solicitacao_id ?? null,
@@ -148,6 +149,7 @@ async function loadSupabaseState(): Promise<AppState | null> {
     system_logs: systemLogs.data ?? [],
     budgets: budgets.data ?? [],
     budget_items: budgetItems.data ?? [],
+    devices: createInitialState().devices,
   };
 }
 
@@ -812,6 +814,18 @@ export function useTechPassStore() {
       setState((current) => ({
         ...current,
         system_logs: [{ ...payload, id: makeId('log'), created_at: new Date().toISOString() }, ...current.system_logs],
+      }));
+    },
+    addDevice(payload: Omit<DeviceModel, 'id' | 'created_at'>) {
+      setState((current) => ({
+        ...current,
+        devices: [{ ...payload, id: makeId('dev'), created_at: new Date().toISOString() }, ...current.devices],
+      }));
+    },
+    updateDevice(id: string, payload: Partial<Omit<DeviceModel, 'id' | 'created_at'>>) {
+      setState((current) => ({
+        ...current,
+        devices: current.devices.map((item) => item.id === id ? { ...item, ...payload } : item),
       }));
     },
     saveBudget(payload: Omit<Budget, 'id' | 'numero' | 'subtotal' | 'total' | 'created_at' | 'updated_at'> & { id?: string; numero?: string }, items: Array<Omit<BudgetItem, 'id' | 'budget_id' | 'created_at'>>) {

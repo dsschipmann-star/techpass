@@ -296,6 +296,28 @@ export interface SystemLog {
   created_at: string;
 }
 
+export type BudgetItemAvailability = 'pronta_entrega' | 'encomenda' | 'mercado_livre';
+
+export interface DevicePart {
+  nome: string;
+  categoria: string;
+  preco_estimado: number;
+  disponibilidade: BudgetItemAvailability;
+  link_sugestao: string;
+}
+
+export interface DeviceModel {
+  id: string;
+  marca: string;
+  modelo: string;
+  categoria: string;
+  imagem_url: string;
+  especificacoes: string;
+  servicos_sugeridos: string[];
+  pecas_sugeridas: DevicePart[];
+  created_at: string;
+}
+
 export interface Budget {
   id: string;
   numero: string;
@@ -311,6 +333,12 @@ export interface Budget {
   cliente_estado: string;
   cliente_telefone: string;
   cliente_email: string;
+  device_id?: string;
+  device_modelo?: string;
+  device_serial?: string;
+  device_specs?: string;
+  device_image_url?: string;
+  public_notes?: string;
   garantia_texto: string;
   subtotal: number;
   total: number;
@@ -327,6 +355,9 @@ export interface BudgetItem {
   quantidade: number;
   valor_unitario: number;
   subtotal: number;
+  tipo?: 'servico' | 'peca';
+  disponibilidade?: BudgetItemAvailability;
+  fornecedor_url?: string;
   created_at: string;
 }
 
@@ -352,4 +383,5 @@ export interface AppState {
   system_logs: SystemLog[];
   budgets: Budget[];
   budget_items: BudgetItem[];
+  devices: DeviceModel[];
 }
