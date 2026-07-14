@@ -605,7 +605,6 @@ function ShortLandingPage({ state, navigate }: { state: AppState; navigate: (pat
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <Brand />
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => navigate('/admin')}>Admin</Button>
             <Button variant="ghost" onClick={() => navigate('/login')}>Entrar</Button>
             <Button onClick={() => navigate('/techpass/TP-SG-000001')}>Ativar TechPass</Button>
           </div>
@@ -622,7 +621,7 @@ function ShortLandingPage({ state, navigate }: { state: AppState; navigate: (pat
               <Button variant="secondary" className="min-h-12 rounded-full px-6 text-base" onClick={() => navigate('/login')}>Já tenho cadastro</Button>
             </div>
             <div className="mt-8 flex flex-wrap gap-3 text-sm text-zinc-300">
-              <Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">Versão: Basic/Premium + Orçamentos PDF</Pill>
+              <Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">Planos Basic e Premium</Pill>
               <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">{activePartners.length || 3} empresas participantes</Pill>
               <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">Ativação segura na loja</Pill>
               <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">Dashboard do cliente</Pill>
@@ -2137,8 +2136,8 @@ function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnTyp
             <PageTitle title="Cliente / empresa solicitante" subtitle="Dados que aparecerão no bloco principal do orçamento." />
             <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <Field label="Nome / Razão Social"><Input value={form.cliente_nome} onChange={(e) => setForm({ ...form, cliente_nome: e.target.value })} /></Field>
-              <Field label="CPF / CNPJ">
-                <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+              <Field label="CPF / CNPJ" className="md:col-span-2 xl:col-span-2">
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px]">
                   <Input
                     value={form.cliente_documento}
                     onChange={(e) => {
@@ -2153,7 +2152,7 @@ function BudgetsScreen({ state, actions }: { state: AppState; actions: ReturnTyp
                     }}
                     placeholder="Digite CPF ou CNPJ"
                   />
-                  <Button variant="secondary" onClick={lookupCnpj} disabled={cnpjLookupStatus === 'loading'}>
+                  <Button variant="secondary" className="w-full whitespace-nowrap" onClick={lookupCnpj} disabled={cnpjLookupStatus === 'loading'}>
                     <Search className="h-4 w-4" />{cnpjLookupStatus === 'loading' ? 'Buscando' : 'Buscar CNPJ'}
                   </Button>
                 </div>

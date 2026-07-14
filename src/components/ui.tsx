@@ -29,9 +29,9 @@ export function Button({ children, className, variant = 'primary', ...props }: B
   );
 }
 
-export function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <label className="grid gap-2 text-sm text-zinc-300">
+    <label className={cx('grid gap-2 text-sm text-zinc-300', className)}>
       <span>{label}</span>
       {children}
     </label>
