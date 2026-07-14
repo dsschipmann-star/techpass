@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -44,6 +44,7 @@ import {
   getCompanyCashbackBalance,
   getEmpresaName,
   getTechPassSecret,
+  normalizeSecretCode,
   useTechPassStore,
 } from './lib/store';
 import type { AppState, BeneficioServico, BeneficioServicoTipo, Budget, BudgetItem, BudgetStatus, CashbackCalculoTipo, CashbackTipo, IndicacaoFightCoreStatus, IndicacaoStatus, IndicacaoTechSoftStatus, LeadParceiro, LeadStatus, LogNivel, NotificationItem, NotificationTipo, OfertaCashbackTipo, OfertaParceiro, OfertaTipo, RecompensaTipo, Solicitacao, SolicitacaoStatus, TechPass, TechPassStatus } from './types';
@@ -54,11 +55,12 @@ import superGeeksLogo from './assets/super-geeks-logo.png';
 import techsoftLogo from './assets/techsoft-logo.png';
 import techpassVoucherMockup from './assets/techpass-voucher-mockup.png';
 
-type AdminView = 'dashboard' | 'saude' | 'empresas' | 'techpass' | 'qrcodes' | 'pendentes' | 'ativar' | 'validar' | 'orcamentos' | 'cashback' | 'indicacoes' | 'solicitacoes' | 'beneficios' | 'ofertas' | 'clientes' | 'logs';
+type AdminView = 'dashboard' | 'saude' | 'atendimento' | 'empresas' | 'techpass' | 'qrcodes' | 'pendentes' | 'ativar' | 'validar' | 'orcamentos' | 'cashback' | 'indicacoes' | 'solicitacoes' | 'beneficios' | 'ofertas' | 'clientes' | 'logs';
 
 const ADMIN_NAV: Array<{ id: AdminView; label: string; icon: typeof Activity }> = [
   { id: 'dashboard', label: 'Dashboard', icon: Activity },
   { id: 'saude', label: 'Saude da Rede', icon: ShieldCheck },
+  { id: 'atendimento', label: 'Atendimento na loja', icon: ScanLine },
   { id: 'empresas', label: 'Empresas parceiras', icon: Building2 },
   { id: 'techpass', label: 'Gerar TechPass', icon: CreditCard },
   { id: 'qrcodes', label: 'QR Codes', icon: QrCodeIcon },
@@ -1380,18 +1382,19 @@ function AdminApp({ state, actions, navigate }: { state: AppState; actions: Retu
           </div>
         </div>
       </header>
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[260px_1fr]">
-        <aside className="h-max rounded-lg border border-white/10 bg-white/[0.04] p-3 lg:sticky lg:top-4">
-          <nav className="grid gap-1">
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <aside className="min-w-0 h-max rounded-lg border border-white/10 bg-white/[0.04] p-3 lg:sticky lg:top-4">
+          <nav className="grid max-h-[55vh] grid-flow-col gap-1 overflow-x-auto pb-1 lg:max-h-none lg:grid-flow-row lg:overflow-visible lg:pb-0">
             {ADMIN_NAV.map((item) => {
               const Icon = item.icon;
-              return <button key={item.id} onClick={() => setView(item.id)} className={cx('flex min-h-11 items-center gap-3 rounded-md px-3 text-left text-sm font-semibold transition', view === item.id ? 'bg-tech-neon text-black' : 'text-zinc-300 hover:bg-white/[0.07] hover:text-white')}><Icon className="h-4 w-4" />{item.label}</button>;
+              return <button key={item.id} onClick={() => setView(item.id)} className={cx('flex min-h-11 min-w-max items-center gap-3 rounded-md px-3 text-left text-sm font-semibold transition lg:min-w-0', view === item.id ? 'bg-tech-neon text-black' : 'text-zinc-300 hover:bg-white/[0.07] hover:text-white')}><Icon className="h-4 w-4" />{item.label}</button>;
             })}
           </nav>
         </aside>
-        <main>
+        <main className="min-w-0">
           {view === 'dashboard' && <Dashboard state={state} />}
           {view === 'saude' && <NetworkHealthScreen state={state} />}
+          {view === 'atendimento' && <StoreActivationScreen state={state} actions={actions} navigate={navigate} />}
           {view === 'empresas' && <EmpresasScreen state={state} actions={actions} />}
           {view === 'techpass' && <TechPassScreen state={state} actions={actions} navigate={navigate} />}
           {view === 'qrcodes' && <QrCodesScreen state={state} navigate={navigate} />}
@@ -1597,6 +1600,197 @@ function SystemLogsScreen({ state }: { state: AppState }) {
         {logs.map((log) => <Card key={log.id} className="p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-black text-white">{log.descricao}</p><p className="mt-1 text-sm text-zinc-400">{formatDateTime(log.created_at)} · {log.usuario} · {log.empresa} · {log.pagina}</p></div><Pill className={LOG_LEVEL_STYLE[log.nivel]}>{log.nivel}</Pill></div>{log.stacktrace && <pre className="mt-4 overflow-auto rounded-md border border-white/10 bg-black/35 p-3 text-xs text-zinc-300">{log.stacktrace}</pre>}</Card>)}
         {logs.length === 0 && <EmptyMessage title="Sem logs encontrados" description="Ajuste os filtros para ampliar a busca." />}
       </div>
+    </div>
+  );
+}
+
+function extractTechPassToken(value: string) {
+  const raw = value.trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    const parts = url.pathname.split('/').filter(Boolean);
+    const techpassIndex = parts.findIndex((part) => part.toLowerCase() === 'techpass');
+    if (techpassIndex >= 0 && parts[techpassIndex + 1]) return decodeURIComponent(parts[techpassIndex + 1]).toUpperCase();
+    return decodeURIComponent(parts[parts.length - 1] ?? raw).toUpperCase();
+  } catch {
+    const serial = raw.match(/TP-[A-Z0-9]+-\d{3,}/i)?.[0];
+    return (serial ?? raw).trim().toUpperCase();
+  }
+}
+
+function findTechPassByToken(state: AppState, value: string) {
+  const token = extractTechPassToken(value);
+  const normalized = normalizeSecretCode(token);
+  return state.techpasses.find((item) => {
+    return item.serial.toUpperCase() === token || normalizeSecretCode(item.codigo_fisico) === normalized;
+  }) ?? null;
+}
+
+function StoreActivationScreen({ state, actions, navigate }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; navigate: (path: string) => void }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanLoopRef = useRef<number | null>(null);
+  const [scanInput, setScanInput] = useState('');
+  const [scanMessage, setScanMessage] = useState('');
+  const [cameraActive, setCameraActive] = useState(false);
+  const [form, setForm] = useState({ nome: '', cpf: '', telefone: '', email: '', codigo: '' });
+  const [feedback, setFeedback] = useState('');
+  const techpass = findTechPassByToken(state, scanInput);
+  const cliente = techpass?.cliente_id ? state.clientes.find((item) => item.id === techpass.cliente_id) : null;
+  const pending = techpass ? state.pending_activations.find((item) => item.techpass_id === techpass.id && item.status === 'PENDENTE_ATIVACAO') : null;
+
+  const stopCamera = () => {
+    if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current);
+    scanLoopRef.current = null;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setCameraActive(false);
+  };
+
+  useEffect(() => () => stopCamera(), []);
+
+  useEffect(() => {
+    if (!techpass) return;
+    if (cliente) {
+      setForm((current) => ({
+        ...current,
+        nome: cliente.nome,
+        cpf: cliente.cpf,
+        telefone: cliente.telefone,
+        email: cliente.email,
+      }));
+    }
+    if (normalizeSecretCode(scanInput) === normalizeSecretCode(techpass.codigo_fisico)) {
+      setForm((current) => ({ ...current, codigo: techpass.codigo_fisico }));
+    }
+  }, [techpass?.id, cliente?.id]);
+
+  const startCamera = async () => {
+    setScanMessage('');
+    setFeedback('');
+    const BarcodeDetectorApi = (window as any).BarcodeDetector;
+    if (!BarcodeDetectorApi) {
+      setScanMessage('Este navegador não liberou leitura de QR por câmera. Cole o link do QR, digite o serial ou use um leitor USB.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      setCameraActive(true);
+      if (!videoRef.current) return;
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      const detector = new BarcodeDetectorApi({ formats: ['qr_code'] });
+      const scan = async () => {
+        if (!videoRef.current) return;
+        try {
+          const codes = await detector.detect(videoRef.current);
+          if (codes[0]?.rawValue) {
+            setScanInput(codes[0].rawValue);
+            setScanMessage('QR Code lido. Confira os dados e conclua o atendimento.');
+            stopCamera();
+            return;
+          }
+        } catch {
+          setScanMessage('Não foi possível ler este quadro. Tente aproximar o QR Code da câmera.');
+        }
+        scanLoopRef.current = requestAnimationFrame(scan);
+      };
+      scanLoopRef.current = requestAnimationFrame(scan);
+    } catch {
+      setScanMessage('Câmera bloqueada ou indisponível. Cole o link do QR ou digite o serial do voucher.');
+      stopCamera();
+    }
+  };
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    setFeedback('');
+    if (!techpass) {
+      setFeedback('Informe ou escaneie um TechPass válido antes de cadastrar.');
+      return;
+    }
+    if (techpass.status === 'ATIVO') {
+      setFeedback('Este TechPass já está ativo.');
+      return;
+    }
+    if (pending || techpass.status === 'PENDENTE_ATIVACAO') {
+      const result = actions.activatePending(techpass.id);
+      setFeedback(result.message);
+      return;
+    }
+    const request = actions.requestActivation(techpass.serial, form.codigo, {
+      nome: form.nome,
+      cpf: form.cpf,
+      telefone: form.telefone,
+      email: form.email,
+    });
+    if (!request.ok) {
+      setFeedback(request.message);
+      return;
+    }
+    const activation = actions.activatePending(techpass.id);
+    setFeedback(activation.message);
+  };
+
+  const status = techpass ? getEffectiveStatus(techpass) : null;
+
+  return (
+    <div className="grid gap-6">
+      <PageTitle title="Atendimento na loja" subtitle="Escaneie o QR Code do voucher, cadastre o cliente e ative o TechPass presencialmente." />
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Card>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <Field label="QR Code, link, serial ou código do voucher">
+              <Input value={scanInput} onChange={(event) => { setScanInput(event.target.value); setFeedback(''); }} placeholder="Ex: /techpass/TP-SG-000001 ou SG-7K2P" />
+            </Field>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-none">
+              <Button variant="secondary" onClick={startCamera} disabled={cameraActive}><ScanLine className="h-4 w-4" />Escanear QR</Button>
+              <Button variant="ghost" onClick={stopCamera} disabled={!cameraActive}>Parar câmera</Button>
+            </div>
+          </div>
+          {scanMessage && <p className="mt-3 rounded-lg border border-white/10 bg-black/25 p-3 text-sm text-zinc-300">{scanMessage}</p>}
+          <div className={cx('mt-4 overflow-hidden rounded-lg border border-white/10 bg-black/35', cameraActive ? 'block' : 'hidden')}>
+            <video ref={videoRef} className="aspect-video w-full object-cover" muted playsInline />
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <Info label="TechPass" value={techpass?.serial ?? 'Não localizado'} />
+            <Info label="Empresa" value={techpass ? getEmpresaName(state, techpass.empresa_id) : '-'} />
+            <Info label="Status" value={status ? STATUS_LABEL[status] : '-'} />
+            <Info label="Código físico" value={techpass?.codigo_fisico ?? '-'} />
+          </div>
+        </Card>
+
+        <Card className="h-max">
+          <PageTitle title="Checklist presencial" subtitle="Use antes de liberar benefícios." />
+          <ol className="mt-4 grid gap-3 text-sm leading-6 text-zinc-300">
+            <li><strong className="text-tech-neon">1.</strong> Conferir voucher físico e código secreto.</li>
+            <li><strong className="text-tech-neon">2.</strong> Conferir documento oficial com foto.</li>
+            <li><strong className="text-tech-neon">3.</strong> Confirmar telefone/WhatsApp do cliente.</li>
+            <li><strong className="text-tech-neon">4.</strong> Ativar e orientar o acesso ao dashboard.</li>
+          </ol>
+          <Button className="mt-5 w-full" variant="secondary" onClick={() => techpass && navigate('/techpass/' + techpass.serial)} disabled={!techpass}><ExternalLink className="h-4 w-4" />Abrir página pública</Button>
+        </Card>
+      </div>
+
+      <Card>
+        <form onSubmit={submit} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="md:col-span-2 xl:col-span-4">
+            <PageTitle title="Cadastro assistido do cliente" subtitle="Preencha junto com o cliente no balcão. Se já houver solicitação pendente, o botão apenas ativa." />
+          </div>
+          <Field label="Nome completo"><Input required value={form.nome} onChange={(event) => setForm({ ...form, nome: event.target.value })} /></Field>
+          <Field label="CPF"><Input required value={form.cpf} onChange={(event) => setForm({ ...form, cpf: event.target.value })} placeholder="000.000.000-00" /></Field>
+          <Field label="Telefone / WhatsApp"><Input required value={form.telefone} onChange={(event) => setForm({ ...form, telefone: event.target.value })} /></Field>
+          <Field label="E-mail"><Input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></Field>
+          <Field label="Código secreto do voucher"><Input required value={form.codigo} onChange={(event) => setForm({ ...form, codigo: event.target.value.toUpperCase() })} placeholder="Ex: SG-7K2P" /></Field>
+          <div className="grid gap-2 md:col-span-2 xl:col-span-3 xl:grid-cols-[auto_auto_1fr] xl:items-end">
+            <Button type="submit" disabled={!techpass || techpass.status === 'CANCELADO'}><UserCheck className="h-4 w-4" />Cadastrar e ativar</Button>
+            {techpass && <Button type="button" variant="secondary" onClick={() => { const result = actions.activatePending(techpass.id); setFeedback(result.message); }} disabled={!pending && techpass.status !== 'PENDENTE_ATIVACAO'}>Ativar pendente</Button>}
+            {feedback && <p className={cx('rounded-lg border p-3 text-sm', feedback.includes('sucesso') || feedback.includes('ativado') ? 'border-tech-neon/30 bg-tech-neon/10 text-tech-neon' : 'border-yellow-300/30 bg-yellow-300/10 text-yellow-100')}>{feedback}</p>}
+          </div>
+        </form>
+      </Card>
     </div>
   );
 }
