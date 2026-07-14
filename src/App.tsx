@@ -598,7 +598,7 @@ function ShortLandingPage({ state, navigate }: { state: AppState; navigate: (pat
   const steps = [
     ['1', 'Escaneie o QR Code', 'Use o QR do voucher ou acesse a tela de ativação pelo botão abaixo.'],
     ['2', 'Digite o código secreto', 'O código vem no voucher físico e libera o pré-cadastro do cliente.'],
-    ['3', 'Escolha Basic ou Premium', 'Basic ganha 1 película. Premium libera benefícios anuais por R$59,90.'],
+    ['3', 'Escolha Gift ou Premium', 'Gift ganha 1 película. Premium libera benefícios anuais por R$59,90.'],
     ['4', 'Finalize na TechSoft', 'Compareça com documento para ativar e usar os benefícios com segurança.'],
   ];
   return (
@@ -617,13 +617,13 @@ function ShortLandingPage({ state, navigate }: { state: AppState; navigate: (pat
           <div>
             <Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">TechSoft Campinas</Pill>
             <h1 className="mt-6 max-w-3xl text-5xl font-black leading-[0.95] text-white sm:text-7xl">Cadastre seu TechPass em poucos passos.</h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-300">Escolha Basic ou Premium, faça o cadastro pelo voucher e finalize a ativação presencialmente na TechSoft.</p>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-300">Escolha Gift ou Premium, faça o cadastro pelo voucher e finalize a ativação presencialmente na TechSoft.</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button className="min-h-12 rounded-full px-6 text-base" onClick={() => navigate('/techpass/TP-SG-000001')}>Começar cadastro <ArrowRight className="h-4 w-4" /></Button>
               <Button variant="secondary" className="min-h-12 rounded-full px-6 text-base" onClick={() => navigate('/login')}>Já tenho cadastro</Button>
             </div>
             <div className="mt-8 flex flex-wrap gap-3 text-sm text-zinc-300">
-              <Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">Planos Basic e Premium</Pill>
+              <Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">Planos Gift e Premium</Pill>
               <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">{activePartners.length || 3} empresas participantes</Pill>
               <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">Ativação segura na loja</Pill>
               <Pill className="border-white/15 bg-white/[0.06] text-zinc-200">Dashboard do cliente</Pill>
@@ -641,7 +641,7 @@ function ShortLandingPage({ state, navigate }: { state: AppState; navigate: (pat
           <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
             <div className="grid gap-5 lg:grid-cols-2">
               <div className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
-                <p className="text-sm font-black uppercase text-zinc-500">Basic</p>
+                <p className="text-sm font-black uppercase text-zinc-500">Gift</p>
                 <h2 className="mt-3 text-4xl font-black">Grátis</h2>
                 <p className="mt-3 text-zinc-700">Para quem quer entrar no sistema TechPass e ganhar uma película ao concluir o cadastro.</p>
                 <ul className="mt-6 grid gap-3 text-sm font-semibold text-zinc-800">
@@ -650,7 +650,7 @@ function ShortLandingPage({ state, navigate }: { state: AppState; navigate: (pat
                   <li>Ofertas públicas da rede</li>
                   <li>Ativação presencial na TechSoft</li>
                 </ul>
-                <Button className="mt-6" onClick={() => navigate('/techpass/TP-SG-000001')}>Cadastrar Basic</Button>
+                <Button className="mt-6" onClick={() => navigate('/techpass/TP-SG-000001')}>Cadastrar Gift</Button>
               </div>
               <div className="rounded-lg border border-tech-neon bg-[#071006] p-6 text-white shadow-[0_24px_70px_rgba(141,255,42,0.18)]">
                 <p className="text-sm font-black uppercase text-tech-neon">Premium</p>
@@ -676,7 +676,7 @@ function ShortLandingPage({ state, navigate }: { state: AppState; navigate: (pat
               <p className="mt-3 leading-7 text-zinc-400">Status do plano, benefícios, indicações, ofertas, solicitações e histórico ficam organizados no dashboard do cliente.</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
-              <Info label="Benefício Basic" value="1 película" />
+              <Info label="Benefício Gift" value="1 película" />
               <Info label="Premium anual" value="R$59,90" />
               <Info label="Mão de obra" value="30% OFF" />
             </div>
