@@ -11,6 +11,14 @@ do $$ begin
   create type techpass_status as enum ('DISPONIVEL', 'PENDENTE_ATIVACAO', 'ATIVO', 'CANCELADO', 'EXPIRADO');
 exception when duplicate_object then null; end $$;
 
+do $$ begin
+  create type gift_link_status as enum ('disponivel', 'cadastrado', 'premiado', 'resgatado', 'cancelado');
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  create type digital_techpass_link_status as enum ('disponivel', 'usado', 'cancelado');
+exception when duplicate_object then null; end $$;
+
 alter type techpass_status add value if not exists 'DISPONIVEL';
 alter type techpass_status add value if not exists 'PENDENTE_ATIVACAO';
 
@@ -395,6 +403,28 @@ create unique index if not exists pending_activations_open_unique
   on pending_activations(techpass_id)
   where status = 'PENDENTE_ATIVACAO';
 
+create table if not exists gift_links (
+  id text primary key default gen_random_uuid()::text,
+  token text not null unique,
+  cliente_nome text not null default '',
+  cliente_telefone text not null default '',
+  cliente_email text not null default '',
+  status gift_link_status not null default 'disponivel',
+  premio text,
+  used_at timestamptz,
+  redeemed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists digital_links (
+  id text primary key default gen_random_uuid()::text,
+  token text not null unique,
+  techpass_id text not null references techpass(id) on delete cascade,
+  status digital_techpass_link_status not null default 'disponivel',
+  used_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists idx_empresas_status on empresas(status);
 create index if not exists idx_clientes_cpf on clientes(cpf);
 create index if not exists idx_techpass_serial on techpass(serial);
@@ -426,6 +456,11 @@ create index if not exists idx_budgets_numero on budgets(numero);
 create index if not exists idx_budgets_status on budgets(status);
 create index if not exists idx_budgets_created_at on budgets(created_at);
 create index if not exists idx_budget_items_budget on budget_items(budget_id);
+create index if not exists idx_gift_links_token on gift_links(token);
+create index if not exists idx_gift_links_status on gift_links(status);
+create index if not exists idx_digital_links_token on digital_links(token);
+create index if not exists idx_digital_links_status on digital_links(status);
+create index if not exists idx_digital_links_techpass on digital_links(techpass_id);
 
 -- MVP: por padrão, RLS pode ficar desabilitado durante testes.
 -- Antes de produção, habilite Supabase Auth, RLS e políticas separando página pública e painel administrativo.

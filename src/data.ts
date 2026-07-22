@@ -56,6 +56,8 @@ export const EMPTY_STATE: AppState = {
   budgets: [],
   budget_items: [],
   devices: [],
+  gift_links: [],
+  digital_links: [],
 };
 
 export function createInitialState(): AppState {
@@ -825,5 +827,20 @@ export function createInitialState(): AppState {
       },
     ],
     devices,
+    gift_links: [
+      {
+        id: 'gift-demo-0001',
+        token: 'BRINDE-DEMO-001',
+        cliente_nome: '',
+        cliente_telefone: '',
+        cliente_email: '',
+        status: 'disponivel',
+        premio: null,
+        created_at: now,
+        used_at: null,
+        redeemed_at: null,
+      },
+    ],
+    digital_links: [],
   };
 }

@@ -31,6 +31,8 @@ export type NotificationTipo = 'informacao' | 'sucesso' | 'alerta' | 'erro';
 export type TipoUsuario = 'admin' | 'parceiro' | 'cliente';
 export type LogNivel = 'info' | 'warning' | 'error' | 'critical';
 export type BudgetStatus = 'rascunho' | 'enviado' | 'aprovado' | 'recusado' | 'concluido';
+export type GiftLinkStatus = 'disponivel' | 'cadastrado' | 'premiado' | 'resgatado' | 'cancelado';
+export type DigitalTechPassLinkStatus = 'disponivel' | 'usado' | 'cancelado';
 
 export type SolicitacaoStatus =
   | 'nova'
@@ -91,6 +93,28 @@ export interface TechPass {
   cashback_saldo: number;
   codigo_indicacao: string | null;
   created_at: string;
+}
+
+export interface GiftLink {
+  id: string;
+  token: string;
+  cliente_nome: string;
+  cliente_telefone: string;
+  cliente_email: string;
+  status: GiftLinkStatus;
+  premio: string | null;
+  created_at: string;
+  used_at: string | null;
+  redeemed_at: string | null;
+}
+
+export interface DigitalTechPassLink {
+  id: string;
+  token: string;
+  techpass_id: string;
+  status: DigitalTechPassLinkStatus;
+  created_at: string;
+  used_at: string | null;
 }
 
 export interface PendingActivation {
@@ -384,4 +408,6 @@ export interface AppState {
   budgets: Budget[];
   budget_items: BudgetItem[];
   devices: DeviceModel[];
+  gift_links: GiftLink[];
+  digital_links: DigitalTechPassLink[];
 }

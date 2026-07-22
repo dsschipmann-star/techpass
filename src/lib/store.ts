@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { createInitialState } from '../data';
 import { hasSupabaseConfig, supabase } from './supabase';
-import type { AppState, BeneficioServico, Budget, BudgetItem, BudgetStatus, CashbackBalance, CashbackMovement, CashbackSetting, CashbackTransaction, Cliente, DeviceModel, Empresa, Indicacao, IndicacaoFightCore, IndicacaoTechSoft, LeadParceiro, NotificationItem, OfertaParceiro, ParceiroUsuario, PendingActivation, Solicitacao, SystemLog, TechPass, TechPassStatus, TipoUsuario, Utilizacao } from '../types';
+import type { AppState, BeneficioServico, Budget, BudgetItem, BudgetStatus, CashbackBalance, CashbackMovement, CashbackSetting, CashbackTransaction, Cliente, DeviceModel, DigitalTechPassLink, Empresa, GiftLink, Indicacao, IndicacaoFightCore, IndicacaoTechSoft, LeadParceiro, NotificationItem, OfertaParceiro, ParceiroUsuario, PendingActivation, Solicitacao, SystemLog, TechPass, TechPassStatus, TipoUsuario, Utilizacao } from '../types';
 
 const STORAGE_KEY = 'techpass-premium-state-v2';
 
@@ -27,6 +27,8 @@ function safeParse(value: string | null): AppState | null {
       budgets: parsed.budgets ?? createInitialState().budgets,
       budget_items: parsed.budget_items ?? createInitialState().budget_items,
       devices: parsed.devices ?? createInitialState().devices,
+      gift_links: parsed.gift_links ?? createInitialState().gift_links,
+      digital_links: parsed.digital_links ?? createInitialState().digital_links,
       utilizacoes: (parsed.utilizacoes ?? []).map((item: any) => ({
         empresa_id: item.empresa_id ?? parsed.techpasses?.find((tp) => tp.id === item.techpass_id)?.empresa_id ?? 'emp-techsoft',
         solicitacao_id: item.solicitacao_id ?? null,
@@ -68,6 +70,25 @@ function createSecretCode(serial: string) {
   return (base.slice(0, 2) || 'TP') + '-' + random;
 }
 
+const GIFT_PRIZES = [
+  'Pelicula de Vidro',
+  'Capinha Basica',
+  'Limpeza do microfone e alto-falante',
+  '10% de desconto em assistencia tecnica ou acessorios',
+];
+
+function createPublicToken(prefix: string) {
+  const safePrefix = prefix.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') || 'LINK';
+  const date = new Date().toISOString().slice(2, 10).replace(/-/g, '');
+  const random = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return safePrefix + '-' + date + '-' + random;
+}
+
+function pickGiftPrize(token: string) {
+  const score = token.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return GIFT_PRIZES[score % GIFT_PRIZES.length];
+}
+
 export function formatMoney(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
@@ -102,6 +123,7 @@ function normalizeOferta(oferta: any): OfertaParceiro {
 
 async function loadSupabaseState(): Promise<AppState | null> {
   if (!supabase) return null;
+  const localState = safeParse(localStorage.getItem(STORAGE_KEY)) ?? createInitialState();
   const [empresas, parceiroUsuarios, clientes, techpass, pending, cashback, cashbackSettings, cashbackBalances, cashbackTransactions, indicacoes, utilizacoes, beneficiosServicos, solicitacoes, ofertas, leads, fightCoreIndicacoes, techSoftIndicacoes, notifications, systemLogs, budgets, budgetItems] = await Promise.all([
     supabase.from('empresas').select('*').order('created_at', { ascending: false }),
     supabase.from('parceiro_usuarios').select('*').order('created_at', { ascending: false }),
@@ -150,6 +172,8 @@ async function loadSupabaseState(): Promise<AppState | null> {
     budgets: budgets.data ?? [],
     budget_items: budgetItems.data ?? [],
     devices: createInitialState().devices,
+    gift_links: localState.gift_links,
+    digital_links: localState.digital_links,
   };
 }
 
@@ -894,6 +918,207 @@ export function useTechPassStore() {
         };
       });
       return newId;
+    },
+    generateGiftLinks(quantity: number) {
+      if (quantity < 1) return [] as GiftLink[];
+      const created: GiftLink[] = [];
+      setState((current) => {
+        const now = new Date().toISOString();
+        for (let index = 0; index < quantity; index += 1) {
+          let token = createPublicToken('BRINDE');
+          while (current.gift_links.some((item) => item.token === token) || created.some((item) => item.token === token)) {
+            token = createPublicToken('BRINDE');
+          }
+          created.push({
+            id: makeId('gift'),
+            token,
+            cliente_nome: '',
+            cliente_telefone: '',
+            cliente_email: '',
+            status: 'disponivel',
+            premio: null,
+            created_at: now,
+            used_at: null,
+            redeemed_at: null,
+          });
+        }
+        return { ...current, gift_links: [...created, ...current.gift_links] };
+      });
+      return created;
+    },
+    submitGiftRegistration(token: string, payload: { nome: string; telefone: string; email: string }) {
+      let result: { ok: boolean; message: string } = { ok: false, message: 'Link de brinde nao encontrado.' };
+      setState((current) => {
+        const link = current.gift_links.find((item) => item.token.toLowerCase() === token.toLowerCase());
+        if (!link) return current;
+        if (link.status === 'cancelado' || link.status === 'resgatado') {
+          result = { ok: false, message: 'Este link de brinde nao esta mais disponivel.' };
+          return current;
+        }
+        if (link.status === 'premiado') {
+          result = { ok: true, message: 'Cadastro ja concluido. Seu brinde esta disponivel.' };
+          return current;
+        }
+        result = { ok: true, message: 'Cadastro concluido. Agora gire a roleta para descobrir seu brinde.' };
+        return {
+          ...current,
+          gift_links: current.gift_links.map((item) => item.id === link.id ? {
+            ...item,
+            cliente_nome: payload.nome,
+            cliente_telefone: payload.telefone,
+            cliente_email: payload.email,
+            status: 'cadastrado',
+            used_at: item.used_at ?? new Date().toISOString(),
+          } : item),
+        };
+      });
+      return result;
+    },
+    revealGiftPrize(token: string) {
+      let result: { ok: boolean; message: string; premio: string | null } = { ok: false, message: 'Link de brinde nao encontrado.', premio: null };
+      setState((current) => {
+        const link = current.gift_links.find((item) => item.token.toLowerCase() === token.toLowerCase());
+        if (!link) return current;
+        if (link.status === 'cancelado' || link.status === 'resgatado') {
+          result = { ok: false, message: 'Este link de brinde nao esta mais disponivel.', premio: link.premio };
+          return current;
+        }
+        const premio = link.premio ?? pickGiftPrize(link.token);
+        result = { ok: true, message: 'Brinde revelado com sucesso.', premio };
+        return {
+          ...current,
+          gift_links: current.gift_links.map((item) => item.id === link.id ? {
+            ...item,
+            premio,
+            status: 'premiado',
+            used_at: item.used_at ?? new Date().toISOString(),
+          } : item),
+        };
+      });
+      return result;
+    },
+    markGiftRedeemed(token: string) {
+      setState((current) => ({
+        ...current,
+        gift_links: current.gift_links.map((item) => item.token.toLowerCase() === token.toLowerCase() ? {
+          ...item,
+          status: 'resgatado',
+          redeemed_at: new Date().toISOString(),
+        } : item),
+      }));
+    },
+    generateDigitalTechPassLinks(empresaId: string, prefix: string, quantity: number) {
+      const normalizedPrefix = prefix.trim().toUpperCase();
+      if (!empresaId || !normalizedPrefix || quantity < 1) return [] as DigitalTechPassLink[];
+      const createdLinks: DigitalTechPassLink[] = [];
+      const createdPasses: TechPass[] = [];
+      setState((current) => {
+        const maxExisting = current.techpasses
+          .filter((item) => item.serial.startsWith(normalizedPrefix + '-'))
+          .map((item) => {
+            const parts = item.serial.split('-');
+            return Number(parts[parts.length - 1] ?? '0');
+          })
+          .filter(Number.isFinite)
+          .reduce((max, item) => Math.max(max, item), 0);
+        const now = new Date().toISOString();
+        for (let index = 1; index <= quantity; index += 1) {
+          const serial = normalizedPrefix + '-' + String(maxExisting + index).padStart(6, '0');
+          const techpassId = makeId('tp');
+          let token = createPublicToken('DIGITAL');
+          while (current.digital_links.some((item) => item.token === token) || createdLinks.some((item) => item.token === token)) {
+            token = createPublicToken('DIGITAL');
+          }
+          createdPasses.push({
+            id: techpassId,
+            serial,
+            empresa_id: empresaId,
+            cliente_id: null,
+            status: 'DISPONIVEL',
+            qr_code_url: '/techpass-digital/' + token,
+            codigo_fisico: token,
+            codigo_usado: false,
+            activated_at: null,
+            expires_at: null,
+            peliculas_restantes: 6,
+            cashback_saldo: 0,
+            codigo_indicacao: null,
+            created_at: now,
+          });
+          createdLinks.push({
+            id: makeId('digital'),
+            token,
+            techpass_id: techpassId,
+            status: 'disponivel',
+            created_at: now,
+            used_at: null,
+          });
+        }
+        return {
+          ...current,
+          techpasses: [...createdPasses, ...current.techpasses],
+          digital_links: [...createdLinks, ...current.digital_links],
+        };
+      });
+      return createdLinks;
+    },
+    requestDigitalActivation(token: string, clientPayload: Omit<Cliente, 'id' | 'created_at' | 'codigo_indicacao'>) {
+      let result: { ok: boolean; message: string } = { ok: false, message: 'Link TechPass digital nao encontrado.' };
+      setState((current) => {
+        const link = current.digital_links.find((item) => item.token.toLowerCase() === token.toLowerCase());
+        if (!link) return current;
+        const techpass = current.techpasses.find((item) => item.id === link.techpass_id);
+        if (!techpass) {
+          result = { ok: false, message: 'TechPass vinculado nao encontrado.' };
+          return current;
+        }
+        if (link.status !== 'disponivel' || techpass.status !== 'DISPONIVEL' || techpass.codigo_usado) {
+          result = { ok: false, message: 'Este link ja foi utilizado.' };
+          return current;
+        }
+        const cpf = cleanCpf(clientPayload.cpf);
+        const existingClient = current.clientes.find((item) => cleanCpf(item.cpf) === cpf);
+        const hasDuplicate = existingClient
+          ? current.techpasses.some((item) => item.cliente_id === existingClient.id && (item.status === 'ATIVO' || item.status === 'PENDENTE_ATIVACAO'))
+          : false;
+        if (hasDuplicate) {
+          result = { ok: false, message: 'Este CPF ja possui TechPass ativo ou pendente.' };
+          return current;
+        }
+        const clientId = existingClient?.id ?? makeId('cli');
+        const client: Cliente = existingClient ?? {
+          ...clientPayload,
+          id: clientId,
+          codigo_indicacao: '',
+          created_at: new Date().toISOString(),
+        };
+        const pending: PendingActivation = {
+          id: makeId('pend'),
+          techpass_id: techpass.id,
+          cliente_id: clientId,
+          codigo_informado: token,
+          status: 'PENDENTE_ATIVACAO',
+          created_at: new Date().toISOString(),
+        };
+        result = { ok: true, message: 'Cadastro recebido. Agora e so comparecer a loja para ativar o TechPass.' };
+        return {
+          ...current,
+          clientes: existingClient ? current.clientes.map((item) => item.id === existingClient.id ? { ...item, ...clientPayload } : item) : [client, ...current.clientes],
+          pending_activations: [pending, ...current.pending_activations],
+          techpasses: current.techpasses.map((item) => item.id === techpass.id ? {
+            ...item,
+            cliente_id: clientId,
+            status: 'PENDENTE_ATIVACAO',
+            codigo_usado: true,
+          } : item),
+          digital_links: current.digital_links.map((item) => item.id === link.id ? {
+            ...item,
+            status: 'usado',
+            used_at: new Date().toISOString(),
+          } : item),
+        };
+      });
+      return result;
     },
     setBudgetStatus(id: string, status: BudgetStatus) {
       setState((current) => ({

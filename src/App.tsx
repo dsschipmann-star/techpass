@@ -55,7 +55,7 @@ import superGeeksLogo from './assets/super-geeks-logo.png';
 import techsoftLogo from './assets/techsoft-logo.png';
 import techpassVoucherMockup from './assets/techpass-voucher-mockup.png';
 
-type AdminView = 'dashboard' | 'saude' | 'atendimento' | 'empresas' | 'techpass' | 'qrcodes' | 'pendentes' | 'ativar' | 'validar' | 'orcamentos' | 'cashback' | 'indicacoes' | 'solicitacoes' | 'beneficios' | 'ofertas' | 'clientes' | 'logs';
+type AdminView = 'dashboard' | 'saude' | 'atendimento' | 'empresas' | 'techpass' | 'links' | 'qrcodes' | 'pendentes' | 'ativar' | 'validar' | 'orcamentos' | 'cashback' | 'indicacoes' | 'solicitacoes' | 'beneficios' | 'ofertas' | 'clientes' | 'logs';
 
 const ADMIN_NAV: Array<{ id: AdminView; label: string; icon: typeof Activity }> = [
   { id: 'dashboard', label: 'Dashboard', icon: Activity },
@@ -63,6 +63,7 @@ const ADMIN_NAV: Array<{ id: AdminView; label: string; icon: typeof Activity }> 
   { id: 'atendimento', label: 'Atendimento na loja', icon: ScanLine },
   { id: 'empresas', label: 'Empresas parceiras', icon: Building2 },
   { id: 'techpass', label: 'Gerar TechPass', icon: CreditCard },
+  { id: 'links', label: 'Links Brinde/Digital', icon: Gift },
   { id: 'qrcodes', label: 'QR Codes', icon: QrCodeIcon },
   { id: 'pendentes', label: 'Cadastros pendentes', icon: UserCheck },
   { id: 'ativar', label: 'Ativar TechPass', icon: ShieldCheck },
@@ -522,6 +523,16 @@ function App() {
     return <BudgetSharePage budgetId={budgetId} state={state} navigate={navigate} />;
   }
 
+  if (path.startsWith('/brinde/')) {
+    const token = decodeURIComponent(path.split('/').filter(Boolean)[1] ?? '');
+    return <GiftLinkPage token={token} state={state} actions={actions} navigate={navigate} />;
+  }
+
+  if (path.startsWith('/techpass-digital/')) {
+    const token = decodeURIComponent(path.split('/').filter(Boolean)[1] ?? '');
+    return <DigitalTechPassPage token={token} state={state} actions={actions} navigate={navigate} />;
+  }
+
   if (path.startsWith('/admin')) {
     return <AdminApp state={state} actions={actions} navigate={navigate} />;
   }
@@ -559,6 +570,200 @@ function App() {
   }
 
   return <ShortLandingPage state={state} navigate={navigate} />;
+}
+
+const WHEEL_DISPLAY_PRIZES = [
+  'Fone Bluetooth',
+  '50% OFF',
+  'Carregador Turbo',
+  'Power Bank',
+  'Pelicula de Vidro',
+  'Capinha Basica',
+  'Limpeza do microfone e alto-falante',
+  '10% de desconto',
+];
+
+function GiftLinkPage({ token, state, actions, navigate }: { token: string; state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; navigate: (path: string) => void }) {
+  const link = state.gift_links.find((item) => item.token.toLowerCase() === token.toLowerCase());
+  const [step, setStep] = useState<'intro' | 'wheel' | 'result'>(link?.premio ? 'result' : link?.status === 'cadastrado' ? 'wheel' : 'intro');
+  const [form, setForm] = useState({ nome: link?.cliente_nome ?? '', telefone: link?.cliente_telefone ?? '', email: link?.cliente_email ?? '' });
+  const [spinning, setSpinning] = useState(false);
+  const [message, setMessage] = useState('');
+  const prize = state.gift_links.find((item) => item.token.toLowerCase() === token.toLowerCase())?.premio ?? link?.premio ?? '';
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const result = actions.submitGiftRegistration(token, form);
+    setMessage(result.message);
+    if (result.ok) setStep(link?.premio ? 'result' : 'wheel');
+  };
+  const spin = () => {
+    if (spinning) return;
+    setSpinning(true);
+    setMessage('Roleta girando...');
+    window.setTimeout(() => {
+      const result = actions.revealGiftPrize(token);
+      setMessage(result.message);
+      setSpinning(false);
+      if (result.ok) setStep('result');
+    }, 1800);
+  };
+  const redeem = () => {
+    const currentPrize = state.gift_links.find((item) => item.token.toLowerCase() === token.toLowerCase())?.premio ?? prize;
+    if (!currentPrize) return;
+    actions.markGiftRedeemed(token);
+    const text = 'Ola, ganhei ' + currentPrize + ', quando posso retirar?';
+    window.open('https://wa.me/5548991512020?text=' + encodeURIComponent(text), '_blank');
+  };
+  if (!link) {
+    return (
+      <PublicShell>
+        <Card className="mx-auto max-w-xl p-8 text-center">
+          <h1 className="text-3xl font-black text-white">Link nao encontrado</h1>
+          <p className="mt-3 text-zinc-400">Confira se o QR Code ou link foi digitado corretamente.</p>
+          <Button className="mt-6" onClick={() => navigate('/')}>Voltar</Button>
+        </Card>
+      </PublicShell>
+    );
+  }
+  if (link.status === 'cancelado' || link.status === 'resgatado') {
+    return (
+      <PublicShell>
+        <Card className="mx-auto max-w-xl p-8 text-center">
+          <Pill className="mx-auto border-zinc-500/30 bg-white/10 text-zinc-200">{link.status}</Pill>
+          <h1 className="mt-5 text-3xl font-black text-white">Este brinde ja foi finalizado</h1>
+          <p className="mt-3 text-zinc-400">Fale com a TechSoft caso precise conferir alguma informacao.</p>
+        </Card>
+      </PublicShell>
+    );
+  }
+  return (
+    <PublicShell>
+      <main className="mx-auto grid max-w-5xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:items-center">
+        <section>
+          <Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">Presente TechSoft</Pill>
+          <h1 className="mt-5 text-4xl font-black leading-tight text-white sm:text-6xl">Parabens, voce recebeu um brinde!</h1>
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-300">Complete seu cadastro para descobrir seu premio na roleta. O resgate acontece pelo WhatsApp da loja.</p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {['Cadastro rapido', 'Roleta instantanea', 'Resgate no WhatsApp'].map((item) => <div key={item} className="rounded-lg border border-white/10 bg-white/[0.04] p-4 text-sm font-bold text-white">{item}</div>)}
+          </div>
+        </section>
+        <Card className="p-5 sm:p-6">
+          {step === 'intro' && (
+            <form onSubmit={submit} className="grid gap-4">
+              <div>
+                <h2 className="text-2xl font-black text-white">Complete seu cadastro para descobrir</h2>
+                <p className="mt-1 text-sm text-zinc-400">Usaremos seus dados apenas para identificar o brinde na retirada.</p>
+              </div>
+              <Field label="Nome completo"><Input required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Seu nome" /></Field>
+              <Field label="WhatsApp"><Input required value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} placeholder="(48) 99999-9999" /></Field>
+              <Field label="E-mail"><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="voce@email.com" /></Field>
+              {message && <p className="text-sm font-semibold text-tech-neon">{message}</p>}
+              <Button type="submit"><ArrowRight className="h-4 w-4" />Ir para a roleta</Button>
+            </form>
+          )}
+          {step === 'wheel' && (
+            <div className="grid gap-5 text-center">
+              <div>
+                <h2 className="text-2xl font-black text-white">Gire para revelar seu brinde</h2>
+                <p className="mt-1 text-sm text-zinc-400">A vitrine mostra varios premios. O resultado valido aparece ao final.</p>
+              </div>
+              <div className="relative mx-auto grid h-72 w-72 place-items-center rounded-full border border-tech-neon/40 bg-[radial-gradient(circle_at_center,rgba(126,255,31,.2),rgba(0,0,0,.15)_55%,rgba(0,0,0,.75))] shadow-2xl shadow-tech-neon/10">
+                <div className="absolute -top-2 h-8 w-6 rounded-b-full bg-tech-neon shadow-lg shadow-tech-neon/30" />
+                <div className="grid h-56 w-56 place-items-center rounded-full border border-white/10 bg-black/55 p-4 transition duration-[1800ms]" style={{ transform: spinning ? 'rotate(1320deg)' : 'rotate(0deg)' }}>
+                  <div className="grid gap-2">
+                    {WHEEL_DISPLAY_PRIZES.map((item) => <span key={item} className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-black text-white">{item}</span>)}
+                  </div>
+                </div>
+              </div>
+              {message && <p className="text-sm font-semibold text-tech-neon">{message}</p>}
+              <Button onClick={spin} disabled={spinning}><Sparkles className="h-4 w-4" />{spinning ? 'Girando...' : 'Girar roleta'}</Button>
+            </div>
+          )}
+          {step === 'result' && (
+            <div className="grid gap-5 text-center">
+              <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-tech-neon text-black"><Gift className="h-9 w-9" /></div>
+              <div>
+                <p className="text-sm font-black uppercase text-tech-neon">Seu brinde</p>
+                <h2 className="mt-2 text-3xl font-black text-white">{prize || 'Brinde liberado'}</h2>
+                <p className="mt-3 text-sm leading-6 text-zinc-400">Clique para chamar a TechSoft no WhatsApp com a mensagem pronta e combinar a retirada.</p>
+              </div>
+              <Button onClick={redeem}><ExternalLink className="h-4 w-4" />Resgatar brinde no WhatsApp</Button>
+            </div>
+          )}
+        </Card>
+      </main>
+    </PublicShell>
+  );
+}
+
+function DigitalTechPassPage({ token, state, actions, navigate }: { token: string; state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; navigate: (path: string) => void }) {
+  const link = state.digital_links.find((item) => item.token.toLowerCase() === token.toLowerCase());
+  const techpass = link ? state.techpasses.find((item) => item.id === link.techpass_id) : null;
+  const [form, setForm] = useState({ nome: '', cpf: '', telefone: '', email: '' });
+  const [message, setMessage] = useState('');
+  const [done, setDone] = useState(false);
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const result = actions.requestDigitalActivation(token, form);
+    setMessage(result.message);
+    if (result.ok) setDone(true);
+  };
+  if (!link || !techpass) {
+    return (
+      <PublicShell>
+        <Card className="mx-auto max-w-xl p-8 text-center">
+          <h1 className="text-3xl font-black text-white">TechPass digital nao encontrado</h1>
+          <p className="mt-3 text-zinc-400">Confira o QR Code impresso no voucher.</p>
+          <Button className="mt-6" onClick={() => navigate('/')}>Voltar</Button>
+        </Card>
+      </PublicShell>
+    );
+  }
+  if (link.status !== 'disponivel' || done) {
+    return (
+      <PublicShell>
+        <Card className="mx-auto max-w-2xl p-8 text-center">
+          <Pill className="mx-auto border-tech-neon/40 bg-tech-neon/10 text-tech-neon">Cadastro recebido</Pill>
+          <h1 className="mt-5 text-4xl font-black text-white">Seu TechPass esta aguardando ativacao na loja</h1>
+          <p className="mt-4 text-zinc-300">Leve um documento oficial com foto ate a TechSoft para concluir a ativacao presencial.</p>
+          <div className="mt-6 rounded-lg border border-white/10 bg-black/30 p-4 text-left">
+            <p className="text-xs font-black uppercase text-zinc-500">Serial</p>
+            <p className="font-mono text-lg font-black text-tech-neon">{techpass.serial}</p>
+          </div>
+        </Card>
+      </PublicShell>
+    );
+  }
+  return (
+    <PublicShell>
+      <main className="mx-auto grid max-w-5xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[0.9fr_1fr] lg:items-center">
+        <section>
+          <Pill className="border-tech-neon/40 bg-tech-neon/10 text-tech-neon">TechPass Digital</Pill>
+          <h1 className="mt-5 text-4xl font-black leading-tight text-white sm:text-6xl">Ative seu TechPass pelo QR Code</h1>
+          <p className="mt-5 text-lg leading-8 text-zinc-300">Preencha seus dados uma unica vez. Depois, compareca a loja para validar seu documento e liberar os beneficios.</p>
+          <div className="mt-6 rounded-lg border border-white/10 bg-white/[0.04] p-5">
+            <p className="text-xs font-black uppercase text-zinc-500">Voucher</p>
+            <p className="mt-2 font-mono text-xl font-black text-tech-neon">{techpass.serial}</p>
+            <p className="mt-1 text-sm text-zinc-400">{getEmpresaName(state, techpass.empresa_id)}</p>
+          </div>
+        </section>
+        <Card className="p-5 sm:p-6">
+          <form onSubmit={submit} className="grid gap-4">
+            <div>
+              <h2 className="text-2xl font-black text-white">Cadastro do cliente</h2>
+              <p className="mt-1 text-sm text-zinc-400">Este link e unico e sera bloqueado apos o envio.</p>
+            </div>
+            <Field label="Nome completo"><Input required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></Field>
+            <Field label="CPF"><Input required value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} /></Field>
+            <Field label="WhatsApp"><Input required value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></Field>
+            <Field label="E-mail"><Input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
+            {message && <p className="text-sm font-semibold text-tech-neon">{message}</p>}
+            <Button type="submit"><ShieldCheck className="h-4 w-4" />Enviar cadastro</Button>
+          </form>
+        </Card>
+      </main>
+    </PublicShell>
+  );
 }
 
 function NotificationsPage({ state, actions, navigate }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; navigate: (path: string) => void }) {
@@ -1427,6 +1632,7 @@ function AdminApp({ state, actions, navigate }: { state: AppState; actions: Retu
           {view === 'atendimento' && <StoreActivationScreen state={state} actions={actions} navigate={navigate} />}
           {view === 'empresas' && <EmpresasScreen state={state} actions={actions} />}
           {view === 'techpass' && <TechPassScreen state={state} actions={actions} navigate={navigate} />}
+          {view === 'links' && <PromoLinksScreen state={state} actions={actions} navigate={navigate} />}
           {view === 'qrcodes' && <QrCodesScreen state={state} navigate={navigate} />}
           {view === 'pendentes' && <PendentesScreen state={state} actions={actions} />}
           {view === 'ativar' && <PendentesScreen state={state} actions={actions} />}
@@ -1899,6 +2105,138 @@ function TechPassScreen({ state, actions, navigate }: { state: AppState; actions
             </div>
           </Card>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function PromoLinksScreen({ state, actions, navigate }: { state: AppState; actions: ReturnType<typeof useTechPassStore>['actions']; navigate: (path: string) => void }) {
+  const firstEmpresa = state.empresas.find((item) => item.status === 'ativa')?.id ?? '';
+  const [giftQuantity, setGiftQuantity] = useState(10);
+  const [digitalQuantity, setDigitalQuantity] = useState(10);
+  const [empresaId, setEmpresaId] = useState(firstEmpresa);
+  const [prefix, setPrefix] = useState('TP-DIG');
+  const [message, setMessage] = useState('');
+  const makeUrl = (path: string) => window.location.origin + path;
+  const copy = async (value: string) => {
+    await navigator.clipboard.writeText(value);
+    setMessage('Link copiado para a area de transferencia.');
+  };
+  const downloadQr = async (url: string, filename: string) => {
+    const dataUrl = await createQrDataUrl(url, { raw: true });
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = filename;
+    link.click();
+  };
+  const createGifts = (event: FormEvent) => {
+    event.preventDefault();
+    const created = actions.generateGiftLinks(giftQuantity);
+    setMessage(created.length + ' links de brinde gerados.');
+  };
+  const createDigital = (event: FormEvent) => {
+    event.preventDefault();
+    const created = actions.generateDigitalTechPassLinks(empresaId, prefix, digitalQuantity);
+    setMessage(created.length + ' links TechPass digitais gerados.');
+  };
+  return (
+    <div className="grid gap-6">
+      <PageTitle title="Links Brinde e TechPass Digital" subtitle="Gere links unicos para campanha de brindes e para QR Codes impressos em material fisico." />
+      {message && <Card className="border-tech-neon/25 bg-tech-neon/10 p-4 text-sm font-semibold text-tech-neon">{message}</Card>}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <form onSubmit={createGifts} className="grid gap-4">
+            <div>
+              <h2 className="text-xl font-black text-white">Gerador de link brinde</h2>
+              <p className="mt-1 text-sm text-zinc-400">Cada link abre a tela de cadastro e a roleta. O brinde premiado fica limitado aos quatro premios liberados.</p>
+            </div>
+            <Field label="Quantidade"><Input type="number" min={1} max={500} value={giftQuantity} onChange={(e) => setGiftQuantity(Number(e.target.value))} /></Field>
+            <Button type="submit"><Gift className="h-4 w-4" />Gerar links de brinde</Button>
+          </form>
+        </Card>
+        <Card>
+          <form onSubmit={createDigital} className="grid gap-4">
+            <div>
+              <h2 className="text-xl font-black text-white">TechPass via link unico</h2>
+              <p className="mt-1 text-sm text-zinc-400">Cria o TechPass e um link digital de uso unico para imprimir como QR Code no voucher fisico.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="Empresa"><Select value={empresaId} onChange={(e) => setEmpresaId(e.target.value)}>{state.empresas.filter((item) => item.status === 'ativa').map((empresa) => <option key={empresa.id} value={empresa.id}>{empresa.nome}</option>)}</Select></Field>
+              <Field label="Prefixo"><Input value={prefix} onChange={(e) => setPrefix(e.target.value.toUpperCase())} /></Field>
+              <Field label="Quantidade"><Input type="number" min={1} max={500} value={digitalQuantity} onChange={(e) => setDigitalQuantity(Number(e.target.value))} /></Field>
+            </div>
+            <Button type="submit"><QrCodeIcon className="h-4 w-4" />Gerar TechPass digitais</Button>
+          </form>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Card>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-white">Links de brinde</h2>
+              <p className="text-sm text-zinc-400">{state.gift_links.length} links gerados.</p>
+            </div>
+            <Pill className="border-tech-neon/30 bg-tech-neon/10 text-tech-neon">Roleta premiada</Pill>
+          </div>
+          <div className="mt-4 grid gap-3">
+            {state.gift_links.map((item) => {
+              const url = makeUrl('/brinde/' + encodeURIComponent(item.token));
+              return (
+                <div key={item.id} className="grid gap-3 rounded-lg border border-white/10 bg-black/25 p-3 sm:grid-cols-[84px_1fr]">
+                  <QrCode serial={item.token} url={url} size={84} />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate font-mono text-sm font-black text-white">{item.token}</p>
+                      <Pill>{item.status}</Pill>
+                    </div>
+                    <p className="mt-1 text-xs text-zinc-400">{item.cliente_nome || 'Ainda sem cadastro'} {item.premio ? '· ' + item.premio : ''}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button className="min-h-9 px-3 py-1.5" variant="secondary" onClick={() => copy(url)}><Copy className="h-4 w-4" />Copiar</Button>
+                      <Button className="min-h-9 px-3 py-1.5" variant="secondary" onClick={() => downloadQr(url, item.token + '-qrcode.png')}><Download className="h-4 w-4" />QR</Button>
+                      <Button className="min-h-9 px-3 py-1.5" onClick={() => navigate('/brinde/' + item.token)}><ExternalLink className="h-4 w-4" />Abrir</Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {state.gift_links.length === 0 && <EmptyMessage title="Nenhum link de brinde" description="Gere o primeiro lote para iniciar uma campanha." />}
+          </div>
+        </Card>
+
+        <Card>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-white">TechPass digitais</h2>
+              <p className="text-sm text-zinc-400">{state.digital_links.length} links de ativacao unica.</p>
+            </div>
+            <Pill className="border-sky-300/30 bg-sky-300/10 text-sky-100">QR fisico</Pill>
+          </div>
+          <div className="mt-4 grid gap-3">
+            {state.digital_links.map((item) => {
+              const techpass = state.techpasses.find((pass) => pass.id === item.techpass_id);
+              const url = makeUrl('/techpass-digital/' + encodeURIComponent(item.token));
+              return (
+                <div key={item.id} className="grid gap-3 rounded-lg border border-white/10 bg-black/25 p-3 sm:grid-cols-[84px_1fr]">
+                  <QrCode serial={item.token} url={url} size={84} />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate font-mono text-sm font-black text-white">{techpass?.serial ?? item.token}</p>
+                      <Pill>{item.status}</Pill>
+                    </div>
+                    <p className="mt-1 text-xs text-zinc-400">{techpass ? getEmpresaName(state, techpass.empresa_id) : 'TechPass nao localizado'} · uso unico</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button className="min-h-9 px-3 py-1.5" variant="secondary" onClick={() => copy(url)}><Copy className="h-4 w-4" />Copiar</Button>
+                      <Button className="min-h-9 px-3 py-1.5" variant="secondary" onClick={() => downloadQr(url, (techpass?.serial ?? item.token) + '-digital-qr.png')}><Download className="h-4 w-4" />QR</Button>
+                      <Button className="min-h-9 px-3 py-1.5" onClick={() => navigate('/techpass-digital/' + item.token)}><ExternalLink className="h-4 w-4" />Abrir</Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {state.digital_links.length === 0 && <EmptyMessage title="Nenhum TechPass digital" description="Gere links digitais para imprimir QR Codes de ativacao." />}
+          </div>
+        </Card>
       </div>
     </div>
   );
